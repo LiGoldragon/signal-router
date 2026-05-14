@@ -12,17 +12,18 @@ fn router_summary_query_round_trips_through_length_prefixed_frame() {
     let request = RouterRequest::Summary(RouterSummaryQuery {
         engine: EngineId::new("prototype"),
     });
-    let frame = Frame::new(FrameBody::Request(Request::assert(request.clone())));
+    let frame = Frame::new(FrameBody::Request(Request::match_records(request.clone())));
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
     match decoded.into_body() {
         FrameBody::Request(Request::Operation { verb, payload }) => {
-            assert_eq!(verb, SemaVerb::Assert);
+            assert_eq!(verb, SemaVerb::Match);
+            assert_eq!(request.signal_verb(), SemaVerb::Match);
             assert_eq!(payload, request);
         }
-        other => panic!("expected Assert request, got {other:?}"),
+        other => panic!("expected Match request, got {other:?}"),
     }
 }
 #[test]
@@ -31,16 +32,18 @@ fn router_message_trace_query_round_trips_through_length_prefixed_frame() {
         engine: EngineId::new("prototype"),
         message_slot: MessageSlot::new(7),
     });
-    let frame = Frame::new(FrameBody::Request(Request::assert(request.clone())));
+    let frame = Frame::new(FrameBody::Request(Request::match_records(request.clone())));
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
     match decoded.into_body() {
-        FrameBody::Request(Request::Operation { payload, .. }) => {
+        FrameBody::Request(Request::Operation { verb, payload }) => {
+            assert_eq!(verb, SemaVerb::Match);
+            assert_eq!(request.signal_verb(), SemaVerb::Match);
             assert_eq!(payload, request);
         }
-        other => panic!("expected request, got {other:?}"),
+        other => panic!("expected Match request, got {other:?}"),
     }
 }
 
@@ -50,16 +53,39 @@ fn router_channel_state_query_round_trips_through_length_prefixed_frame() {
         engine: EngineId::new("prototype"),
         channel: ChannelId::new("internal-message-router"),
     });
-    let frame = Frame::new(FrameBody::Request(Request::assert(request.clone())));
+    let frame = Frame::new(FrameBody::Request(Request::match_records(request.clone())));
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
     match decoded.into_body() {
-        FrameBody::Request(Request::Operation { payload, .. }) => {
+        FrameBody::Request(Request::Operation { verb, payload }) => {
+            assert_eq!(verb, SemaVerb::Match);
+            assert_eq!(request.signal_verb(), SemaVerb::Match);
             assert_eq!(payload, request);
         }
-        other => panic!("expected request, got {other:?}"),
+        other => panic!("expected Match request, got {other:?}"),
+    }
+}
+
+#[test]
+fn router_request_variants_declare_match_as_signal_root_verb() {
+    let requests = [
+        RouterRequest::Summary(RouterSummaryQuery {
+            engine: EngineId::new("prototype"),
+        }),
+        RouterRequest::MessageTrace(RouterMessageTraceQuery {
+            engine: EngineId::new("prototype"),
+            message_slot: MessageSlot::new(7),
+        }),
+        RouterRequest::ChannelState(RouterChannelStateQuery {
+            engine: EngineId::new("prototype"),
+            channel: ChannelId::new("internal-message-router"),
+        }),
+    ];
+
+    for request in requests {
+        assert_eq!(request.signal_verb(), SemaVerb::Match);
     }
 }
 
