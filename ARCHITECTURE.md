@@ -22,7 +22,7 @@ The former asks and wraps; the latter owns message ingress.
 
 Current request variants are read-shaped observation queries. They all declare
 their root verb in the `signal_channel!` declaration, which generates
-`RouterRequest::signal_verb()` and `RouterRequest::into_signal_request()`.
+`RouterRequest::signal_verb()` and `RouterRequest::into_request()`.
 All current variants map to `Match`:
 
 ```text
