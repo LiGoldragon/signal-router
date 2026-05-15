@@ -112,16 +112,18 @@ pub enum RouterObservationUnimplementedReason {
 }
 
 signal_channel! {
-    request RouterRequest {
-        Match Summary(RouterSummaryQuery),
-        Match MessageTrace(RouterMessageTraceQuery),
-        Match ChannelState(RouterChannelStateQuery),
-    }
+    channel Router {
+        request RouterRequest {
+            Match Summary(RouterSummaryQuery),
+            Match MessageTrace(RouterMessageTraceQuery),
+            Match ChannelState(RouterChannelStateQuery),
+        }
 
-    reply RouterReply {
-        Summary(RouterSummary),
-        MessageTrace(RouterMessageTrace),
-        ChannelState(RouterChannelState),
-        Unimplemented(RouterObservationUnimplemented),
+        reply RouterReply {
+            Summary(RouterSummary),
+            MessageTrace(RouterMessageTrace),
+            ChannelState(RouterChannelState),
+            Unimplemented(RouterObservationUnimplemented),
+        }
     }
 }
