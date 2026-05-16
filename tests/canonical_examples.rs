@@ -12,9 +12,9 @@ use signal_persona_auth::{ChannelId, EngineId};
 use signal_persona_message::MessageSlot;
 use signal_persona_router::{
     RouterChannelState, RouterChannelStateQuery, RouterChannelStatus, RouterDeliveryStatus,
-    RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
-    RouterObservationScope, RouterObservationUnimplemented, RouterObservationUnimplementedReason,
-    RouterReply, RouterRequest, RouterSummary, RouterSummaryQuery,
+    RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery, RouterObservationScope,
+    RouterObservationUnimplemented, RouterObservationUnimplementedReason, RouterReply,
+    RouterRequest, RouterSummary, RouterSummaryQuery,
 };
 
 const CANONICAL: &str = include_str!("../examples/canonical.nota");
