@@ -7,7 +7,8 @@
 use nota_codec::{NotaEnum, NotaRecord, NotaTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_core::signal_channel;
-use signal_persona_auth::{ChannelId, EngineId};
+use signal_persona::{SocketMode, WirePath};
+use signal_persona_auth::{ChannelId, EngineId, OwnerIdentity};
 use signal_persona_message::MessageSlot;
 
 #[derive(
@@ -142,3 +143,38 @@ signal_channel! {
         }
     }
 }
+
+// ─── Daemon configuration ──────────────────────────────────
+//
+// Typed startup configuration for `persona-router-daemon`. The
+// persona manager writes one of these (NOTA or rkyv) to a state-dir
+// path and passes that path as argv. The daemon decodes through
+// `nota_config::ConfigurationSource::from_argv()?.decode()?` and
+// runs with the resulting record. No environment variables on the
+// production launch path.
+
+/// Startup configuration for `persona-router-daemon`.
+///
+/// Replaces the previous `--socket`, `--store`, `--bootstrap`,
+/// `PERSONA_SOCKET_MODE`, `PERSONA_SUPERVISION_SOCKET_PATH`, and
+/// `PERSONA_SUPERVISION_SOCKET_MODE` argv/environment-variable
+/// surface.
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+pub struct RouterDaemonConfiguration {
+    /// Where the daemon binds its router Unix socket.
+    pub router_socket_path: WirePath,
+    /// chmod applied to the router socket after bind.
+    pub router_socket_mode: SocketMode,
+    /// Where the daemon binds its supervision Unix socket.
+    pub supervision_socket_path: WirePath,
+    /// chmod applied to the supervision socket after bind.
+    pub supervision_socket_mode: SocketMode,
+    /// Path to the router daemon's redb store file.
+    pub store_path: WirePath,
+    /// Optional bootstrap-record path the daemon applies at startup.
+    pub bootstrap_path: Option<WirePath>,
+    /// The engine owner identity passed to the router daemon.
+    pub owner_identity: OwnerIdentity,
+}
+
+nota_config::impl_rkyv_configuration!(RouterDaemonConfiguration);
