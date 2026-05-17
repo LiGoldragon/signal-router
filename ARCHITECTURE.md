@@ -4,12 +4,16 @@
 
 ## 0 · TL;DR
 
-`signal-persona-router` is the typed contract `persona-introspect` (and
-any future consumer) uses to ask the router what happened to a
-message, a channel, or an engine — without opening the router's redb
-directly. The crate carries the router's observation request/reply
-vocabulary and nothing else. There is one `signal_channel!` invocation
-in `src/lib.rs` declaring the `Router` channel.
+`signal-persona-router` is the typed contract for the router's
+component-owned wire vocabulary. It carries the observation channel
+`persona-introspect` uses to ask the router what happened to a message,
+a channel, or an engine. It also carries the manager-written router
+bootstrap vocabulary consumed by `persona-router` at daemon startup.
+
+There is one `signal_channel!` invocation in `src/lib.rs` declaring the
+`Router` observation channel. Bootstrap is not a live request/reply
+channel; it is a typed startup document projected as line-oriented NOTA
+records for the current manager-to-router handoff.
 
 Closed enums on the wire; positive names for "entity not in store"
 cases; one reply variant per concrete observation shape. Slot-lookup
@@ -31,6 +35,16 @@ streaming subscription today: all current variants are one-shot
 ## 2 · Owned surface
 
 - `RouterRequest` / `RouterReply` (closed enums).
+- `RouterBootstrapDocument` / `RouterBootstrapOperation`.
+- Bootstrap operation records:
+  - `RegisterActor`
+  - `GrantDirectMessage`
+  - `InstallStructuralChannels`
+- Bootstrap actor endpoint records:
+  - `ActorId`
+  - `Actor`
+  - `EndpointTransport`
+  - `EndpointKind`
 - `RouterSummaryQuery` / `RouterSummary`.
 - `RouterMessageTraceQuery` and the **two-variant reply split**:
   - `RouterReply::MessageTrace(RouterMessageTrace)` — slot present;
@@ -101,6 +115,7 @@ root-verb witness once they earn a contract surface.
 |---|---|
 | Router observations have a router-owned contract home. | This crate exists; central introspection contract does not define router rows. |
 | Every request/reply travels as a Signal frame. | `tests/round_trip.rs` length-prefixed frame tests per variant. |
+| Manager-written router bootstrap uses router-owned typed vocabulary, not duplicated private records in `persona`. | `RouterBootstrapDocument` and `RouterBootstrapOperation` live in this crate; `bootstrap_document_owns_line_vocabulary_for_manager_and_router` round-trips the line projection. |
 | Router observation queries use the `Match` root. | `RouterRequest::signal_verb()` plus `router_request_variants_declare_match_as_signal_root_verb`. |
 | Message ingress remains in `signal-persona-message`. | This crate imports `MessageSlot` but does not redefine message submission records. |
 | Runtime code stays out of the contract. | Source scan: no Kameo, Tokio, socket, or redb code. |
@@ -110,6 +125,7 @@ root-verb witness once they earn a contract surface.
 | Every `signal_channel!` request variant has a typed `signal_verb()` mapping. | `router_request_variants_declare_match_as_signal_root_verb` asserts the mapping for every variant. |
 | Round-trip witnesses cover every variant in rkyv. | `tests/round_trip.rs` exercises every request and reply variant through `Frame::encode_length_prefixed` / `decode_length_prefixed`. |
 | Round-trip witnesses cover every variant in NOTA. | `examples/canonical.nota` holds one canonical text example per request/reply variant; round-trip tests parse and re-emit each. |
+| Bootstrap line records round-trip through NOTA using the contract crate. | `bootstrap_register_actor_operation_round_trips_through_nota_line`, `bootstrap_direct_message_grant_operation_round_trips_through_nota_line`, and `bootstrap_document_owns_line_vocabulary_for_manager_and_router`. |
 | No stringly-typed dispatch (`match s.as_str()`) for closed-set states. | All status/scope/reason fields are typed closed enums. |
 | Contract crate dependencies use a named API reference (branch or tag), not a raw revision pin. | `Cargo.toml` review: `signal-core`, `signal-persona-auth`, `signal-persona-message`, `nota-codec` are declared `git = "..."` with a named-branch shape; raw `rev = "..."` pins are not used. |
 
@@ -151,6 +167,7 @@ examples/
 tests/
 └── round_trip.rs          — per-variant frame round trips + NOTA witnesses
                              + closed-enum + verb-mapping witnesses
+                             + bootstrap line-projection witness
                              + canonical examples parser
 ```
 

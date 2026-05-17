@@ -5,10 +5,11 @@ use signal_core::{
 use signal_persona_auth::{ChannelId, EngineId};
 use signal_persona_message::MessageSlot;
 use signal_persona_router::{
-    RouterChannelState, RouterChannelStateQuery, RouterChannelStatus, RouterDeliveryStatus,
-    RouterFrame as Frame, RouterFrameBody as FrameBody, RouterMessageTrace,
-    RouterMessageTraceMissing, RouterMessageTraceQuery, RouterReply, RouterRequest, RouterSummary,
-    RouterSummaryQuery,
+    Actor, ActorId, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
+    RouterBootstrapDocument, RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery,
+    RouterChannelStatus, RouterDeliveryStatus, RouterFrame as Frame, RouterFrameBody as FrameBody,
+    RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery, RouterReply,
+    RouterRequest, RouterSummary, RouterSummaryQuery,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -240,4 +241,68 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
     let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&configuration).expect("archive");
     let recovered = RouterDaemonConfiguration::from_rkyv_bytes(&bytes).expect("decode rkyv");
     assert_eq!(recovered, configuration);
+}
+
+#[test]
+fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
+    let operation = RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor::new(
+        ActorId::new("responder"),
+        42,
+        Some(EndpointTransport::new(
+            EndpointKind::HarnessSocket,
+            "/tmp/responder.harness.sock",
+            None,
+        )),
+    )));
+
+    let text = operation.to_nota().expect("encode bootstrap operation");
+    assert_eq!(
+        text,
+        r#"(RegisterActor (Actor responder 42 (EndpointTransport HarnessSocket "/tmp/responder.harness.sock" None)))"#
+    );
+    assert_eq!(
+        RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
+        operation
+    );
+}
+
+#[test]
+fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
+    let operation = RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage::new(
+        ActorId::new("owner"),
+        ActorId::new("initiator"),
+    ));
+
+    let text = operation.to_nota().expect("encode bootstrap operation");
+    assert_eq!(text, "(GrantDirectMessage owner initiator)");
+    assert_eq!(
+        RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
+        operation
+    );
+}
+
+#[test]
+fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
+    let document = RouterBootstrapDocument::new(vec![
+        RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor::new(
+            ActorId::new("initiator"),
+            0,
+            Some(EndpointTransport::new(
+                EndpointKind::HarnessSocket,
+                "/run/persona/engine/harness/initiator.sock",
+                None,
+            )),
+        ))),
+        RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage::new(
+            ActorId::new("initiator"),
+            ActorId::new("responder"),
+        )),
+    ]);
+
+    let text = document.to_nota_lines().expect("encode bootstrap document");
+    let recovered =
+        RouterBootstrapDocument::from_nota_lines(&text).expect("decode bootstrap document");
+
+    assert_eq!(recovered, document);
+    assert_eq!(recovered.operations().len(), 2);
 }
