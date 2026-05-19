@@ -10,6 +10,35 @@ component-owned wire vocabulary. It carries the observation channel
 a channel, or an engine. It also carries the manager-written router
 bootstrap vocabulary consumed by `persona-router` at daemon startup.
 
+## MUST IMPLEMENT — signal architecture migration
+
+This contract is migrating to contract-local verbs per
+`primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`
+and `primary/reports/designer/239-signal-architecture-migration-plan.md`.
+
+Drop the `Match` SignalVerb prefix on every variant. The current
+shape — three siblings `Match Summary(RouterSummaryQuery)`,
+`Match MessageTrace(RouterMessageTraceQuery)`,
+`Match ChannelState(RouterChannelStateQuery)` — collapses to one
+contract-local verb root. Use `Observe` as the read verb (router
+domain is observation of routed work), with a closed payload enum
+naming the observation kind (`Summary`, `MessageTrace`, `ChannelState`).
+Alternatively `Query` if the receiver context reads more naturally as
+querying router state. The bootstrap vocabulary
+(`RouterBootstrapDocument` / `RouterBootstrapOperation` and the
+`RegisterActor` / `GrantDirectMessage` / `InstallStructuralChannels`
+operations) is not a live request/reply channel; those records are
+fine as typed data records. Drop the `Router*` prefix from
+`RouterRequest`, `RouterReply`, `RouterSummaryQuery`, `RouterDeliveryStatus`,
+etc. — the crate namespace already supplies "router."
+
+References: `primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`,
+`primary/reports/designer/239-signal-architecture-migration-plan.md`.
+
+**Note to remover:** when the refactor lands, remove this section and
+add a `## Migration history — contract-local verbs (2026-05-XX)`
+paragraph noting the shape change.
+
 There is one `signal_channel!` invocation in `src/lib.rs` declaring the
 `Router` observation channel. Bootstrap is not a live request/reply
 channel; it is a typed startup document projected as line-oriented NOTA
