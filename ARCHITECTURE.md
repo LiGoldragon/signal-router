@@ -10,33 +10,60 @@ component-owned wire vocabulary. It carries the observation channel
 a channel, or an engine. It also carries the manager-written router
 bootstrap vocabulary consumed by `persona-router` at daemon startup.
 
-## MUST IMPLEMENT — signal architecture migration
+## MUST IMPLEMENT — three-layer migration
 
-This contract is migrating to contract-local verbs per
-`primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`
-and `primary/reports/designer/239-signal-architecture-migration-plan.md`.
+This contract is migrating to the three-layer model affirmed
+2026-05-20 per
+`primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
+and `primary/reports/designer/248-three-layer-changes-for-operators.md`.
 
-Drop the `Match` SignalVerb prefix on every variant. The current
-shape — three siblings `Match Summary(RouterSummaryQuery)`,
-`Match MessageTrace(RouterMessageTraceQuery)`,
+**Layer 1 — Contract Operations on the wire (this crate).** Drop the
+SignalVerb wrappers entirely. The current shape — three siblings
+`Match Summary(RouterSummaryQuery)`, `Match MessageTrace(RouterMessageTraceQuery)`,
 `Match ChannelState(RouterChannelStateQuery)` — collapses to one
 contract-local verb root. Use `Observe` as the read verb (router
 domain is observation of routed work), with a closed payload enum
 naming the observation kind (`Summary`, `MessageTrace`, `ChannelState`).
 Alternatively `Query` if the receiver context reads more naturally as
-querying router state. The bootstrap vocabulary
-(`RouterBootstrapDocument` / `RouterBootstrapOperation` and the
-`RegisterActor` / `GrantDirectMessage` / `InstallStructuralChannels`
-operations) is not a live request/reply channel; those records are
-fine as typed data records. Drop the `Router*` prefix from
-`RouterRequest`, `RouterReply`, `RouterSummaryQuery`, `RouterDeliveryStatus`,
-etc. — the crate namespace already supplies "router."
+querying router state. Drop the `Router*` prefix from `RouterRequest`,
+`RouterReply`, `RouterSummaryQuery`, `RouterDeliveryStatus`, etc. —
+the crate namespace already supplies "router." The bootstrap
+vocabulary (`RouterBootstrapDocument` / `RouterBootstrapOperation`
+and the `RegisterActor` / `GrantDirectMessage` /
+`InstallStructuralChannels` operations) is not a live request/reply
+channel; those records are fine as typed data records.
 
-References: `primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`,
-`primary/reports/designer/239-signal-architecture-migration-plan.md`.
+**Mandatory `Tap`/`Untap` for persona components.** Persona-router
+is a persona component, so its observable surface is standardized.
+Add a mandatory `observable { … }` block; the macro injects
+`Tap(ObserverFilter)` / `Untap(RouterObserverSubscriptionToken)`
+verbs for the standardized observer hook that `persona-introspect`
+subscribes to.
+
+**Layer 2 — Component Commands (persona-router daemon).** The router
+daemon owns its typed Command enum (e.g.
+`RouterCommand::ReadRouterSummary`,
+`RouterCommand::ReadMessageTrace`,
+`RouterCommand::ReadChannelState`,
+`RouterCommand::RegisterActor`,
+`RouterCommand::InstallStructuralChannel`) plus a `CommandExecutor`
+that knows the router's tables.
+
+**Layer 3 — Sema classification (signal-sema).** Each Component
+Command projects to a payloadless `SemaOperation` class via
+`ToSemaOperation`. Cross-component observers filter by class.
+
+**Frame layer.** The dependency on `signal-core` shifts to
+`signal-frame`.
+
+References:
+- `primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
+- `primary/reports/designer/248-three-layer-changes-for-operators.md`
+- `primary/skills/component-triad.md` §"Verbs come in three layers"
+- `primary/skills/contract-repo.md` §"Public contracts use contract-local operation verbs"
 
 **Note to remover:** when the refactor lands, remove this section and
-add a `## Migration history — contract-local verbs (2026-05-XX)`
+add a `## Migration history — three-layer model (2026-05-XX)`
 paragraph noting the shape change.
 
 There is one `signal_channel!` invocation in `src/lib.rs` declaring the
@@ -85,8 +112,8 @@ streaming subscription today: all current variants are one-shot
   `Missing` variant.
 - `RouterObservationUnimplemented` + closed
   `RouterObservationUnimplementedReason`.
-- `signal_channel!`-generated `RouterRequest::signal_verb()` and
-  `RouterRequest::into_request()` for verb-witness round trips.
+- Contract-local verbs declared in the `signal_channel!` invocation;
+  Sema classification (Layer 3) is daemon-side projection only.
 
 ## 3 · Closed-enum integrity
 
@@ -121,22 +148,26 @@ it acts on the closed observation. The same shape applies to
 presence/absence pivots at the reply variant, not by sentinel inside a
 present reply.
 
-## 4 · Signal root verbs
+## 4 · Sema-class projections (Layer 3)
 
-Every `RouterRequest` variant declares its root verb in the
-`signal_channel!` declaration. `signal-core` generates
-`RouterRequest::signal_verb()` and `RouterRequest::into_request()`
-from that declaration. All current variants are read-shaped:
+Each contract-local operation's daemon-side Component Command
+projects to a payloadless Sema class label for observation. All
+current operations are read-shaped:
 
 ```text
-Summary       -> Match
-MessageTrace  -> Match
-ChannelState  -> Match
+Observe (Summary kind)        -> Match
+Observe (MessageTrace kind)   -> Match
+Observe (ChannelState kind)   -> Match
+Tap (mandatory)               -> Subscribe
+Untap (mandatory)             -> Retract
 ```
 
-No router observation request may be wrapped as `Assert`; write-shaped
-router state changes belong in a separate request variant with its own
-root-verb witness once they earn a contract surface.
+The wire form carries the contract-local verb only; the Sema class
+label is computed at observation publish time inside the daemon.
+
+Write-shaped router state changes belong in separate contract-local
+verbs once they earn a contract surface; their Component Commands
+will project to `Assert` / `Mutate` / `Retract` as appropriate.
 
 ## 5 · Constraints
 
@@ -145,18 +176,18 @@ root-verb witness once they earn a contract surface.
 | Router observations have a router-owned contract home. | This crate exists; central introspection contract does not define router rows. |
 | Every request/reply travels as a Signal frame. | `tests/round_trip.rs` length-prefixed frame tests per variant. |
 | Manager-written router bootstrap uses router-owned typed vocabulary, not duplicated private records in `persona`. | `RouterBootstrapDocument` and `RouterBootstrapOperation` live in this crate; `bootstrap_document_owns_line_vocabulary_for_manager_and_router` round-trips the line projection. |
-| Router observation queries use the `Match` root. | `RouterRequest::signal_verb()` plus `router_request_variants_declare_match_as_signal_root_verb`. |
+| Router observation queries are contract-local verbs in verb form; their daemon-side Component Commands project to Sema `Match`. | Daemon-side `ToSemaOperation` impl is the witness; round-trip tests assert each variant's NOTA head. |
 | Message ingress remains in `signal-persona-message`. | This crate imports `MessageSlot` but does not redefine message submission records. |
 | Runtime code stays out of the contract. | Source scan: no Kameo, Tokio, socket, or redb code. |
 | Wire enums contain no `Unknown` variant. | `tests/round_trip.rs::router_status_enums_are_closed_no_unknown_variants` exhaustively matches every `RouterDeliveryStatus` and `RouterChannelStatus` variant. Adding an `Unknown` variant breaks the match. |
 | Any record name containing the word `Unknown` represents a positive "entity not in our state" rejection, not a polling-shape escape hatch. | This crate has no such records today; reply absence pivots at the reply variant (`MessageTraceMissing`) and channel absence at the positive `RouterChannelStatus::Missing`. |
 | Slot lookup miss travels as the typed `MessageTraceMissing` reply variant, not a sentinel inside `RouterMessageTrace.status`. | `router_message_trace_missing_reply_round_trips_through_length_prefixed_frame`. |
-| Every `signal_channel!` request variant has a typed `signal_verb()` mapping. | `router_request_variants_declare_match_as_signal_root_verb` asserts the mapping for every variant. |
+| Each variant's NOTA head matches the contract-local verb declared in `signal_channel!`. | Generated by the macro; round-trip tests assert each variant's head. |
 | Round-trip witnesses cover every variant in rkyv. | `tests/round_trip.rs` exercises every request and reply variant through `Frame::encode_length_prefixed` / `decode_length_prefixed`. |
 | Round-trip witnesses cover every variant in NOTA. | `examples/canonical.nota` holds one canonical text example per request/reply variant; round-trip tests parse and re-emit each. |
 | Bootstrap line records round-trip through NOTA using the contract crate. | `bootstrap_register_actor_operation_round_trips_through_nota_line`, `bootstrap_direct_message_grant_operation_round_trips_through_nota_line`, and `bootstrap_document_owns_line_vocabulary_for_manager_and_router`. |
 | No stringly-typed dispatch (`match s.as_str()`) for closed-set states. | All status/scope/reason fields are typed closed enums. |
-| Contract crate dependencies use a named API reference (branch or tag), not a raw revision pin. | `Cargo.toml` review: `signal-core`, `signal-persona-auth`, `signal-persona-message`, `nota-codec` are declared `git = "..."` with a named-branch shape; raw `rev = "..."` pins are not used. |
+| Contract crate dependencies use a named API reference (branch or tag), not a raw revision pin. | `Cargo.toml` review: `signal-frame`, `signal-persona-auth`, `signal-persona-message`, `nota-codec` are declared `git = "..."` with a named-branch shape; raw `rev = "..."` pins are not used. |
 
 ## 6 · NOTA codec quirk on `signal_channel!` payload heads
 
@@ -170,12 +201,12 @@ encodes as `(RouterMessageTraceMissing (...))`.
 
 ## 7 · Versioning
 
-`signal_core::Frame` carries the protocol version. Schema-level
+`signal_frame::Frame` carries the protocol version. Schema-level
 changes are breaking; coordinate `persona-router` and observation
 consumers (`persona-introspect`) on the upgrade.
 
-This crate depends on `signal-core` via a named-branch reference, not
-a raw revision pin. The destination is a stable `signal-core` API
+This crate depends on `signal-frame` via a named-branch reference, not
+a raw revision pin. The destination is a stable `signal-frame` API
 branch/bookmark once that lane is declared.
 
 ## 8 · Non-ownership
@@ -202,7 +233,8 @@ tests/
 
 ## See also
 
-- `signal-core/src/channel.rs` — the macro
+- `signal-frame/macros/src/validate.rs` — the macro
+- `~/primary/skills/component-triad.md` §"Verbs come in three layers".
 - `signal-persona-message/ARCHITECTURE.md` — companion crate that
   carries message ingress records this crate imports.
 - `signal-persona-introspect/ARCHITECTURE.md` — the central
