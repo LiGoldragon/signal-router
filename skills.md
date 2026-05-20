@@ -50,7 +50,8 @@ tables, or runtime actors.
 
 - Router daemon code, actor logic, state reducers, or redb tables.
 - Owner-only channel policy orders; `owner-signal-persona-router`
-  owns grants, extensions, revocations, and adjudication denials.
+  owns grants, extensions, revocations, and adjudication denials,
+  called by Orchestrate.
 - Message ingress records owned by `signal-persona-message`.
 - Introspection query envelopes owned by `signal-persona-introspect`.
 
