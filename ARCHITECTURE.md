@@ -10,6 +10,11 @@ component-owned wire vocabulary. It carries the observation channel
 a channel, or an engine. It also carries the manager-written router
 bootstrap vocabulary consumed by `persona-router` at daemon startup.
 
+Owner-only channel policy orders are not part of this ordinary
+observation contract. Grants, extensions, revocations, and
+adjudication denials live in `owner-signal-persona-router`, the
+router's policy signal.
+
 ## MUST IMPLEMENT — three-layer migration
 
 This contract is migrating to the three-layer model affirmed
@@ -165,9 +170,12 @@ Untap (mandatory)             -> Retract
 The wire form carries the contract-local verb only; the Sema class
 label is computed at observation publish time inside the daemon.
 
-Write-shaped router state changes belong in separate contract-local
-verbs once they earn a contract surface; their Component Commands
-will project to `Assert` / `Mutate` / `Retract` as appropriate.
+Write-shaped router state changes belong on the authority surface that
+matches who may call them. Owner-only channel policy changes live in
+`owner-signal-persona-router`; peer-callable router writes, once they
+earn a contract surface, belong in this ordinary contract. Their
+Component Commands project to `Assert` / `Mutate` / `Retract` as
+appropriate.
 
 ## 5 · Constraints
 
@@ -178,6 +186,7 @@ will project to `Assert` / `Mutate` / `Retract` as appropriate.
 | Manager-written router bootstrap uses router-owned typed vocabulary, not duplicated private records in `persona`. | `RouterBootstrapDocument` and `RouterBootstrapOperation` live in this crate; `bootstrap_document_owns_line_vocabulary_for_manager_and_router` round-trips the line projection. |
 | Router observation queries are contract-local verbs in verb form; their daemon-side Component Commands project to Sema `Match`. | Daemon-side `ToSemaOperation` impl is the witness; round-trip tests assert each variant's NOTA head. |
 | Message ingress remains in `signal-persona-message`. | This crate imports `MessageSlot` but does not redefine message submission records. |
+| Owner-only router channel policy orders remain out of this ordinary observation contract. | `owner-signal-persona-router` owns `Grant`, `Extend`, `Revoke`, and `Deny`; this crate does not define those operations. |
 | Runtime code stays out of the contract. | Source scan: no Kameo, Tokio, socket, or redb code. |
 | Wire enums contain no `Unknown` variant. | `tests/round_trip.rs::router_status_enums_are_closed_no_unknown_variants` exhaustively matches every `RouterDeliveryStatus` and `RouterChannelStatus` variant. Adding an `Unknown` variant breaks the match. |
 | Any record name containing the word `Unknown` represents a positive "entity not in our state" rejection, not a polling-shape escape hatch. | This crate has no such records today; reply absence pivots at the reply variant (`MessageTraceMissing`) and channel absence at the positive `RouterChannelStatus::Missing`. |
@@ -216,6 +225,8 @@ branch/bookmark once that lane is declared.
 - No router redb table layout — `persona-router` owns it.
 - No subscription accounting — there is no subscription today.
 - No transport (UDS path, reconnect, timeouts).
+- No owner-only channel policy orders; those live in
+  `owner-signal-persona-router`.
 
 ## 9 · Code map
 
@@ -233,6 +244,8 @@ tests/
 
 ## See also
 
+- `owner-signal-persona-router/ARCHITECTURE.md` — owner-only router
+  channel policy orders.
 - `signal-frame/macros/src/validate.rs` — the macro
 - `~/primary/skills/component-triad.md` §"Verbs come in three layers".
 - `signal-persona-message/ARCHITECTURE.md` — companion crate that
