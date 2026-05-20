@@ -76,7 +76,7 @@ and downstream code breaks silently.
   round trips in `tests/round_trip.rs`; canonical NOTA examples in
   `examples/canonical.nota` with a parser test.
 - **Pin upstream contracts via a named API reference.** Cargo deps
-  to `signal-core`, `signal-persona-auth`, `signal-persona-message`
+  to `signal-frame`, `signal-persona-auth`, `signal-persona-message`
   use `git = "..."` with a named branch/bookmark, never raw
   `rev = "..."`.
 
@@ -120,7 +120,7 @@ This crate is non-streaming today. If a subscription lands:
 2. Declare the `stream` block in `signal_channel!` with both a
    request-side `Retract <Name>Retraction(<Token>)` variant and a
    reply-side `SubscriptionRetracted` variant.
-3. The kernel grammar (`signal-core::macros::validate`) enforces
+3. The kernel grammar (`signal-frame::macros::validate`) enforces
    the close-is-Retract shape; a missing retract variant fails at
    compile time.
 4. Witness the full subscribe → event → retract → ack → end
