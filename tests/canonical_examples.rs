@@ -32,21 +32,21 @@ fn canonical_request_examples_round_trip() {
     let expected: Vec<(RouterRequest, &str)> = vec![
         (
             RouterRequest::Summary(RouterSummaryQuery { engine: engine() }),
-            "(RouterSummaryQuery prototype)",
+            "(Summary (prototype))",
         ),
         (
             RouterRequest::MessageTrace(RouterMessageTraceQuery {
                 engine: engine(),
                 message_slot: MessageSlot::new(7),
             }),
-            "(RouterMessageTraceQuery prototype 7)",
+            "(MessageTrace (prototype 7))",
         ),
         (
             RouterRequest::ChannelState(RouterChannelStateQuery {
                 engine: engine(),
                 channel: channel(),
             }),
-            "(RouterChannelStateQuery prototype internal-message-router)",
+            "(ChannelState (prototype internal-message-router))",
         ),
     ];
 
@@ -78,7 +78,7 @@ fn canonical_reply_examples_round_trip() {
                 deferred_messages: 0,
                 failed_messages: 0,
             }),
-            "(RouterSummary prototype 1 1 0 0)",
+            "(Summary (prototype 1 1 0 0))",
         ),
         (
             RouterReply::MessageTrace(RouterMessageTrace {
@@ -86,14 +86,14 @@ fn canonical_reply_examples_round_trip() {
                 message_slot: MessageSlot::new(7),
                 status: RouterDeliveryStatus::Routed,
             }),
-            "(RouterMessageTrace prototype 7 Routed)",
+            "(MessageTrace (prototype 7 Routed))",
         ),
         (
             RouterReply::MessageTraceMissing(RouterMessageTraceMissing {
                 engine: engine(),
                 message_slot: MessageSlot::new(99),
             }),
-            "(RouterMessageTraceMissing prototype 99)",
+            "(MessageTraceMissing (prototype 99))",
         ),
         (
             RouterReply::ChannelState(RouterChannelState {
@@ -101,14 +101,14 @@ fn canonical_reply_examples_round_trip() {
                 channel: channel(),
                 status: RouterChannelStatus::Installed,
             }),
-            "(RouterChannelState prototype internal-message-router Installed)",
+            "(ChannelState (prototype internal-message-router Installed))",
         ),
         (
             RouterReply::Unimplemented(RouterObservationUnimplemented {
                 scope: RouterObservationScope::Summary,
                 reason: RouterObservationUnimplementedReason::NotInPrototypeScope,
             }),
-            "(RouterObservationUnimplemented Summary NotInPrototypeScope)",
+            "(Unimplemented (Summary NotInPrototypeScope))",
         ),
     ];
 

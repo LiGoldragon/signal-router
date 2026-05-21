@@ -4,9 +4,7 @@
 //! with observation records needed by `persona-introspect`; operational
 //! router relations can land here as they are extracted.
 
-use nota_codec::{
-    Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaSum, NotaTransparent,
-};
+use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_core::signal_channel;
 use signal_persona::{SocketMode, WirePath};
@@ -118,7 +116,7 @@ impl InstallStructuralChannels {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum RouterBootstrapOperation {
     RegisterActor(RegisterActor),
     GrantDirectMessage(GrantDirectMessage),

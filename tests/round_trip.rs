@@ -258,7 +258,7 @@ fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
     let text = operation.to_nota().expect("encode bootstrap operation");
     assert_eq!(
         text,
-        r#"(RegisterActor (Actor responder 42 (EndpointTransport HarnessSocket "/tmp/responder.harness.sock" None)))"#
+        r#"(RegisterActor ((responder 42 (Some (HarnessSocket "/tmp/responder.harness.sock" None)))))"#
     );
     assert_eq!(
         RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
@@ -274,7 +274,7 @@ fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
     ));
 
     let text = operation.to_nota().expect("encode bootstrap operation");
-    assert_eq!(text, "(GrantDirectMessage owner initiator)");
+    assert_eq!(text, "(GrantDirectMessage (owner initiator))");
     assert_eq!(
         RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
         operation
