@@ -258,7 +258,7 @@ fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
     let text = operation.to_nota().expect("encode bootstrap operation");
     assert_eq!(
         text,
-        r#"(RegisterActor ((responder 42 (Some (HarnessSocket "/tmp/responder.harness.sock" None)))))"#
+        "(RegisterActor ((responder 42 (Some (HarnessSocket [/tmp/responder.harness.sock] None)))))"
     );
     assert_eq!(
         RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
