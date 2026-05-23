@@ -79,7 +79,7 @@ and downstream code breaks silently.
   round trips in `tests/round_trip.rs`; canonical NOTA examples in
   `examples/canonical.nota` with a parser test.
 - **Pin upstream contracts via a named API reference.** Cargo deps
-  to `signal-frame`, `signal-persona-auth`, `signal-persona-message`
+  to `signal-frame`, `signal-persona-origin`, `signal-persona-message`
   use `git = "..."` with a named branch/bookmark, never raw
   `rev = "..."`.
 

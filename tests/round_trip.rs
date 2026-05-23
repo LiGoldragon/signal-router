@@ -2,8 +2,8 @@ use signal_core::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalVerb, SubReply,
 };
-use signal_persona_auth::{ChannelId, EngineId};
 use signal_persona_message::MessageSlot;
+use signal_persona_origin::{ChannelIdentifier, EngineIdentifier};
 use signal_persona_router::{
     Actor, ActorIdentifier, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
     RouterBootstrapDocument, RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery,
@@ -71,7 +71,7 @@ fn round_trip_reply(reply: RouterReply) -> RouterReply {
 #[test]
 fn router_summary_query_round_trips_through_length_prefixed_frame() {
     let request = RouterRequest::Summary(RouterSummaryQuery {
-        engine: EngineId::new("prototype"),
+        engine: EngineIdentifier::new("prototype"),
     });
     round_trip_request(request);
 }
@@ -79,7 +79,7 @@ fn router_summary_query_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_message_trace_query_round_trips_through_length_prefixed_frame() {
     let request = RouterRequest::MessageTrace(RouterMessageTraceQuery {
-        engine: EngineId::new("prototype"),
+        engine: EngineIdentifier::new("prototype"),
         message_slot: MessageSlot::new(7),
     });
     round_trip_request(request);
@@ -88,8 +88,8 @@ fn router_message_trace_query_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_channel_state_query_round_trips_through_length_prefixed_frame() {
     let request = RouterRequest::ChannelState(RouterChannelStateQuery {
-        engine: EngineId::new("prototype"),
-        channel: ChannelId::new("internal-message-router"),
+        engine: EngineIdentifier::new("prototype"),
+        channel: ChannelIdentifier::new("internal-message-router"),
     });
     round_trip_request(request);
 }
@@ -98,15 +98,15 @@ fn router_channel_state_query_round_trips_through_length_prefixed_frame() {
 fn router_request_variants_declare_match_as_signal_root_verb() {
     let requests = [
         RouterRequest::Summary(RouterSummaryQuery {
-            engine: EngineId::new("prototype"),
+            engine: EngineIdentifier::new("prototype"),
         }),
         RouterRequest::MessageTrace(RouterMessageTraceQuery {
-            engine: EngineId::new("prototype"),
+            engine: EngineIdentifier::new("prototype"),
             message_slot: MessageSlot::new(7),
         }),
         RouterRequest::ChannelState(RouterChannelStateQuery {
-            engine: EngineId::new("prototype"),
-            channel: ChannelId::new("internal-message-router"),
+            engine: EngineIdentifier::new("prototype"),
+            channel: ChannelIdentifier::new("internal-message-router"),
         }),
     ];
 
@@ -118,7 +118,7 @@ fn router_request_variants_declare_match_as_signal_root_verb() {
 #[test]
 fn router_summary_reply_round_trips_through_length_prefixed_frame() {
     let reply = RouterReply::Summary(RouterSummary {
-        engine: EngineId::new("prototype"),
+        engine: EngineIdentifier::new("prototype"),
         accepted_messages: 1,
         routed_messages: 1,
         deferred_messages: 0,
@@ -130,7 +130,7 @@ fn router_summary_reply_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_message_trace_reply_round_trips_through_length_prefixed_frame() {
     let reply = RouterReply::MessageTrace(RouterMessageTrace {
-        engine: EngineId::new("prototype"),
+        engine: EngineIdentifier::new("prototype"),
         message_slot: MessageSlot::new(7),
         status: RouterDeliveryStatus::Routed,
     });
@@ -140,8 +140,8 @@ fn router_message_trace_reply_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_channel_state_reply_round_trips_through_length_prefixed_frame() {
     let reply = RouterReply::ChannelState(RouterChannelState {
-        engine: EngineId::new("prototype"),
-        channel: ChannelId::new("internal-message-router"),
+        engine: EngineIdentifier::new("prototype"),
+        channel: ChannelIdentifier::new("internal-message-router"),
         status: RouterChannelStatus::Installed,
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
@@ -150,7 +150,7 @@ fn router_channel_state_reply_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_message_trace_missing_reply_round_trips_through_length_prefixed_frame() {
     let reply = RouterReply::MessageTraceMissing(RouterMessageTraceMissing {
-        engine: EngineId::new("prototype"),
+        engine: EngineIdentifier::new("prototype"),
         message_slot: MessageSlot::new(99),
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
@@ -197,7 +197,7 @@ fn router_status_enums_are_closed_no_unknown_variants() {
 fn router_daemon_configuration_round_trips_through_nota_text() {
     use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
     use signal_persona::{SocketMode, WirePath};
-    use signal_persona_auth::{OwnerIdentity, UnixUserId};
+    use signal_persona_origin::{OwnerIdentity, UnixUserId};
     use signal_persona_router::RouterDaemonConfiguration;
 
     let configuration = RouterDaemonConfiguration {
@@ -225,7 +225,7 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
 fn router_daemon_configuration_round_trips_through_rkyv() {
     use nota_config::ConfigurationRecord;
     use signal_persona::{SocketMode, WirePath};
-    use signal_persona_auth::{OwnerIdentity, UnixUserId};
+    use signal_persona_origin::{OwnerIdentity, UnixUserId};
     use signal_persona_router::RouterDaemonConfiguration;
 
     let configuration = RouterDaemonConfiguration {

@@ -8,8 +8,8 @@
 //! with the typed surface.
 
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
-use signal_persona_auth::{ChannelId, EngineId};
 use signal_persona_message::MessageSlot;
+use signal_persona_origin::{ChannelIdentifier, EngineIdentifier};
 use signal_persona_router::{
     RouterChannelState, RouterChannelStateQuery, RouterChannelStatus, RouterDeliveryStatus,
     RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery, RouterObservationScope,
@@ -19,12 +19,12 @@ use signal_persona_router::{
 
 const CANONICAL: &str = include_str!("../examples/canonical.nota");
 
-fn engine() -> EngineId {
-    EngineId::new("prototype")
+fn engine() -> EngineIdentifier {
+    EngineIdentifier::new("prototype")
 }
 
-fn channel() -> ChannelId {
-    ChannelId::new("internal-message-router")
+fn channel() -> ChannelIdentifier {
+    ChannelIdentifier::new("internal-message-router")
 }
 
 #[test]

@@ -8,8 +8,8 @@ use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord,
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_core::signal_channel;
 use signal_persona::{SocketMode, WirePath};
-use signal_persona_auth::{ChannelId, EngineId, OwnerIdentity};
 use signal_persona_message::MessageSlot;
+use signal_persona_origin::{ChannelIdentifier, EngineIdentifier, OwnerIdentity};
 
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
@@ -195,24 +195,24 @@ pub enum RouterObservationScope {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct RouterSummaryQuery {
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct RouterMessageTraceQuery {
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
     pub message_slot: MessageSlot,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct RouterChannelStateQuery {
-    pub engine: EngineId,
-    pub channel: ChannelId,
+    pub engine: EngineIdentifier,
+    pub channel: ChannelIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct RouterSummary {
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
     pub accepted_messages: u64,
     pub routed_messages: u64,
     pub deferred_messages: u64,
@@ -228,7 +228,7 @@ pub struct RouterSummary {
 /// state unrepresentable," which are two different facts.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct RouterMessageTrace {
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
     pub message_slot: MessageSlot,
     pub status: RouterDeliveryStatus,
 }
@@ -238,7 +238,7 @@ pub struct RouterMessageTrace {
 /// presence vs absence without inspecting a sentinel status variant.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct RouterMessageTraceMissing {
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
     pub message_slot: MessageSlot,
 }
 
@@ -255,8 +255,8 @@ pub enum RouterDeliveryStatus {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct RouterChannelState {
-    pub engine: EngineId,
-    pub channel: ChannelId,
+    pub engine: EngineIdentifier,
+    pub channel: ChannelIdentifier,
     pub status: RouterChannelStatus,
 }
 
