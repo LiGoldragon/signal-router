@@ -5,7 +5,7 @@ use signal_core::{
 use signal_persona_auth::{ChannelId, EngineId};
 use signal_persona_message::MessageSlot;
 use signal_persona_router::{
-    Actor, ActorId, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
+    Actor, ActorIdentifier, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
     RouterBootstrapDocument, RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery,
     RouterChannelStatus, RouterDeliveryStatus, RouterFrame as Frame, RouterFrameBody as FrameBody,
     RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery, RouterReply,
@@ -246,7 +246,7 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
 #[test]
 fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
     let operation = RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor::new(
-        ActorId::new("responder"),
+        ActorIdentifier::new("responder"),
         42,
         Some(EndpointTransport::new(
             EndpointKind::HarnessSocket,
@@ -269,8 +269,8 @@ fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
 #[test]
 fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
     let operation = RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage::new(
-        ActorId::new("owner"),
-        ActorId::new("initiator"),
+        ActorIdentifier::new("owner"),
+        ActorIdentifier::new("initiator"),
     ));
 
     let text = operation.to_nota().expect("encode bootstrap operation");
@@ -285,7 +285,7 @@ fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
 fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
     let document = RouterBootstrapDocument::new(vec![
         RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor::new(
-            ActorId::new("initiator"),
+            ActorIdentifier::new("initiator"),
             0,
             Some(EndpointTransport::new(
                 EndpointKind::HarnessSocket,
@@ -294,8 +294,8 @@ fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
             )),
         ))),
         RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage::new(
-            ActorId::new("initiator"),
-            ActorId::new("responder"),
+            ActorIdentifier::new("initiator"),
+            ActorIdentifier::new("responder"),
         )),
     ]);
 

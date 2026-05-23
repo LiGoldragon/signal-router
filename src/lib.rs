@@ -29,9 +29,9 @@ impl RouterObservationId {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct ActorId(String);
+pub struct ActorIdentifier(String);
 
-impl ActorId {
+impl ActorIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -43,13 +43,13 @@ impl ActorId {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct Actor {
-    pub name: ActorId,
+    pub name: ActorIdentifier,
     pub process: u32,
     pub endpoint: Option<EndpointTransport>,
 }
 
 impl Actor {
-    pub fn new(name: ActorId, process: u32, endpoint: Option<EndpointTransport>) -> Self {
+    pub fn new(name: ActorIdentifier, process: u32, endpoint: Option<EndpointTransport>) -> Self {
         Self {
             name,
             process,
@@ -95,23 +95,23 @@ impl RegisterActor {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct GrantDirectMessage {
-    pub from: ActorId,
-    pub to: ActorId,
+    pub from: ActorIdentifier,
+    pub to: ActorIdentifier,
 }
 
 impl GrantDirectMessage {
-    pub fn new(from: ActorId, to: ActorId) -> Self {
+    pub fn new(from: ActorIdentifier, to: ActorIdentifier) -> Self {
         Self { from, to }
     }
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct InstallStructuralChannels {
-    pub requester: ActorId,
+    pub requester: ActorIdentifier,
 }
 
 impl InstallStructuralChannels {
-    pub fn new(requester: ActorId) -> Self {
+    pub fn new(requester: ActorIdentifier) -> Self {
         Self { requester }
     }
 }

@@ -104,7 +104,7 @@ streaming subscription today: all current variants are one-shot
   - `GrantDirectMessage`
   - `InstallStructuralChannels`
 - Bootstrap actor endpoint records:
-  - `ActorId`
+  - `ActorIdentifier`
   - `Actor`
   - `EndpointTransport`
   - `EndpointKind`
