@@ -14,9 +14,9 @@ use signal_persona_origin::{ChannelIdentifier, EngineIdentifier, OwnerIdentity};
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct RouterObservationId(String);
+pub struct ObservationIdentifier(String);
 
-impl RouterObservationId {
+impl ObservationIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
