@@ -1,4 +1,4 @@
-# signal-persona-router
+# signal-router
 
 Signal contract for Persona router-owned observations and relations.
 

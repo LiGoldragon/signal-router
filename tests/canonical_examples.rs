@@ -10,7 +10,7 @@
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
 use signal_message::MessageSlot;
 use signal_persona_origin::{ChannelIdentifier, EngineIdentifier};
-use signal_persona_router::{
+use signal_router::{
     RouterChannelState, RouterChannelStateQuery, RouterChannelStatus, RouterDeliveryStatus,
     RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery, RouterObservationScope,
     RouterObservationUnimplemented, RouterObservationUnimplementedReason, RouterReply,

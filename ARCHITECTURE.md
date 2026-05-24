@@ -1,18 +1,18 @@
-# signal-persona-router — architecture
+# signal-router — architecture
 
 *Signal contract for Persona router-owned observations and relations.*
 
 ## 0 · TL;DR
 
-`signal-persona-router` is the typed contract for the router's
+`signal-router` is the typed contract for the router's
 component-owned wire vocabulary. It carries the observation channel
 `introspect` uses to ask the router what happened to a message,
 a channel, or an engine. It also carries the manager-written router
-bootstrap vocabulary consumed by `persona-router` at daemon startup.
+bootstrap vocabulary consumed by `router` at daemon startup.
 
 Owner-only channel policy orders are not part of this ordinary
 observation contract. Grants, extensions, revocations, and
-adjudication denials live in `owner-signal-persona-router`, the
+adjudication denials live in `owner-signal-router`, the
 router's policy signal, called by Orchestrate as Router's owner.
 Mind decides at the cognitive level and orders Orchestrate first; it
 does not call Router's owner signal directly.
@@ -47,7 +47,7 @@ Add a mandatory `observable { … }` block; the macro injects
 verbs for the standardized observer hook that `introspect`
 subscribes to.
 
-**Layer 2 — Component Commands (persona-router daemon).** The router
+**Layer 2 — Component Commands (router daemon).** The router
 daemon owns its typed Command enum (e.g.
 `RouterCommand::ReadRouterSummary`,
 `RouterCommand::ReadMessageTrace`,
@@ -89,7 +89,7 @@ status inside `RouterMessageTrace`. Channel absence is the positive
 | Side | Component |
 |---|---|
 | Request side | `introspect` (today); other observation clients later. |
-| Reply side | `persona-router` |
+| Reply side | `router` |
 
 The router answers observation queries. The crate carries no
 streaming subscription today: all current variants are one-shot
@@ -174,7 +174,7 @@ label is computed at observation publish time inside the daemon.
 
 Write-shaped router state changes belong on the authority surface that
 matches who may call them. Owner-only channel policy changes live in
-`owner-signal-persona-router` and are issued by Orchestrate;
+`owner-signal-router` and are issued by Orchestrate;
 peer-callable router writes, once they earn a contract surface, belong
 in this ordinary contract. Their Component Commands project to
 `Assert` / `Mutate` / `Retract` as appropriate.
@@ -188,7 +188,7 @@ in this ordinary contract. Their Component Commands project to
 | Manager-written router bootstrap uses router-owned typed vocabulary, not duplicated private records in `persona`. | `RouterBootstrapDocument` and `RouterBootstrapOperation` live in this crate; `bootstrap_document_owns_line_vocabulary_for_manager_and_router` round-trips the line projection. |
 | Router observation queries are contract-local verbs in verb form; their daemon-side Component Commands project to Sema `Match`. | Daemon-side `ToSemaOperation` impl is the witness; round-trip tests assert each variant's NOTA head. |
 | Message ingress remains in `signal-message`. | This crate imports `MessageSlot` but does not redefine message submission records. |
-| Owner-only router channel policy orders remain out of this ordinary observation contract. | `owner-signal-persona-router` owns `Grant`, `Extend`, `Revoke`, and `Deny`; Orchestrate calls that owner contract; this crate does not define those operations. |
+| Owner-only router channel policy orders remain out of this ordinary observation contract. | `owner-signal-router` owns `Grant`, `Extend`, `Revoke`, and `Deny`; Orchestrate calls that owner contract; this crate does not define those operations. |
 | Runtime code stays out of the contract. | Source scan: no Kameo, Tokio, socket, or redb code. |
 | Wire enums contain no `Unknown` variant. | `tests/round_trip.rs::router_status_enums_are_closed_no_unknown_variants` exhaustively matches every `RouterDeliveryStatus` and `RouterChannelStatus` variant. Adding an `Unknown` variant breaks the match. |
 | Any record name containing the word `Unknown` represents a positive "entity not in our state" rejection, not a polling-shape escape hatch. | This crate has no such records today; reply absence pivots at the reply variant (`MessageTraceMissing`) and channel absence at the positive `RouterChannelStatus::Missing`. |
@@ -213,7 +213,7 @@ encodes as `(RouterMessageTraceMissing (...))`.
 ## 7 · Versioning
 
 `signal_frame::Frame` carries the protocol version. Schema-level
-changes are breaking; coordinate `persona-router` and observation
+changes are breaking; coordinate `router` and observation
 consumers (`introspect`) on the upgrade.
 
 This crate depends on `signal-frame` via a named-branch reference, not
@@ -222,13 +222,13 @@ branch/bookmark once that lane is declared.
 
 ## 8 · Non-ownership
 
-- No router daemon — that is `persona-router`.
+- No router daemon — that is `router`.
 - No introspection daemon — that is `introspect`.
-- No router redb table layout — `persona-router` owns it.
+- No router redb table layout — `router` owns it.
 - No subscription accounting — there is no subscription today.
 - No transport (UDS path, reconnect, timeouts).
 - No owner-only channel policy orders; those live in
-  `owner-signal-persona-router`.
+  `owner-signal-router`.
 
 ## 9 · Code map
 
@@ -246,7 +246,7 @@ tests/
 
 ## See also
 
-- `owner-signal-persona-router/ARCHITECTURE.md` — owner-only router
+- `owner-signal-router/ARCHITECTURE.md` — owner-only router
   channel policy orders.
 - `signal-frame/macros/src/validate.rs` — the macro
 - `~/primary/skills/component-triad.md` §"Verbs come in three layers".

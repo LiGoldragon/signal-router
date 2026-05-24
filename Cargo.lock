@@ -381,7 +381,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "signal-persona-router"
+name = "signal-router"
 version = "0.1.0"
 dependencies = [
  "nota-codec",

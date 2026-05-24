@@ -4,7 +4,7 @@ use signal_core::{
 };
 use signal_message::MessageSlot;
 use signal_persona_origin::{ChannelIdentifier, EngineIdentifier};
-use signal_persona_router::{
+use signal_router::{
     Actor, ActorIdentifier, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
     RouterBootstrapDocument, RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery,
     RouterChannelStatus, RouterDeliveryStatus, RouterFrame as Frame, RouterFrameBody as FrameBody,
@@ -198,7 +198,7 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
     use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
     use signal_persona::{SocketMode, WirePath};
     use signal_persona_origin::{OwnerIdentity, UnixUserIdentifier};
-    use signal_persona_router::RouterDaemonConfiguration;
+    use signal_router::RouterDaemonConfiguration;
 
     let configuration = RouterDaemonConfiguration {
         router_socket_path: WirePath::new("/run/persona/X/router.sock"),
@@ -226,7 +226,7 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
     use nota_config::ConfigurationRecord;
     use signal_persona::{SocketMode, WirePath};
     use signal_persona_origin::{OwnerIdentity, UnixUserIdentifier};
-    use signal_persona_router::RouterDaemonConfiguration;
+    use signal_router::RouterDaemonConfiguration;
 
     let configuration = RouterDaemonConfiguration {
         router_socket_path: WirePath::new("/run/persona/X/router.sock"),

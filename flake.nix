@@ -1,5 +1,5 @@
 {
-  description = "signal-persona-router - Signal contract for Persona router observations";
+  description = "signal-router - Signal contract for Persona router observations";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -52,7 +52,7 @@
           });
         };
         devShells.default = pkgs.mkShell {
-          name = "signal-persona-router";
+          name = "signal-router";
           packages = [ pkgs.jujutsu pkgs.pkg-config toolchain ];
         };
       });

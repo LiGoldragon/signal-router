@@ -1,6 +1,6 @@
 //! Signal contract for Persona router observations and relations.
 //!
-//! This crate gives `persona-router` a typed contract home. It begins
+//! This crate gives `router` a typed contract home. It begins
 //! with observation records needed by `introspect`; operational
 //! router relations can land here as they are extracted.
 
@@ -304,14 +304,14 @@ signal_channel! {
 
 // ─── Daemon configuration ──────────────────────────────────
 //
-// Typed startup configuration for `persona-router-daemon`. The
+// Typed startup configuration for `router-daemon`. The
 // persona manager writes one of these (NOTA or rkyv) to a state-dir
 // path and passes that path as argv. The daemon decodes through
 // `nota_config::ConfigurationSource::from_argv()?.decode()?` and
 // runs with the resulting record. No environment variables on the
 // production launch path.
 
-/// Startup configuration for `persona-router-daemon`.
+/// Startup configuration for `router-daemon`.
 ///
 /// Replaces the previous `--socket`, `--store`, `--bootstrap`,
 /// `PERSONA_SOCKET_MODE`, `PERSONA_SUPERVISION_SOCKET_PATH`, and
