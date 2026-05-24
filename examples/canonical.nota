@@ -1,4 +1,4 @@
-;; Canonical NOTA examples for signal-persona-router.
+;; Canonical NOTA examples for signal-router.
 ;;
 ;; One example per request variant followed by one example per reply
 ;; variant. The text-form head is the contract variant name and the

@@ -1,4 +1,4 @@
-# skills — signal-persona-router
+# skills — signal-router
 
 *Per-repo agent guide for the router-owned Signal observation
 contract.*
@@ -16,7 +16,7 @@ Before changing code in this repo, read:
   subscription / event / retract variant)
 - `~/primary/skills/nix-discipline.md`
 - this repo's `ARCHITECTURE.md`
-- `persona-router/ARCHITECTURE.md`
+- `router/ARCHITECTURE.md`
 - `introspect/ARCHITECTURE.md` when touching observation
   records.
 
@@ -24,7 +24,7 @@ Before changing code in this repo, read:
 
 ## What this repo is for
 
-`signal-persona-router` is the typed contract `introspect`
+`signal-router` is the typed contract `introspect`
 (and any future observation consumer) uses to ask the router what
 happened to a message, a channel, or an engine — without opening the
 router's redb directly.
@@ -49,7 +49,7 @@ tables, or runtime actors.
 ## What this repo does not own
 
 - Router daemon code, actor logic, state reducers, or redb tables.
-- Owner-only channel policy orders; `owner-signal-persona-router`
+- Owner-only channel policy orders; `owner-signal-router`
   owns grants, extensions, revocations, and adjudication denials,
   called by Orchestrate.
 - Message ingress records owned by `signal-message`.
@@ -74,7 +74,7 @@ and downstream code breaks silently.
   assert every variant. All current variants are `Match`.
 - **No runtime code.** No Kameo, Tokio, socket, redb, or daemon
   glue in this crate. The contract is the typed vocabulary; the
-  runtime is `persona-router`.
+  runtime is `router`.
 - **Round trips cover every variant.** rkyv length-prefixed frame
   round trips in `tests/round_trip.rs`; canonical NOTA examples in
   `examples/canonical.nota` with a parser test.
