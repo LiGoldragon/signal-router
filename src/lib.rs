@@ -1,14 +1,14 @@
 //! Signal contract for Persona router observations and relations.
 //!
 //! This crate gives `persona-router` a typed contract home. It begins
-//! with observation records needed by `persona-introspect`; operational
+//! with observation records needed by `introspect`; operational
 //! router relations can land here as they are extracted.
 
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_core::signal_channel;
+use signal_message::MessageSlot;
 use signal_persona::{SocketMode, WirePath};
-use signal_persona_message::MessageSlot;
 use signal_persona_origin::{ChannelIdentifier, EngineIdentifier, OwnerIdentity};
 
 #[derive(

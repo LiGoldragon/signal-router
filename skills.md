@@ -17,14 +17,14 @@ Before changing code in this repo, read:
 - `~/primary/skills/nix-discipline.md`
 - this repo's `ARCHITECTURE.md`
 - `persona-router/ARCHITECTURE.md`
-- `persona-introspect/ARCHITECTURE.md` when touching observation
+- `introspect/ARCHITECTURE.md` when touching observation
   records.
 
 ---
 
 ## What this repo is for
 
-`signal-persona-router` is the typed contract `persona-introspect`
+`signal-persona-router` is the typed contract `introspect`
 (and any future observation consumer) uses to ask the router what
 happened to a message, a channel, or an engine — without opening the
 router's redb directly.
@@ -40,7 +40,7 @@ tables, or runtime actors.
 
 - Router-owned Signal vocabulary: `RouterRequest`, `RouterReply`, and
   the typed query / observation records they carry.
-- Router observation records used by `persona-introspect`.
+- Router observation records used by `introspect`.
 - The two-variant reply split for slot-lookup miss
   (`MessageTraceMissing`) keeping `RouterDeliveryStatus` closed.
 - Future router operational relations when they are extracted from
@@ -52,8 +52,8 @@ tables, or runtime actors.
 - Owner-only channel policy orders; `owner-signal-persona-router`
   owns grants, extensions, revocations, and adjudication denials,
   called by Orchestrate.
-- Message ingress records owned by `signal-persona-message`.
-- Introspection query envelopes owned by `signal-persona-introspect`.
+- Message ingress records owned by `signal-message`.
+- Introspection query envelopes owned by `signal-introspect`.
 
 ---
 
@@ -79,7 +79,7 @@ and downstream code breaks silently.
   round trips in `tests/round_trip.rs`; canonical NOTA examples in
   `examples/canonical.nota` with a parser test.
 - **Pin upstream contracts via a named API reference.** Cargo deps
-  to `signal-frame`, `signal-persona-origin`, `signal-persona-message`
+  to `signal-frame`, `signal-persona-origin`, `signal-message`
   use `git = "..."` with a named branch/bookmark, never raw
   `rev = "..."`.
 

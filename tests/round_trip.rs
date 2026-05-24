@@ -2,7 +2,7 @@ use signal_core::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalVerb, SubReply,
 };
-use signal_persona_message::MessageSlot;
+use signal_message::MessageSlot;
 use signal_persona_origin::{ChannelIdentifier, EngineIdentifier};
 use signal_persona_router::{
     Actor, ActorIdentifier, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
@@ -197,7 +197,7 @@ fn router_status_enums_are_closed_no_unknown_variants() {
 fn router_daemon_configuration_round_trips_through_nota_text() {
     use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
     use signal_persona::{SocketMode, WirePath};
-    use signal_persona_origin::{OwnerIdentity, UnixUserId};
+    use signal_persona_origin::{OwnerIdentity, UnixUserIdentifier};
     use signal_persona_router::RouterDaemonConfiguration;
 
     let configuration = RouterDaemonConfiguration {
@@ -207,7 +207,7 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
         supervision_socket_mode: SocketMode::new(0o600),
         store_path: WirePath::new("/var/lib/persona/X/router.redb"),
         bootstrap_path: Some(WirePath::new("/var/lib/persona/X/router-bootstrap.nota")),
-        owner_identity: OwnerIdentity::UnixUser(UnixUserId::new(1000)),
+        owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
     };
 
     let mut encoder = Encoder::new();
@@ -225,7 +225,7 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
 fn router_daemon_configuration_round_trips_through_rkyv() {
     use nota_config::ConfigurationRecord;
     use signal_persona::{SocketMode, WirePath};
-    use signal_persona_origin::{OwnerIdentity, UnixUserId};
+    use signal_persona_origin::{OwnerIdentity, UnixUserIdentifier};
     use signal_persona_router::RouterDaemonConfiguration;
 
     let configuration = RouterDaemonConfiguration {
@@ -235,7 +235,7 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
         supervision_socket_mode: SocketMode::new(0o600),
         store_path: WirePath::new("/var/lib/persona/X/router.redb"),
         bootstrap_path: None,
-        owner_identity: OwnerIdentity::UnixUser(UnixUserId::new(1000)),
+        owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
     };
 
     let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&configuration).expect("archive");
