@@ -1,0 +1,37 @@
+{}
+
+[
+  (Summary [Route])
+  (MessageTrace [Trace])
+  (ChannelState [State])
+  (Delivery [Accepted Delivered Failed])
+]
+
+[]
+
+[]
+
+{
+  Summary [(Route Route)]
+  MessageTrace [(Trace Trace)]
+  ChannelState [(State State)]
+  Delivery [(Accepted Accepted) (Delivered Delivered) (Failed Failed)]
+  Route (Text)
+  Trace (Identifier)
+  State (Text)
+  Accepted (Identifier)
+  Delivered (Identifier)
+  Failed (Identifier)
+  Channel (Text)
+  Adjudication (Text)
+  Text (String)
+  Identifier (u64)
+  Name (String)
+  Path (String)
+  Status [Concept Active Retired]
+}
+
+[
+  (Version 0 1)
+  (Status Concept)
+]
