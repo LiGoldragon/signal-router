@@ -337,7 +337,7 @@ dependencies = [
 [[package]]
 name = "signal-message"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/signal-message.git#cbd1542c8554f0c110a079f68ae2dc8c1cfb3f9d"
+source = "git+https://github.com/LiGoldragon/signal-message.git?branch=main#cbd1542c8554f0c110a079f68ae2dc8c1cfb3f9d"
 dependencies = [
  "nota-codec",
  "nota-config",
