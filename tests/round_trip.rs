@@ -203,6 +203,8 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
     let configuration = RouterDaemonConfiguration {
         router_socket_path: WirePath::new("/run/persona/X/router.sock"),
         router_socket_mode: SocketMode::new(0o600),
+        meta_router_socket_path: WirePath::new("/run/persona/X/router-meta.sock"),
+        meta_router_socket_mode: SocketMode::new(0o600),
         supervision_socket_path: WirePath::new("/run/persona/X/router-supervision.sock"),
         supervision_socket_mode: SocketMode::new(0o600),
         store_path: WirePath::new("/var/lib/persona/X/router.redb"),
@@ -231,6 +233,8 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
     let configuration = RouterDaemonConfiguration {
         router_socket_path: WirePath::new("/run/persona/X/router.sock"),
         router_socket_mode: SocketMode::new(0o600),
+        meta_router_socket_path: WirePath::new("/run/persona/X/router-meta.sock"),
+        meta_router_socket_mode: SocketMode::new(0o600),
         supervision_socket_path: WirePath::new("/run/persona/X/router-supervision.sock"),
         supervision_socket_mode: SocketMode::new(0o600),
         store_path: WirePath::new("/var/lib/persona/X/router.redb"),

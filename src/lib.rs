@@ -316,13 +316,18 @@ signal_channel! {
 /// Replaces the previous `--socket`, `--store`, `--bootstrap`,
 /// `PERSONA_SOCKET_MODE`, `PERSONA_SUPERVISION_SOCKET_PATH`, and
 /// `PERSONA_SUPERVISION_SOCKET_MODE` argv/environment-variable
-/// surface.
+/// surface. The ordinary router socket and meta-policy socket are
+/// separate fields so launch configuration exposes both triad tiers.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct RouterDaemonConfiguration {
     /// Where the daemon binds its router Unix socket.
     pub router_socket_path: WirePath,
     /// chmod applied to the router socket after bind.
     pub router_socket_mode: SocketMode,
+    /// Where the daemon binds its meta-policy Unix socket.
+    pub meta_router_socket_path: WirePath,
+    /// chmod applied to the meta-policy socket after bind.
+    pub meta_router_socket_mode: SocketMode,
     /// Where the daemon binds its supervision Unix socket.
     pub supervision_socket_path: WirePath,
     /// chmod applied to the supervision socket after bind.

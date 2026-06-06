@@ -12,8 +12,8 @@ Companion to `ARCHITECTURE.md` and `Cargo.toml`. Maintenance:
 This file carries only the intent that is FOR this `signal-router`
 contract. Workspace-shape intent stays in the primary workspace
 `primary/INTENT.md`. Component daemon intent stays in `router/INTENT.md`.
-Owner-only channel policy intent stays in
-`owner-signal-router/INTENT.md`.
+Meta channel-policy intent stays in
+`meta-signal-router/INTENT.md`.
 
 ## Why this repo exists
 
@@ -21,9 +21,9 @@ Owner-only channel policy intent stays in
 `router` daemon. It exists so `introspect` can ask the router for a
 typed summary, message trace, or channel state without opening
 `router.redb`. It also carries the manager-written router bootstrap
-vocabulary the daemon consumes at startup. Owner-only channel policy
+vocabulary the daemon consumes at startup. Meta channel-policy
 orders — grants, extensions, revocations, adjudication denials — stay in
-`owner-signal-router`, called by Orchestrate as Router's owner; runtime
+`meta-signal-router`, called by Orchestrate; runtime
 actors, sockets, storage, and routing logic live in `router`.
 
 ## The channel shape
@@ -108,8 +108,7 @@ This crate does not own:
 - `router` daemon runtime, actors, or component lifecycle;
 - `router.redb` or any storage tables, channel state, or delivery logs;
 - socket binding, transport, reconnect, or version handshake policy;
-- owner-only channel policy orders (those live in
-  `owner-signal-router`);
+- meta channel-policy orders (those live in `meta-signal-router`);
 - message ingress records (those live in `signal-message`);
 - NOTA projection policy or surface (CLI formatting, audit wrapping,
   introspection-envelope composition).
@@ -120,7 +119,7 @@ This crate does not own:
   closed-enum discipline, and the three-layer migration in progress.
 - `../router/INTENT.md` — daemon-side intent (schema-driven planes,
   actors, state).
-- `../owner-signal-router/INTENT.md` — owner-only router policy contract.
+- `../meta-signal-router/INTENT.md` — meta router policy contract.
 - `primary/skills/contract-repo.md` — contract repo discipline and
   naming rules.
 - `primary/skills/component-triad.md` — repo triad structure and wire
