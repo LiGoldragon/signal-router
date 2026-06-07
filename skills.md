@@ -3,8 +3,6 @@
 *Per-repo agent guide for the router-owned Signal observation
 contract.*
 
----
-
 ## Checkpoint — read before editing
 
 Before changing code in this repo, read:
@@ -20,21 +18,17 @@ Before changing code in this repo, read:
 - `introspect/ARCHITECTURE.md` when touching observation
   records.
 
----
-
 ## What this repo is for
 
 `signal-router` is the typed contract `introspect`
 (and any future observation consumer) uses to ask the router what
 happened to a message, a channel, or an engine — without opening the
-router's redb directly.
+router's sema-engine store directly.
 
 The crate carries the router's observation request/reply vocabulary
 and nothing else. It is the contract for **router-owned facts that
-need to cross a wire** — not the place for router daemon code, redb
-tables, or runtime actors.
-
----
+need to cross a wire** — not the place for router daemon code,
+storage tables, or runtime actors.
 
 ## What this repo owns
 
@@ -48,14 +42,12 @@ tables, or runtime actors.
 
 ## What this repo does not own
 
-- Router daemon code, actor logic, state reducers, or redb tables.
-- Owner-only channel policy orders; `owner-signal-router`
+- Router daemon code, actor logic, state reducers, or storage tables.
+- Meta-only channel policy orders; `meta-signal-router`
   owns grants, extensions, revocations, and adjudication denials,
   called by Orchestrate.
 - Message ingress records owned by `signal-message`.
 - Introspection query envelopes owned by `signal-introspect`.
-
----
 
 ## Load-bearing invariants
 
@@ -68,11 +60,10 @@ and downstream code breaks silently.
   `RouterChannelStatus::Missing`. Any future "entity not in our
   state" answer is a new positive variant, not a polling-shape
   placeholder.
-- **Every request variant declares a Signal root verb.** The
-  `signal_channel!` declaration is the source of truth; the macro
-  generates `RouterRequest::signal_verb()` and the round-trip tests
-  assert every variant. All current variants are `Match`.
-- **No runtime code.** No Kameo, Tokio, socket, redb, or daemon
+- **Every request variant declares a contract-local operation head.**
+  The `signal_channel!` declaration is the source of truth; tests
+  assert the exact heads.
+- **No runtime code.** No Kameo, Tokio, socket, storage, or daemon
   glue in this crate. The contract is the typed vocabulary; the
   runtime is `router`.
 - **Round trips cover every variant.** rkyv length-prefixed frame
@@ -83,8 +74,6 @@ and downstream code breaks silently.
   use `git = "..."` with a named branch/bookmark, never raw
   `rev = "..."`.
 
----
-
 ## Editing patterns
 
 ### Adding a new observation request
@@ -94,8 +83,8 @@ and downstream code breaks silently.
    `~/primary/skills/contract-repo.md` §"Examples-first round-trip
    discipline", the example is the falsifiable spec.
 2. Declare the payload struct and reply variant in `src/lib.rs`.
-3. Add the variant to the `signal_channel!` declaration with its
-   root verb (today: `Match` for every observation).
+3. Add the variant to the `signal_channel!` declaration as a
+   contract-local operation head.
 4. Add the rkyv round-trip test in `tests/round_trip.rs`.
 5. Add the NOTA round-trip witness for the new variant in the
    canonical-examples test.
@@ -129,17 +118,13 @@ This crate is non-streaming today. If a subscription lands:
 4. Witness the full subscribe → event → retract → ack → end
    lifecycle in `tests/round_trip.rs`.
 
----
-
-## NOTA codec quirk
+## NOTA codec shape
 
 The `signal_channel!` macro emits a request variant's NOTA head as
-the **payload's record head**, not the Rust variant name. For
-example, `RouterRequest::Summary(RouterSummaryQuery { .. })` encodes
-as `(RouterSummaryQuery (...))`, not `(Summary (...))`. Canonical
-examples and round-trip tests use the payload heads.
-
----
+the operation head. For example,
+`RouterRequest::Summary(RouterSummaryQuery { .. })` encodes as
+`(Summary (...))`. Canonical examples and round-trip tests use the
+operation heads.
 
 ## See also
 

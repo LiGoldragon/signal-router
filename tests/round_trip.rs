@@ -1,6 +1,6 @@
-use signal_core::{
+use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
-    SignalVerb, SubReply,
+    SignalOperationHeads, SubReply,
 };
 use signal_message::MessageSlot;
 use signal_persona_origin::{ChannelIdentifier, EngineIdentifier};
@@ -21,7 +21,6 @@ fn exchange() -> ExchangeIdentifier {
 }
 
 fn round_trip_request(request: RouterRequest) {
-    let expected_verb = request.signal_verb();
     let frame = Frame::new(FrameBody::Request {
         exchange: exchange(),
         request: request.clone().into_request(),
@@ -35,22 +34,16 @@ fn round_trip_request(request: RouterRequest) {
             request: decoded_request,
             ..
         } => {
-            let operation = decoded_request.operations().head();
-            assert_eq!(operation.verb, expected_verb);
-            assert_eq!(operation.verb, SignalVerb::Match);
-            assert_eq!(operation.payload, request);
+            assert_eq!(decoded_request.payloads().head(), &request);
         }
-        other => panic!("expected Match request, got {other:?}"),
+        other => panic!("expected router request, got {other:?}"),
     }
 }
 
 fn round_trip_reply(reply: RouterReply) -> RouterReply {
     let frame = Frame::new(FrameBody::Reply {
         exchange: exchange(),
-        reply: Reply::completed(NonEmpty::single(SubReply::Ok {
-            verb: SignalVerb::Match,
-            payload: reply,
-        })),
+        reply: Reply::committed(NonEmpty::single(SubReply::Ok(reply))),
     });
 
     let bytes = frame.encode_length_prefixed().expect("encode");
@@ -59,7 +52,7 @@ fn round_trip_reply(reply: RouterReply) -> RouterReply {
     match decoded.into_body() {
         FrameBody::Reply { reply, .. } => match reply {
             Reply::Accepted { per_operation, .. } => match per_operation.into_head() {
-                SubReply::Ok { payload, .. } => payload,
+                SubReply::Ok(payload) => payload,
                 other => panic!("expected accepted reply payload, got {other:?}"),
             },
             other => panic!("expected accepted reply, got {other:?}"),
@@ -95,24 +88,11 @@ fn router_channel_state_query_round_trips_through_length_prefixed_frame() {
 }
 
 #[test]
-fn router_request_variants_declare_match_as_signal_root_verb() {
-    let requests = [
-        RouterRequest::Summary(RouterSummaryQuery {
-            engine: EngineIdentifier::new("prototype"),
-        }),
-        RouterRequest::MessageTrace(RouterMessageTraceQuery {
-            engine: EngineIdentifier::new("prototype"),
-            message_slot: MessageSlot::new(7),
-        }),
-        RouterRequest::ChannelState(RouterChannelStateQuery {
-            engine: EngineIdentifier::new("prototype"),
-            channel: ChannelIdentifier::new("internal-message-router"),
-        }),
-    ];
-
-    for request in requests {
-        assert_eq!(request.signal_verb(), SignalVerb::Match);
-    }
+fn router_request_heads_are_contract_local_operations() {
+    assert_eq!(
+        <RouterRequest as SignalOperationHeads>::HEADS,
+        &["Summary", "MessageTrace", "ChannelState"]
+    );
 }
 
 #[test]
@@ -207,7 +187,7 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
         meta_router_socket_mode: SocketMode::new(0o600),
         supervision_socket_path: WirePath::new("/run/persona/X/router-supervision.sock"),
         supervision_socket_mode: SocketMode::new(0o600),
-        store_path: WirePath::new("/var/lib/persona/X/router.redb"),
+        store_path: WirePath::new("/var/lib/persona/X/router.sema"),
         bootstrap_path: Some(WirePath::new("/var/lib/persona/X/router-bootstrap.nota")),
         owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
     };
@@ -237,7 +217,7 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
         meta_router_socket_mode: SocketMode::new(0o600),
         supervision_socket_path: WirePath::new("/run/persona/X/router-supervision.sock"),
         supervision_socket_mode: SocketMode::new(0o600),
-        store_path: WirePath::new("/var/lib/persona/X/router.redb"),
+        store_path: WirePath::new("/var/lib/persona/X/router.sema"),
         bootstrap_path: None,
         owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
     };

@@ -6,7 +6,7 @@
 
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
-use signal_core::signal_channel;
+use signal_frame::signal_channel;
 use signal_message::MessageSlot;
 use signal_persona::{SocketMode, WirePath};
 use signal_persona_origin::{ChannelIdentifier, EngineIdentifier, OwnerIdentity};
@@ -286,30 +286,29 @@ pub enum RouterObservationUnimplementedReason {
 
 signal_channel! {
     channel Router {
-        request RouterRequest {
-            Match Summary(RouterSummaryQuery),
-            Match MessageTrace(RouterMessageTraceQuery),
-            Match ChannelState(RouterChannelStateQuery),
-        }
-
-        reply RouterReply {
-            Summary(RouterSummary),
-            MessageTrace(RouterMessageTrace),
-            MessageTraceMissing(RouterMessageTraceMissing),
-            ChannelState(RouterChannelState),
-            Unimplemented(RouterObservationUnimplemented),
-        }
+        operation Summary(RouterSummaryQuery),
+        operation MessageTrace(RouterMessageTraceQuery),
+        operation ChannelState(RouterChannelStateQuery),
+    }
+    reply RouterReply {
+        Summary(RouterSummary),
+        MessageTrace(RouterMessageTrace),
+        MessageTraceMissing(RouterMessageTraceMissing),
+        ChannelState(RouterChannelState),
+        Unimplemented(RouterObservationUnimplemented),
     }
 }
 
+pub type RouterRequest = Operation;
+pub type RouterFrame = Frame;
+pub type RouterFrameBody = FrameBody;
+pub type RouterRequestBuilder = RequestBuilder;
+
 // ─── Daemon configuration ──────────────────────────────────
 //
-// Typed startup configuration for `router-daemon`. The
-// persona manager writes one of these (NOTA or rkyv) to a state-dir
-// path and passes that path as argv. The daemon decodes through
-// `nota_config::ConfigurationSource::from_argv()?.decode()?` and
-// runs with the resulting record. No environment variables on the
-// production launch path.
+// Typed startup configuration for `router-daemon`. Human tooling may
+// author this record through NOTA, but the live daemon consumes a
+// signal-encoded rkyv archive path. The daemon does not parse NOTA.
 
 /// Startup configuration for `router-daemon`.
 ///
@@ -332,7 +331,7 @@ pub struct RouterDaemonConfiguration {
     pub supervision_socket_path: WirePath,
     /// chmod applied to the supervision socket after bind.
     pub supervision_socket_mode: SocketMode,
-    /// Path to the router daemon's redb store file.
+    /// Path to the router daemon's sema-engine store file.
     pub store_path: WirePath,
     /// Optional bootstrap-record path the daemon applies at startup.
     pub bootstrap_path: Option<WirePath>,

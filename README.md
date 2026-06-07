@@ -3,7 +3,8 @@
 Signal contract for Persona router-owned observations and relations.
 
 The first use is introspection: `introspect` can ask the router for a
-typed summary or message trace without opening `router.redb`.
+typed summary or message trace without opening `router.sema`.
 
-All current request variants are observation queries, so they use the `Match`
-root through `RouterRequest::signal_verb()`.
+All current request variants are observation queries carried as
+contract-local `signal-frame` operation heads; Sema classification is
+daemon-internal.

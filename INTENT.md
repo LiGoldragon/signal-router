@@ -20,7 +20,7 @@ Meta channel-policy intent stays in
 `signal-router` is the **ordinary peer-callable wire contract** for the
 `router` daemon. It exists so `introspect` can ask the router for a
 typed summary, message trace, or channel state without opening
-`router.redb`. It also carries the manager-written router bootstrap
+`router.sema`. It also carries the manager-written router bootstrap
 vocabulary the daemon consumes at startup. Meta channel-policy
 orders — grants, extensions, revocations, adjudication denials — stay in
 `meta-signal-router`, called by Orchestrate; runtime
@@ -30,10 +30,10 @@ actors, sockets, storage, and routing logic live in `router`.
 
 The router observation channel carries:
 
-- **Requests:** `Observe`/`Query` reads over a closed payload enum
-  naming the observation kind (`Summary`, `MessageTrace`,
-  `ChannelState`), plus the mandatory `Tap`/`Untap` standardized
-  observer hook persona components carry.
+- **Requests:** `Summary`, `MessageTrace`, and `ChannelState` read
+  operations, each carrying a typed `*Query` payload. Future
+  streaming uses the standardized observer hook persona components
+  carry.
 - **Replies:** one reply variant per concrete observation shape
   (`Summary`, `MessageTrace`, `ChannelState`), with absence pivoting at
   the reply variant (`MessageTraceMissing`) and at the positive
@@ -64,9 +64,9 @@ observation publish time, not on the wire.
 Per `primary/skills/contract-repo.md` §"Public contracts use
 contract-local operation verbs":
 
-- Operation roots are domain verbs in verb form (`Observe` / `Query`),
-  not the Sema class word `Match`. The six Sema classification words must
-  not appear as request roots on this wire.
+- Operation roots are contract-local operation heads, not the Sema class word
+  `Match`. The six Sema classification words must not appear as request roots
+  on this wire.
 - Reply success variants name the concrete observation shape returned.
 - Payload record names drop the redundant `Router*` prefix where the
   crate namespace already supplies "router."
@@ -89,7 +89,7 @@ classification never appears on the wire.
 
 - This crate carries only typed wire vocabulary, NOTA codecs, and
   round-trip witnesses.
-- No runtime code: no actors, no tokio, no socket binding, no redb, no
+- No runtime code: no actors, no tokio, no socket binding, no storage, no
   routing or adjudication policy logic.
 - Contract types derive NOTA in this crate. Clients do not carry shadow
   types that re-derive the text surface.
@@ -106,7 +106,7 @@ classification never appears on the wire.
 This crate does not own:
 
 - `router` daemon runtime, actors, or component lifecycle;
-- `router.redb` or any storage tables, channel state, or delivery logs;
+- `router.sema` or any storage tables, channel state, or delivery logs;
 - socket binding, transport, reconnect, or version handshake policy;
 - meta channel-policy orders (those live in `meta-signal-router`);
 - message ingress records (those live in `signal-message`);

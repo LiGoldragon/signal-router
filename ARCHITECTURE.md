@@ -17,61 +17,17 @@ router's policy signal, called by Orchestrate.
 Mind decides at the cognitive level and orders Orchestrate first; it
 does not call Router's meta signal directly.
 
-## MUST IMPLEMENT — three-layer migration
+## Migration history — signal-frame operation heads (2026-06-07)
 
-This contract is migrating to the three-layer model affirmed
-2026-05-20 per
-`primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
-and `primary/reports/designer/248-three-layer-changes-for-operators.md`.
+The public wire no longer carries `SignalVerb::Match`. The three
+router observation reads are now bare contract-local operation heads:
+`Summary`, `MessageTrace`, and `ChannelState`. Sema classification is
+daemon-side projection only.
 
-**Layer 1 — Contract Operations on the wire (this crate).** Drop the
-SignalVerb wrappers entirely. The current shape — three siblings
-`Match Summary(RouterSummaryQuery)`, `Match MessageTrace(RouterMessageTraceQuery)`,
-`Match ChannelState(RouterChannelStateQuery)` — collapses to one
-contract-local verb root. Use `Observe` as the read verb (router
-domain is observation of routed work), with a closed payload enum
-naming the observation kind (`Summary`, `MessageTrace`, `ChannelState`).
-Alternatively `Query` if the receiver context reads more naturally as
-querying router state. Drop the `Router*` prefix from `RouterRequest`,
-`RouterReply`, `RouterSummaryQuery`, `RouterDeliveryStatus`, etc. —
-the crate namespace already supplies "router." The bootstrap
-vocabulary (`RouterBootstrapDocument` / `RouterBootstrapOperation`
-and the `RegisterActor` / `GrantDirectMessage` /
-`InstallStructuralChannels` operations) is not a live request/reply
-channel; those records are fine as typed data records.
-
-**Mandatory `Tap`/`Untap` for persona components.** Persona-router
-is a persona component, so its observable surface is standardized.
-Add a mandatory `observable { … }` block; the macro injects
-`Tap(ObserverFilter)` / `Untap(RouterObserverSubscriptionToken)`
-verbs for the standardized observer hook that `introspect`
-subscribes to.
-
-**Layer 2 — Component Commands (router daemon).** The router
-daemon owns its typed Command enum (e.g.
-`RouterCommand::ReadRouterSummary`,
-`RouterCommand::ReadMessageTrace`,
-`RouterCommand::ReadChannelState`,
-`RouterCommand::RegisterActor`,
-`RouterCommand::InstallStructuralChannel`) plus a `CommandExecutor`
-that knows the router's tables.
-
-**Layer 3 — Sema classification (signal-sema).** Each Component
-Command projects to a payloadless `SemaOperation` class via
-`ToSemaOperation`. Cross-component observers filter by class.
-
-**Frame layer.** The dependency on `signal-core` shifts to
-`signal-frame`.
-
-References:
-- `primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
-- `primary/reports/designer/248-three-layer-changes-for-operators.md`
-- `primary/skills/component-triad.md` §"Verbs come in three layers"
-- `primary/skills/contract-repo.md` §"Public contracts use contract-local operation verbs"
-
-**Note to remover:** when the refactor lands, remove this section and
-add a `## Migration history — three-layer model (2026-05-XX)`
-paragraph noting the shape change.
+This crate depends on `signal-frame` for length-prefixed rkyv framing.
+It still owns only wire vocabulary, NOTA codecs, and bootstrap records;
+it does not own daemon actors, store tables, sockets, or routing
+policy.
 
 There is one `signal_channel!` invocation in `src/lib.rs` declaring the
 `Router` observation channel. Bootstrap is not a live request/reply
@@ -93,7 +49,7 @@ status inside `RouterMessageTrace`. Channel absence is the positive
 
 The router answers observation queries. The crate carries no
 streaming subscription today: all current variants are one-shot
-`Match` reads.
+observation reads.
 
 ## 2 · Owned surface
 
@@ -162,9 +118,9 @@ projects to a payloadless Sema class label for observation. All
 current operations are read-shaped:
 
 ```text
-Observe (Summary kind)        -> Match
-Observe (MessageTrace kind)   -> Match
-Observe (ChannelState kind)   -> Match
+Summary        -> Match
+MessageTrace   -> Match
+ChannelState   -> Match
 Tap (mandatory)               -> Subscribe
 Untap (mandatory)             -> Retract
 ```
@@ -189,7 +145,7 @@ in this ordinary contract. Their Component Commands project to
 | Router observation queries are contract-local verbs in verb form; their daemon-side Component Commands project to Sema `Match`. | Daemon-side `ToSemaOperation` impl is the witness; round-trip tests assert each variant's NOTA head. |
 | Message ingress remains in `signal-message`. | This crate imports `MessageSlot` but does not redefine message submission records. |
 | Meta router channel policy orders remain out of this ordinary observation contract. | `meta-signal-router` owns `Grant`, `Extend`, `Revoke`, and `Deny`; Orchestrate calls that meta contract; this crate does not define those operations. |
-| Runtime code stays out of the contract. | Source scan: no Kameo, Tokio, socket, or redb code. |
+| Runtime code stays out of the contract. | Source scan: no Kameo, Tokio, socket, or storage code. |
 | Wire enums contain no `Unknown` variant. | `tests/round_trip.rs::router_status_enums_are_closed_no_unknown_variants` exhaustively matches every `RouterDeliveryStatus` and `RouterChannelStatus` variant. Adding an `Unknown` variant breaks the match. |
 | Any record name containing the word `Unknown` represents a positive "entity not in our state" rejection, not a polling-shape escape hatch. | This crate has no such records today; reply absence pivots at the reply variant (`MessageTraceMissing`) and channel absence at the positive `RouterChannelStatus::Missing`. |
 | Slot lookup miss travels as the typed `MessageTraceMissing` reply variant, not a sentinel inside `RouterMessageTrace.status`. | `router_message_trace_missing_reply_round_trips_through_length_prefixed_frame`. |
@@ -200,15 +156,15 @@ in this ordinary contract. Their Component Commands project to
 | No stringly-typed dispatch (`match s.as_str()`) for closed-set states. | All status/scope/reason fields are typed closed enums. |
 | Contract crate dependencies use a named API reference (branch or tag), not a raw revision pin. | `Cargo.toml` review: `signal-frame`, `signal-persona-origin`, `signal-message`, `nota-codec` are declared `git = "..."` with a named-branch shape; raw `rev = "..."` pins are not used. |
 
-## 6 · NOTA codec quirk on `signal_channel!` payload heads
+## 6 · NOTA codec shape on `signal_channel!` operation heads
 
 The `signal_channel!` macro emits a request variant's NOTA head as
-the **payload's record head**, not the Rust variant name. For
-example, `RouterRequest::Summary(RouterSummaryQuery { .. })` encodes
-as `(RouterSummaryQuery (...))`, not `(Summary (...))`. Tests and
-canonical examples carry the payload heads. The same shape applies
-to reply variants: `RouterReply::MessageTraceMissing(RouterMessageTraceMissing { .. })`
-encodes as `(RouterMessageTraceMissing (...))`.
+the operation head. For example,
+`RouterRequest::Summary(RouterSummaryQuery { .. })` encodes as
+`(Summary (...))`. Tests and canonical examples carry the operation
+heads. The same shape applies to reply variants:
+`RouterReply::MessageTraceMissing(RouterMessageTraceMissing { .. })`
+encodes as `(MessageTraceMissing (...))`.
 
 ## 7 · Versioning
 
@@ -224,7 +180,7 @@ branch/bookmark once that lane is declared.
 
 - No router daemon — that is `router`.
 - No introspection daemon — that is `introspect`.
-- No router redb table layout — `router` owns it.
+- No router sema-engine table layout — `router` owns it.
 - No subscription accounting — there is no subscription today.
 - No transport (UDS path, reconnect, timeouts).
 - No meta channel-policy orders; those live in `meta-signal-router`.
@@ -238,7 +194,7 @@ examples/
 └── canonical.nota         — one canonical example per request/reply variant
 tests/
 └── round_trip.rs          — per-variant frame round trips + NOTA witnesses
-                             + closed-enum + verb-mapping witnesses
+                             + closed-enum + operation-head witnesses
                              + bootstrap line-projection witness
                              + canonical examples parser
 ```
