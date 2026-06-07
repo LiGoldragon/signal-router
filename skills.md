@@ -110,11 +110,11 @@ This crate is non-streaming today. If a subscription lands:
 
 1. Read `~/primary/skills/subscription-lifecycle.md` end-to-end.
 2. Declare the `stream` block in `signal_channel!` with both a
-   request-side `Retract <Name>Retraction(<Token>)` variant and a
-   reply-side `SubscriptionRetracted` variant.
-3. The kernel grammar (`signal-frame::macros::validate`) enforces
-   the close-is-Retract shape; a missing retract variant fails at
-   compile time.
+   request-side typed close operation and a reply-side close
+   acknowledgement.
+3. Keep `Subscribe` and `Retract` out of ordinary public request roots unless
+   the current contract discipline explicitly ratifies the stream grammar for
+   that relation.
 4. Witness the full subscribe → event → retract → ack → end
    lifecycle in `tests/round_trip.rs`.
 

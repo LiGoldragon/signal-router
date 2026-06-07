@@ -110,6 +110,30 @@ fn router_request_heads_are_contract_local_operations() {
 }
 
 #[test]
+fn router_contract_has_no_sema_classification_dependency_or_roots() {
+    let manifest = include_str!("../Cargo.toml");
+    assert!(
+        !manifest.contains("signal-sema"),
+        "ordinary signal contracts must not depend on signal-sema for public wire vocabulary"
+    );
+
+    let heads = <RouterRequest as SignalOperationHeads>::HEADS;
+    for forbidden in [
+        "Assert",
+        "Mutate",
+        "Retract",
+        "Match",
+        "Subscribe",
+        "Validate",
+    ] {
+        assert!(
+            !heads.contains(&forbidden),
+            "Sema classification root {forbidden} must not appear on the public router wire"
+        );
+    }
+}
+
+#[test]
 fn router_summary_reply_round_trips_through_length_prefixed_frame() {
     let reply = RouterReply::Summary(RouterSummary {
         engine: EngineIdentifier::new("prototype"),

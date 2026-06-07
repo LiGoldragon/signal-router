@@ -17,12 +17,12 @@ router's policy signal, called by Orchestrate.
 Mind decides at the cognitive level and orders Orchestrate first; it
 does not call Router's meta signal directly.
 
-## Migration history — signal-frame operation heads (2026-06-07)
+## Wire operation heads
 
-The public wire no longer carries `SignalVerb::Match`. The three
-router observation reads are now bare contract-local operation heads:
-`Summary`, `MessageTrace`, and `ChannelState`. Sema classification is
-daemon-side projection only.
+The public wire carries only bare contract-local operation heads. The three
+router observation reads are:
+`Summary`, `MessageTrace`, and `ChannelState`. Durable read/write
+classification is daemon-side only.
 
 This crate depends on `signal-frame` for length-prefixed rkyv framing.
 It still owns only wire vocabulary, NOTA codecs, and bootstrap records;
@@ -76,7 +76,7 @@ observation reads.
 - `RouterObservationUnimplemented` + closed
   `RouterObservationUnimplementedReason`.
 - Contract-local verbs declared in the `signal_channel!` invocation;
-  Sema classification (Layer 3) is daemon-side projection only.
+  durable read/write classification is daemon-side only.
 
 ## 3 · Closed-enum integrity
 
@@ -111,29 +111,21 @@ it acts on the closed observation. The same shape applies to
 presence/absence pivots at the reply variant, not by sentinel inside a
 present reply.
 
-## 4 · Sema-class projections (Layer 3)
+## 4 · Daemon Lowering Boundary
 
-Each contract-local operation's daemon-side Component Command
-projects to a payloadless Sema class label for observation. All
-current operations are read-shaped:
-
-```text
-Summary        -> Match
-MessageTrace   -> Match
-ChannelState   -> Match
-Tap (mandatory)               -> Subscribe
-Untap (mandatory)             -> Retract
-```
-
-The wire form carries the contract-local verb only; the Sema class
-label is computed at observation publish time inside the daemon.
+Each contract-local operation lowers inside `router` into a daemon-owned Nexus
+command and any SEMA reads or writes needed to answer it. All current live
+request variants are observation reads. The public wire carries only the
+contract-local operation head; it never carries `Assert`, `Mutate`, `Retract`,
+`Match`, `Subscribe`, or `Validate`, and this crate has no `signal-sema`
+dependency.
 
 Write-shaped router state changes belong on the authority surface that
 matches who may call them. Meta channel-policy changes live in
 `meta-signal-router` and are issued by Orchestrate;
 peer-callable router writes, once they earn a contract surface, belong
-in this ordinary contract. Their Component Commands project to
-`Assert` / `Mutate` / `Retract` as appropriate.
+in this ordinary contract. Their database effects still remain daemon-owned
+lowering, not public operation roots.
 
 ## 5 · Constraints
 
@@ -142,7 +134,7 @@ in this ordinary contract. Their Component Commands project to
 | Router observations have a router-owned contract home. | This crate exists; central introspection contract does not define router rows. |
 | Every request/reply travels as a Signal frame. | `tests/round_trip.rs` length-prefixed frame tests per variant. |
 | Manager-written router bootstrap uses router-owned typed vocabulary, not duplicated private records in `persona`. | `RouterBootstrapDocument` and `RouterBootstrapOperation` live in this crate; `bootstrap_document_owns_line_vocabulary_for_manager_and_router` round-trips the line projection. |
-| Router observation queries are contract-local verbs in verb form; their daemon-side Component Commands project to Sema `Match`. | Daemon-side `ToSemaOperation` impl is the witness; round-trip tests assert each variant's NOTA head. |
+| Router observation queries are contract-local operation heads, never universal database-action class roots. | `router_request_heads_are_contract_local_operations` and `router_contract_has_no_sema_classification_dependency_or_roots`. |
 | Message ingress remains in `signal-message`. | This crate imports `MessageSlot` but does not redefine message submission records. |
 | Meta router channel policy orders remain out of this ordinary observation contract. | `meta-signal-router` owns `Grant`, `Extend`, `Revoke`, and `Deny`; Orchestrate calls that meta contract; this crate does not define those operations. |
 | Runtime code stays out of the contract. | Source scan: no Kameo, Tokio, socket, or storage code. |
@@ -204,7 +196,7 @@ tests/
 - `meta-signal-router/ARCHITECTURE.md` — meta router
   channel policy orders.
 - `signal-frame/macros/src/validate.rs` — the macro
-- `~/primary/skills/component-triad.md` §"Verbs come in three layers".
+- `~/primary/skills/component-triad.md`.
 - `signal-message/ARCHITECTURE.md` — companion crate that
   carries message ingress records this crate imports.
 - `signal-introspect/ARCHITECTURE.md` — the central

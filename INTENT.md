@@ -45,8 +45,8 @@ The router observation channel carries:
   request/reply channel.
 
 The wire vocabulary is contract-local — the daemon lowers these public
-operations into component-local commands; Sema classification happens at
-observation publish time, not on the wire.
+operations into component-local Nexus commands and SEMA reads or writes.
+Database-action classification never crosses this public wire.
 
 ## Channels are closed, boundaries are named
 
@@ -65,25 +65,19 @@ Per `primary/skills/contract-repo.md` §"Public contracts use
 contract-local operation verbs":
 
 - Operation roots are contract-local operation heads, not the Sema class word
-  `Match`. The six Sema classification words must not appear as request roots
-  on this wire.
+  `Match`. The six database-action classification words must not appear as
+  request roots on this wire.
 - Reply success variants name the concrete observation shape returned.
 - Payload record names drop the redundant `Router*` prefix where the
   crate namespace already supplies "router."
 
-## Three-layer model
+## Daemon lowering boundary
 
-Layer 1 (this crate): contract observation operations on the wire.
-Layer 2 (daemon): component-local `RouterCommand` records the daemon
-executes (`ReadRouterSummary`, `ReadMessageTrace`, `ReadChannelState`,
-`RegisterActor`, `InstallStructuralChannel`).
-Layer 3 (observation): payloadless Sema class labels (`Match`,
-`Subscribe`, `Retract`) computed daemon-side for cross-component
-introspection.
-
-The contract names the public action at the boundary; the daemon decides
-what internal work and Sema class label each action maps to. Sema
-classification never appears on the wire.
+The contract names the public action at the boundary. The daemon decides what
+internal work, durable read, durable write, effect, rejection, or reply each
+action becomes. Public contracts do not mirror `Assert`, `Mutate`, `Retract`,
+`Match`, `Subscribe`, or `Validate`, and this crate does not depend on
+`signal-sema`.
 
 ## Constraints
 
@@ -116,7 +110,7 @@ This crate does not own:
 ## See also
 
 - `ARCHITECTURE.md` — detailed channel shape, per-operation vocabulary,
-  closed-enum discipline, and the three-layer migration in progress.
+  closed-enum discipline, and the daemon lowering boundary.
 - `../router/INTENT.md` — daemon-side intent (schema-driven planes,
   actors, state).
 - `../meta-signal-router/INTENT.md` — meta router policy contract.
