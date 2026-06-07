@@ -1,9 +1,13 @@
+use nota_next::{NotaDecode, NotaEncode, NotaSource};
+use signal_engine_management::{SocketMode, WirePath};
 use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalOperationHeads, SubReply,
 };
 use signal_message::MessageSlot;
-use signal_persona_origin::{ChannelIdentifier, EngineIdentifier};
+use signal_persona_origin::{
+    ChannelIdentifier, EngineIdentifier, OwnerIdentity, UnixUserIdentifier,
+};
 use signal_router::{
     Actor, ActorIdentifier, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
     RouterBootstrapDocument, RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery,
@@ -59,6 +63,16 @@ fn round_trip_reply(reply: RouterReply) -> RouterReply {
         },
         other => panic!("expected reply, got {other:?}"),
     }
+}
+
+fn round_trip_nota<Value>(value: Value, expected: &str)
+where
+    Value: NotaEncode + NotaDecode + PartialEq + std::fmt::Debug,
+{
+    let text = value.to_nota();
+    assert_eq!(text, expected);
+    let recovered = NotaSource::new(&text).parse::<Value>().expect("decode");
+    assert_eq!(recovered, value);
 }
 
 #[test]
@@ -175,9 +189,6 @@ fn router_status_enums_are_closed_no_unknown_variants() {
 
 #[test]
 fn router_daemon_configuration_round_trips_through_nota_text() {
-    use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
-    use signal_persona::{SocketMode, WirePath};
-    use signal_persona_origin::{OwnerIdentity, UnixUserIdentifier};
     use signal_router::RouterDaemonConfiguration;
 
     let configuration = RouterDaemonConfiguration {
@@ -192,22 +203,17 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
         owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
     };
 
-    let mut encoder = Encoder::new();
-    configuration
-        .encode(&mut encoder)
-        .expect("encode configuration");
-    let text = encoder.into_string();
-    let mut decoder = Decoder::new(&text);
-    let recovered = RouterDaemonConfiguration::decode(&mut decoder).expect("decode configuration");
+    let text = configuration.to_nota();
+    let recovered = NotaSource::new(&text)
+        .parse::<RouterDaemonConfiguration>()
+        .expect("decode configuration");
 
     assert_eq!(recovered, configuration);
+    assert!(text.contains("[/run/persona/X/router.sock]"));
 }
 
 #[test]
 fn router_daemon_configuration_round_trips_through_rkyv() {
-    use nota_config::ConfigurationRecord;
-    use signal_persona::{SocketMode, WirePath};
-    use signal_persona_origin::{OwnerIdentity, UnixUserIdentifier};
     use signal_router::RouterDaemonConfiguration;
 
     let configuration = RouterDaemonConfiguration {
@@ -222,7 +228,7 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
         owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
     };
 
-    let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&configuration).expect("archive");
+    let bytes = configuration.to_rkyv_bytes().expect("archive");
     let recovered = RouterDaemonConfiguration::from_rkyv_bytes(&bytes).expect("decode rkyv");
     assert_eq!(recovered, configuration);
 }
@@ -239,10 +245,10 @@ fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
         )),
     )));
 
-    let text = operation.to_nota().expect("encode bootstrap operation");
+    let text = operation.to_nota();
     assert_eq!(
         text,
-        "(RegisterActor ((responder 42 (Some (HarnessSocket [/tmp/responder.harness.sock] None)))))"
+        "(RegisterActor (([responder] 42 (Some (HarnessSocket [/tmp/responder.harness.sock] None)))))"
     );
     assert_eq!(
         RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
@@ -257,8 +263,8 @@ fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
         ActorIdentifier::new("initiator"),
     ));
 
-    let text = operation.to_nota().expect("encode bootstrap operation");
-    assert_eq!(text, "(GrantDirectMessage (owner initiator))");
+    let text = operation.to_nota();
+    assert_eq!(text, "(GrantDirectMessage ([owner] [initiator]))");
     assert_eq!(
         RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
         operation
@@ -283,10 +289,18 @@ fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
         )),
     ]);
 
-    let text = document.to_nota_lines().expect("encode bootstrap document");
+    let text = document.to_nota_lines();
     let recovered =
         RouterBootstrapDocument::from_nota_lines(&text).expect("decode bootstrap document");
 
     assert_eq!(recovered, document);
     assert_eq!(recovered.operations().len(), 2);
+}
+
+#[test]
+fn router_observation_operation_kind_round_trips_through_nota_text() {
+    round_trip_nota(
+        signal_router::RouterObservationScope::MessageTrace,
+        "MessageTrace",
+    );
 }

@@ -7,7 +7,7 @@
 //! value here; the witness is what keeps the examples file aligned
 //! with the typed surface.
 
-use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
+use nota_next::{NotaEncode, NotaSource};
 use signal_message::MessageSlot;
 use signal_persona_origin::{ChannelIdentifier, EngineIdentifier};
 use signal_router::{
@@ -32,32 +32,31 @@ fn canonical_request_examples_round_trip() {
     let expected: Vec<(RouterRequest, &str)> = vec![
         (
             RouterRequest::Summary(RouterSummaryQuery { engine: engine() }),
-            "(Summary (prototype))",
+            "(Summary ([prototype]))",
         ),
         (
             RouterRequest::MessageTrace(RouterMessageTraceQuery {
                 engine: engine(),
                 message_slot: MessageSlot::new(7),
             }),
-            "(MessageTrace (prototype 7))",
+            "(MessageTrace ([prototype] 7))",
         ),
         (
             RouterRequest::ChannelState(RouterChannelStateQuery {
                 engine: engine(),
                 channel: channel(),
             }),
-            "(ChannelState (prototype internal-message-router))",
+            "(ChannelState ([prototype] [internal-message-router]))",
         ),
     ];
 
     for (value, canonical_text) in expected {
-        let mut encoder = Encoder::new();
-        value.encode(&mut encoder).expect("encode");
-        let text = encoder.into_string();
+        let text = value.to_nota();
         assert_eq!(text, canonical_text, "encode for {value:?}");
 
-        let mut decoder = Decoder::new(canonical_text);
-        let decoded = RouterRequest::decode(&mut decoder).expect("decode");
+        let decoded = NotaSource::new(canonical_text)
+            .parse::<RouterRequest>()
+            .expect("decode");
         assert_eq!(decoded, value, "decode for {canonical_text}");
 
         assert!(
@@ -78,7 +77,7 @@ fn canonical_reply_examples_round_trip() {
                 deferred_messages: 0,
                 failed_messages: 0,
             }),
-            "(Summary (prototype 1 1 0 0))",
+            "(Summary ([prototype] 1 1 0 0))",
         ),
         (
             RouterReply::MessageTrace(RouterMessageTrace {
@@ -86,14 +85,14 @@ fn canonical_reply_examples_round_trip() {
                 message_slot: MessageSlot::new(7),
                 status: RouterDeliveryStatus::Routed,
             }),
-            "(MessageTrace (prototype 7 Routed))",
+            "(MessageTrace ([prototype] 7 Routed))",
         ),
         (
             RouterReply::MessageTraceMissing(RouterMessageTraceMissing {
                 engine: engine(),
                 message_slot: MessageSlot::new(99),
             }),
-            "(MessageTraceMissing (prototype 99))",
+            "(MessageTraceMissing ([prototype] 99))",
         ),
         (
             RouterReply::ChannelState(RouterChannelState {
@@ -101,7 +100,7 @@ fn canonical_reply_examples_round_trip() {
                 channel: channel(),
                 status: RouterChannelStatus::Installed,
             }),
-            "(ChannelState (prototype internal-message-router Installed))",
+            "(ChannelState ([prototype] [internal-message-router] Installed))",
         ),
         (
             RouterReply::Unimplemented(RouterObservationUnimplemented {
@@ -113,13 +112,12 @@ fn canonical_reply_examples_round_trip() {
     ];
 
     for (value, canonical_text) in expected {
-        let mut encoder = Encoder::new();
-        value.encode(&mut encoder).expect("encode");
-        let text = encoder.into_string();
+        let text = value.to_nota();
         assert_eq!(text, canonical_text, "encode for {value:?}");
 
-        let mut decoder = Decoder::new(canonical_text);
-        let decoded = RouterReply::decode(&mut decoder).expect("decode");
+        let decoded = NotaSource::new(canonical_text)
+            .parse::<RouterReply>()
+            .expect("decode");
         assert_eq!(decoded, value, "decode for {canonical_text}");
 
         assert!(

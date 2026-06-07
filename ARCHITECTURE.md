@@ -154,7 +154,7 @@ in this ordinary contract. Their Component Commands project to
 | Round-trip witnesses cover every variant in NOTA. | `examples/canonical.nota` holds one canonical text example per request/reply variant; round-trip tests parse and re-emit each. |
 | Bootstrap line records round-trip through NOTA using the contract crate. | `bootstrap_register_actor_operation_round_trips_through_nota_line`, `bootstrap_direct_message_grant_operation_round_trips_through_nota_line`, and `bootstrap_document_owns_line_vocabulary_for_manager_and_router`. |
 | No stringly-typed dispatch (`match s.as_str()`) for closed-set states. | All status/scope/reason fields are typed closed enums. |
-| Contract crate dependencies use a named API reference (branch or tag), not a raw revision pin. | `Cargo.toml` review: `signal-frame`, `signal-persona-origin`, `signal-message`, `nota-codec` are declared `git = "..."` with a named-branch shape; raw `rev = "..."` pins are not used. |
+| Contract crate dependencies use a named API reference (branch or tag), not a raw revision pin. | `Cargo.toml` review: `nota-next`, `signal-frame`, `signal-engine-management`, `signal-persona-origin`, and `signal-message` are declared `git = "..."` with a named-branch shape; raw `rev = "..."` pins are not used. |
 
 ## 6 · NOTA codec shape on `signal_channel!` operation heads
 

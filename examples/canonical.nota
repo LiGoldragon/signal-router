@@ -12,27 +12,27 @@
 ;; ─── Requests ─────────────────────────────────────────────────────
 
 ;; RouterRequest::Summary
-(Summary (prototype))
+(Summary ([prototype]))
 
 ;; RouterRequest::MessageTrace
-(MessageTrace (prototype 7))
+(MessageTrace ([prototype] 7))
 
 ;; RouterRequest::ChannelState
-(ChannelState (prototype internal-message-router))
+(ChannelState ([prototype] [internal-message-router]))
 
 ;; ─── Replies ──────────────────────────────────────────────────────
 
 ;; RouterReply::Summary
-(Summary (prototype 1 1 0 0))
+(Summary ([prototype] 1 1 0 0))
 
 ;; RouterReply::MessageTrace — slot present, status closed
-(MessageTrace (prototype 7 Routed))
+(MessageTrace ([prototype] 7 Routed))
 
 ;; RouterReply::MessageTraceMissing — slot not in store
-(MessageTraceMissing (prototype 99))
+(MessageTraceMissing ([prototype] 99))
 
 ;; RouterReply::ChannelState
-(ChannelState (prototype internal-message-router Installed))
+(ChannelState ([prototype] [internal-message-router] Installed))
 
 ;; RouterReply::Unimplemented
 (Unimplemented (Summary NotInPrototypeScope))

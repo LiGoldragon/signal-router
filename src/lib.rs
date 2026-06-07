@@ -4,15 +4,24 @@
 //! with observation records needed by `introspect`; operational
 //! router relations can land here as they are extracted.
 
-use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaTransparent};
+use nota_next::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode, NotaSource};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
+use signal_engine_management::{SocketMode, WirePath};
 use signal_frame::signal_channel;
 use signal_message::MessageSlot;
-use signal_persona::{SocketMode, WirePath};
 use signal_persona_origin::{ChannelIdentifier, EngineIdentifier, OwnerIdentity};
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct ObservationIdentifier(String);
 
@@ -27,7 +36,16 @@ impl ObservationIdentifier {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct ActorIdentifier(String);
 
@@ -41,11 +59,36 @@ impl ActorIdentifier {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Actor {
     pub name: ActorIdentifier,
     pub process: u32,
     pub endpoint: Option<EndpointTransport>,
+}
+
+impl NotaDecode for Actor {
+    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+        let fields = NotaBlock::new(block).expect_children(Delimiter::Parenthesis, "Actor", 3)?;
+        let process = NotaBlock::new(&fields[1]).parse_integer()?;
+        let process = u32::try_from(process).map_err(|_| NotaDecodeError::InvalidInteger {
+            value: process.to_string(),
+        })?;
+        Ok(Self {
+            name: ActorIdentifier::from_nota_block(&fields[0])?,
+            process,
+            endpoint: Option::<EndpointTransport>::from_nota_block(&fields[2])?,
+        })
+    }
+}
+
+impl NotaEncode for Actor {
+    fn to_nota(&self) -> String {
+        Delimiter::Parenthesis.wrap([
+            self.name.to_nota(),
+            self.process.to_string(),
+            self.endpoint.to_nota(),
+        ])
+    }
 }
 
 impl Actor {
@@ -58,7 +101,9 @@ impl Actor {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct EndpointTransport {
     pub kind: EndpointKind,
     pub target: String,
@@ -75,14 +120,27 @@ impl EndpointTransport {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+)]
 pub enum EndpointKind {
     Human,
     HarnessSocket,
     PtySocket,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RegisterActor {
     pub actor: Actor,
 }
@@ -93,7 +151,9 @@ impl RegisterActor {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct GrantDirectMessage {
     pub from: ActorIdentifier,
     pub to: ActorIdentifier,
@@ -105,7 +165,9 @@ impl GrantDirectMessage {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct InstallStructuralChannels {
     pub requester: ActorIdentifier,
 }
@@ -116,7 +178,9 @@ impl InstallStructuralChannels {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum RouterBootstrapOperation {
     RegisterActor(RegisterActor),
     GrantDirectMessage(GrantDirectMessage),
@@ -124,31 +188,18 @@ pub enum RouterBootstrapOperation {
 }
 
 impl RouterBootstrapOperation {
-    pub fn from_nota(text: &str) -> nota_codec::Result<Self> {
-        let mut decoder = Decoder::new(text);
-        let operation = Self::decode(&mut decoder)?;
-        Self::expect_end(&mut decoder)?;
-        Ok(operation)
+    pub fn from_nota(text: &str) -> Result<Self, NotaDecodeError> {
+        NotaSource::new(text).parse()
     }
 
-    pub fn to_nota(&self) -> nota_codec::Result<String> {
-        let mut encoder = Encoder::new();
-        self.encode(&mut encoder)?;
-        Ok(encoder.into_string())
-    }
-
-    fn expect_end(decoder: &mut Decoder<'_>) -> nota_codec::Result<()> {
-        if let Some(token) = decoder.peek_token()? {
-            return Err(nota_codec::Error::UnexpectedToken {
-                expected: "end of input",
-                got: token,
-            });
-        }
-        Ok(())
+    pub fn to_nota(&self) -> String {
+        NotaEncode::to_nota(self)
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RouterBootstrapDocument {
     pub operations: Vec<RouterBootstrapOperation>,
 }
@@ -166,7 +217,7 @@ impl RouterBootstrapDocument {
         self.operations
     }
 
-    pub fn from_nota_lines(text: &str) -> nota_codec::Result<Self> {
+    pub fn from_nota_lines(text: &str) -> Result<Self, NotaDecodeError> {
         let mut operations = Vec::new();
         for line in text.lines().map(str::trim).filter(|line| !line.is_empty()) {
             operations.push(RouterBootstrapOperation::from_nota(line)?);
@@ -174,18 +225,28 @@ impl RouterBootstrapDocument {
         Ok(Self::new(operations))
     }
 
-    pub fn to_nota_lines(&self) -> nota_codec::Result<String> {
+    pub fn to_nota_lines(&self) -> String {
         let mut text = String::new();
         for operation in &self.operations {
-            text.push_str(operation.to_nota()?.as_str());
+            text.push_str(operation.to_nota().as_str());
             text.push('\n');
         }
-        Ok(text)
+        text
     }
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum RouterObservationScope {
     Summary,
@@ -193,24 +254,32 @@ pub enum RouterObservationScope {
     ChannelState,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RouterSummaryQuery {
     pub engine: EngineIdentifier,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RouterMessageTraceQuery {
     pub engine: EngineIdentifier,
     pub message_slot: MessageSlot,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RouterChannelStateQuery {
     pub engine: EngineIdentifier,
     pub channel: ChannelIdentifier,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RouterSummary {
     pub engine: EngineIdentifier,
     pub accepted_messages: u64,
@@ -226,7 +295,9 @@ pub struct RouterSummary {
 /// record with a placeholder status. The closed-enum rule applies: a
 /// `Unknown` variant would conflate "slot not observed" with "slot observed,
 /// state unrepresentable," which are two different facts.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RouterMessageTrace {
     pub engine: EngineIdentifier,
     pub message_slot: MessageSlot,
@@ -236,14 +307,26 @@ pub struct RouterMessageTrace {
 /// Slot lookup failed: the message slot is not present in the router's
 /// store. Distinct from `RouterMessageTrace` so callers pattern-match on
 /// presence vs absence without inspecting a sentinel status variant.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RouterMessageTraceMissing {
     pub engine: EngineIdentifier,
     pub message_slot: MessageSlot,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum RouterDeliveryStatus {
     Accepted,
@@ -253,7 +336,9 @@ pub enum RouterDeliveryStatus {
     Failed,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RouterChannelState {
     pub engine: EngineIdentifier,
     pub channel: ChannelIdentifier,
@@ -261,7 +346,17 @@ pub struct RouterChannelState {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum RouterChannelStatus {
     Installed,
@@ -269,14 +364,26 @@ pub enum RouterChannelStatus {
     Disabled,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RouterObservationUnimplemented {
     pub scope: RouterObservationScope,
     pub reason: RouterObservationUnimplementedReason,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum RouterObservationUnimplementedReason {
     NotInPrototypeScope,
@@ -317,7 +424,9 @@ pub type RouterRequestBuilder = RequestBuilder;
 /// `PERSONA_SUPERVISION_SOCKET_MODE` argv/environment-variable
 /// surface. The ordinary router socket and meta-policy socket are
 /// separate fields so launch configuration exposes both triad tiers.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct RouterDaemonConfiguration {
     /// Where the daemon binds its router Unix socket.
     pub router_socket_path: WirePath,
@@ -339,4 +448,24 @@ pub struct RouterDaemonConfiguration {
     pub owner_identity: OwnerIdentity,
 }
 
-nota_config::impl_rkyv_configuration!(RouterDaemonConfiguration);
+impl RouterDaemonConfiguration {
+    pub fn from_rkyv_bytes(bytes: &[u8]) -> Result<Self, RouterDaemonConfigurationArchiveError> {
+        rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes)
+            .map_err(|_| RouterDaemonConfigurationArchiveError::Decode)
+    }
+
+    pub fn to_rkyv_bytes(&self) -> Result<Vec<u8>, RouterDaemonConfigurationArchiveError> {
+        rkyv::to_bytes::<rkyv::rancor::Error>(self)
+            .map(|bytes| bytes.to_vec())
+            .map_err(|_| RouterDaemonConfigurationArchiveError::Encode)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RouterDaemonConfigurationArchiveError {
+    #[error("failed to encode router daemon configuration archive")]
+    Encode,
+
+    #[error("failed to decode router daemon configuration archive")]
+    Decode,
+}
