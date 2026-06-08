@@ -5,34 +5,33 @@
 ;; payload record fields are nested under that variant.
 ;;
 ;; Round-trip witness: tests/canonical_examples.rs parses each record
-;; through `<RouterRequest as NotaDecode>::decode` /
-;; `<RouterReply as NotaDecode>::decode`, re-encodes it, and asserts
+;; through generated `Input` / `Output` decode, re-encodes it, and asserts
 ;; the canonical text equals what is written here.
 
 ;; ─── Requests ─────────────────────────────────────────────────────
 
-;; RouterRequest::Summary
-(Summary ([prototype]))
+;; Input::Summary
+(Summary [prototype])
 
-;; RouterRequest::MessageTrace
+;; Input::MessageTrace
 (MessageTrace ([prototype] 7))
 
-;; RouterRequest::ChannelState
+;; Input::ChannelState
 (ChannelState ([prototype] [internal-message-router]))
 
 ;; ─── Replies ──────────────────────────────────────────────────────
 
-;; RouterReply::Summary
+;; Output::Summary
 (Summary ([prototype] 1 1 0 0))
 
-;; RouterReply::MessageTrace — slot present, status closed
+;; Output::MessageTrace — slot present, status closed
 (MessageTrace ([prototype] 7 Routed))
 
-;; RouterReply::MessageTraceMissing — slot not in store
+;; Output::MessageTraceMissing — slot not in store
 (MessageTraceMissing ([prototype] 99))
 
-;; RouterReply::ChannelState
+;; Output::ChannelState
 (ChannelState ([prototype] [internal-message-router] Installed))
 
-;; RouterReply::Unimplemented
+;; Output::Unimplemented
 (Unimplemented (Summary NotInPrototypeScope))

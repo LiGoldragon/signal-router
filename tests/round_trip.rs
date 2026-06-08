@@ -1,19 +1,18 @@
+#[cfg(feature = "nota-text")]
 use nota_next::{NotaDecode, NotaEncode, NotaSource};
-use signal_engine_management::{SocketMode, WirePath};
 use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalOperationHeads, SubReply,
 };
-use signal_message::MessageSlot;
-use signal_persona_origin::{
-    ChannelIdentifier, EngineIdentifier, OwnerIdentity, UnixUserIdentifier,
+#[cfg(feature = "nota-text")]
+use signal_router::{
+    Actor, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
+    RouterBootstrapDocument, RouterBootstrapOperation, RouterObservationScope,
 };
 use signal_router::{
-    Actor, ActorIdentifier, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
-    RouterBootstrapDocument, RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery,
-    RouterChannelStatus, RouterDeliveryStatus, RouterFrame as Frame, RouterFrameBody as FrameBody,
-    RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery, RouterReply,
-    RouterRequest, RouterSummary, RouterSummaryQuery,
+    Frame, FrameBody, Input, Output, OwnerIdentity, RouterChannelState, RouterChannelStateQuery,
+    RouterChannelStatus, RouterDaemonConfiguration, RouterDeliveryStatus, RouterMessageTrace,
+    RouterMessageTraceMissing, RouterMessageTraceQuery, RouterSummary, RouterSummaryQuery,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -24,7 +23,20 @@ fn exchange() -> ExchangeIdentifier {
     )
 }
 
-fn round_trip_request(request: RouterRequest) {
+fn engine() -> String {
+    String::from("prototype")
+}
+
+fn channel() -> String {
+    String::from("internal-message-router")
+}
+
+#[cfg(feature = "nota-text")]
+fn actor(name: &str) -> String {
+    String::from(name)
+}
+
+fn round_trip_request(request: Input) {
     let frame = Frame::new(FrameBody::Request {
         exchange: exchange(),
         request: request.clone().into_request(),
@@ -44,7 +56,7 @@ fn round_trip_request(request: RouterRequest) {
     }
 }
 
-fn round_trip_reply(reply: RouterReply) -> RouterReply {
+fn round_trip_reply(reply: Output) -> Output {
     let frame = Frame::new(FrameBody::Reply {
         exchange: exchange(),
         reply: Reply::committed(NonEmpty::single(SubReply::Ok(reply))),
@@ -65,6 +77,7 @@ fn round_trip_reply(reply: RouterReply) -> RouterReply {
     }
 }
 
+#[cfg(feature = "nota-text")]
 fn round_trip_nota<Value>(value: Value, expected: &str)
 where
     Value: NotaEncode + NotaDecode + PartialEq + std::fmt::Debug,
@@ -77,34 +90,29 @@ where
 
 #[test]
 fn router_summary_query_round_trips_through_length_prefixed_frame() {
-    let request = RouterRequest::Summary(RouterSummaryQuery {
-        engine: EngineIdentifier::new("prototype"),
-    });
-    round_trip_request(request);
+    round_trip_request(Input::Summary(RouterSummaryQuery::new(engine())));
 }
 
 #[test]
 fn router_message_trace_query_round_trips_through_length_prefixed_frame() {
-    let request = RouterRequest::MessageTrace(RouterMessageTraceQuery {
-        engine: EngineIdentifier::new("prototype"),
-        message_slot: MessageSlot::new(7),
-    });
-    round_trip_request(request);
+    round_trip_request(Input::MessageTrace(RouterMessageTraceQuery {
+        engine: engine(),
+        message_slot: 7,
+    }));
 }
 
 #[test]
 fn router_channel_state_query_round_trips_through_length_prefixed_frame() {
-    let request = RouterRequest::ChannelState(RouterChannelStateQuery {
-        engine: EngineIdentifier::new("prototype"),
-        channel: ChannelIdentifier::new("internal-message-router"),
-    });
-    round_trip_request(request);
+    round_trip_request(Input::ChannelState(RouterChannelStateQuery {
+        engine: engine(),
+        channel: channel(),
+    }));
 }
 
 #[test]
 fn router_request_heads_are_contract_local_operations() {
     assert_eq!(
-        <RouterRequest as SignalOperationHeads>::HEADS,
+        <Input as SignalOperationHeads>::HEADS,
         &["Summary", "MessageTrace", "ChannelState"]
     );
 }
@@ -117,7 +125,7 @@ fn router_contract_has_no_sema_classification_dependency_or_roots() {
         "ordinary signal contracts must not depend on signal-sema for public wire vocabulary"
     );
 
-    let heads = <RouterRequest as SignalOperationHeads>::HEADS;
+    let heads = <Input as SignalOperationHeads>::HEADS;
     for forbidden in [
         "Assert",
         "Mutate",
@@ -135,8 +143,8 @@ fn router_contract_has_no_sema_classification_dependency_or_roots() {
 
 #[test]
 fn router_summary_reply_round_trips_through_length_prefixed_frame() {
-    let reply = RouterReply::Summary(RouterSummary {
-        engine: EngineIdentifier::new("prototype"),
+    let reply = Output::Summary(RouterSummary {
+        engine: engine(),
         accepted_messages: 1,
         routed_messages: 1,
         deferred_messages: 0,
@@ -147,9 +155,9 @@ fn router_summary_reply_round_trips_through_length_prefixed_frame() {
 
 #[test]
 fn router_message_trace_reply_round_trips_through_length_prefixed_frame() {
-    let reply = RouterReply::MessageTrace(RouterMessageTrace {
-        engine: EngineIdentifier::new("prototype"),
-        message_slot: MessageSlot::new(7),
+    let reply = Output::MessageTrace(RouterMessageTrace {
+        engine: engine(),
+        message_slot: 7,
         status: RouterDeliveryStatus::Routed,
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
@@ -157,9 +165,9 @@ fn router_message_trace_reply_round_trips_through_length_prefixed_frame() {
 
 #[test]
 fn router_channel_state_reply_round_trips_through_length_prefixed_frame() {
-    let reply = RouterReply::ChannelState(RouterChannelState {
-        engine: EngineIdentifier::new("prototype"),
-        channel: ChannelIdentifier::new("internal-message-router"),
+    let reply = Output::ChannelState(RouterChannelState {
+        engine: engine(),
+        channel: channel(),
         status: RouterChannelStatus::Installed,
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
@@ -167,20 +175,15 @@ fn router_channel_state_reply_round_trips_through_length_prefixed_frame() {
 
 #[test]
 fn router_message_trace_missing_reply_round_trips_through_length_prefixed_frame() {
-    let reply = RouterReply::MessageTraceMissing(RouterMessageTraceMissing {
-        engine: EngineIdentifier::new("prototype"),
-        message_slot: MessageSlot::new(99),
+    let reply = Output::MessageTraceMissing(RouterMessageTraceMissing {
+        engine: engine(),
+        message_slot: 99,
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
 }
 
 #[test]
 fn router_status_enums_are_closed_no_unknown_variants() {
-    // Witness for the closed-enum integrity rule: callers may exhaustively
-    // match every `RouterDeliveryStatus` and `RouterChannelStatus` variant.
-    // Adding an `Unknown` (or any forward-compat placeholder) would smuggle
-    // a polling-shape escape hatch back into the wire enum; this match must
-    // continue to enumerate only positively-named, store-derivable states.
     for status in [
         RouterDeliveryStatus::Accepted,
         RouterDeliveryStatus::Routed,
@@ -211,20 +214,19 @@ fn router_status_enums_are_closed_no_unknown_variants() {
     }
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn router_daemon_configuration_round_trips_through_nota_text() {
-    use signal_router::RouterDaemonConfiguration;
-
     let configuration = RouterDaemonConfiguration {
-        router_socket_path: WirePath::new("/run/persona/X/router.sock"),
-        router_socket_mode: SocketMode::new(0o600),
-        meta_router_socket_path: WirePath::new("/run/persona/X/router-meta.sock"),
-        meta_router_socket_mode: SocketMode::new(0o600),
-        supervision_socket_path: WirePath::new("/run/persona/X/router-supervision.sock"),
-        supervision_socket_mode: SocketMode::new(0o600),
-        store_path: WirePath::new("/var/lib/persona/X/router.sema"),
-        bootstrap_path: Some(WirePath::new("/var/lib/persona/X/router-bootstrap.nota")),
-        owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
+        router_socket_path: String::from("/run/persona/X/router.sock"),
+        router_socket_mode: 0o600,
+        meta_router_socket_path: String::from("/run/persona/X/router-meta.sock"),
+        meta_router_socket_mode: 0o600,
+        supervision_socket_path: String::from("/run/persona/X/router-supervision.sock"),
+        supervision_socket_mode: 0o600,
+        store_path: String::from("/var/lib/persona/X/router.sema"),
+        bootstrap_path: Some(String::from("/var/lib/persona/X/router-bootstrap.nota")),
+        owner_identity: OwnerIdentity::UnixUser(1000),
     };
 
     let text = configuration.to_nota();
@@ -238,18 +240,16 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
 
 #[test]
 fn router_daemon_configuration_round_trips_through_rkyv() {
-    use signal_router::RouterDaemonConfiguration;
-
     let configuration = RouterDaemonConfiguration {
-        router_socket_path: WirePath::new("/run/persona/X/router.sock"),
-        router_socket_mode: SocketMode::new(0o600),
-        meta_router_socket_path: WirePath::new("/run/persona/X/router-meta.sock"),
-        meta_router_socket_mode: SocketMode::new(0o600),
-        supervision_socket_path: WirePath::new("/run/persona/X/router-supervision.sock"),
-        supervision_socket_mode: SocketMode::new(0o600),
-        store_path: WirePath::new("/var/lib/persona/X/router.sema"),
+        router_socket_path: String::from("/run/persona/X/router.sock"),
+        router_socket_mode: 0o600,
+        meta_router_socket_path: String::from("/run/persona/X/router-meta.sock"),
+        meta_router_socket_mode: 0o600,
+        supervision_socket_path: String::from("/run/persona/X/router-supervision.sock"),
+        supervision_socket_mode: 0o600,
+        store_path: String::from("/var/lib/persona/X/router.sema"),
         bootstrap_path: None,
-        owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
+        owner_identity: OwnerIdentity::UnixUser(1000),
     };
 
     let bytes = configuration.to_rkyv_bytes().expect("archive");
@@ -257,22 +257,28 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
     assert_eq!(recovered, configuration);
 }
 
+#[cfg(feature = "nota-text")]
+fn endpoint_transport(path: &str) -> EndpointTransport {
+    EndpointTransport {
+        kind: EndpointKind::HarnessSocket,
+        target: String::from(path),
+        auxiliary: None,
+    }
+}
+
+#[cfg(feature = "nota-text")]
 #[test]
 fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
-    let operation = RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor::new(
-        ActorIdentifier::new("responder"),
-        42,
-        Some(EndpointTransport::new(
-            EndpointKind::HarnessSocket,
-            "/tmp/responder.harness.sock",
-            None,
-        )),
-    )));
+    let operation = RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor {
+        name: actor("responder"),
+        process: 42,
+        endpoint: Some(endpoint_transport("/tmp/responder.harness.sock")),
+    }));
 
     let text = operation.to_nota();
     assert_eq!(
         text,
-        "(RegisterActor (([responder] 42 (Some (HarnessSocket [/tmp/responder.harness.sock] None)))))"
+        "(RegisterActor ([responder] 42 (Some (HarnessSocket [/tmp/responder.harness.sock] None))))"
     );
     assert_eq!(
         RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
@@ -280,12 +286,13 @@ fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
     );
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
-    let operation = RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage::new(
-        ActorIdentifier::new("owner"),
-        ActorIdentifier::new("initiator"),
-    ));
+    let operation = RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage {
+        from: actor("owner"),
+        to: actor("initiator"),
+    });
 
     let text = operation.to_nota();
     assert_eq!(text, "(GrantDirectMessage ([owner] [initiator]))");
@@ -295,22 +302,21 @@ fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
     );
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
     let document = RouterBootstrapDocument::new(vec![
-        RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor::new(
-            ActorIdentifier::new("initiator"),
-            0,
-            Some(EndpointTransport::new(
-                EndpointKind::HarnessSocket,
+        RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor {
+            name: actor("initiator"),
+            process: 0,
+            endpoint: Some(endpoint_transport(
                 "/run/persona/engine/harness/initiator.sock",
-                None,
             )),
-        ))),
-        RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage::new(
-            ActorIdentifier::new("initiator"),
-            ActorIdentifier::new("responder"),
-        )),
+        })),
+        RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage {
+            from: actor("initiator"),
+            to: actor("responder"),
+        }),
     ]);
 
     let text = document.to_nota_lines();
@@ -321,10 +327,8 @@ fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
     assert_eq!(recovered.operations().len(), 2);
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn router_observation_operation_kind_round_trips_through_nota_text() {
-    round_trip_nota(
-        signal_router::RouterObservationScope::MessageTrace,
-        "MessageTrace",
-    );
+    round_trip_nota(RouterObservationScope::MessageTrace, "MessageTrace");
 }

@@ -32,8 +32,8 @@ storage tables, or runtime actors.
 
 ## What this repo owns
 
-- Router-owned Signal vocabulary: `RouterRequest`, `RouterReply`, and
-  the typed query / observation records they carry.
+- Router-owned Signal vocabulary: generated `Input`, generated `Output`,
+  and the typed query / observation records they carry.
 - Router observation records used by `introspect`.
 - The two-variant reply split for slot-lookup miss
   (`MessageTraceMissing`) keeping `RouterDeliveryStatus` closed.
@@ -61,8 +61,8 @@ and downstream code breaks silently.
   state" answer is a new positive variant, not a polling-shape
   placeholder.
 - **Every request variant declares a contract-local operation head.**
-  The `signal_channel!` declaration is the source of truth; tests
-  assert the exact heads.
+  `schema/lib.schema` is the source of truth; tests assert the exact
+  heads.
 - **No runtime code.** No Kameo, Tokio, socket, storage, or daemon
   glue in this crate. The contract is the typed vocabulary; the
   runtime is `router`.
@@ -70,8 +70,8 @@ and downstream code breaks silently.
   round trips in `tests/round_trip.rs`; canonical NOTA examples in
   `examples/canonical.nota` with a parser test.
 - **Pin upstream contracts via a named API reference.** Cargo deps
-  to `signal-frame`, `signal-persona-origin`, `signal-message`
-  use `git = "..."` with a named branch/bookmark, never raw
+  to `signal-frame` and `schema-rust-next` use `git = "..."`
+  with a named branch/bookmark, never raw
   `rev = "..."`.
 
 ## Editing patterns
@@ -82,9 +82,9 @@ and downstream code breaks silently.
    reply in `examples/canonical.nota` first. Per
    `~/primary/skills/contract-repo.md` §"Examples-first round-trip
    discipline", the example is the falsifiable spec.
-2. Declare the payload struct and reply variant in `src/lib.rs`.
-3. Add the variant to the `signal_channel!` declaration as a
-   contract-local operation head.
+2. Declare the payload struct and root variant in `schema/lib.schema`.
+3. Regenerate `src/schema/lib.rs` with
+   `SIGNAL_ROUTER_UPDATE_SCHEMA_ARTIFACTS=1 cargo build`.
 4. Add the rkyv round-trip test in `tests/round_trip.rs`.
 5. Add the NOTA round-trip witness for the new variant in the
    canonical-examples test.
@@ -109,7 +109,8 @@ hatch; the workspace forbids it on wire enums.
 This crate is non-streaming today. If a subscription lands:
 
 1. Read `~/primary/skills/subscription-lifecycle.md` end-to-end.
-2. Declare the `stream` block in `signal_channel!` with both a
+2. Declare the semantic stream in the schema surface once the schema
+   stream grammar is available for this contract, with both a
    request-side typed close operation and a reply-side close
    acknowledgement.
 3. Keep `Subscribe` and `Retract` out of ordinary public request roots unless
@@ -120,10 +121,9 @@ This crate is non-streaming today. If a subscription lands:
 
 ## NOTA codec shape
 
-The `signal_channel!` macro emits a request variant's NOTA head as
-the operation head. For example,
-`RouterRequest::Summary(RouterSummaryQuery { .. })` encodes as
-`(Summary (...))`. Canonical examples and round-trip tests use the
+The schema-derived codec emits a root variant's NOTA head as the operation
+head. For example, `Input::Summary(RouterSummaryQuery)` encodes as
+`(Summary [prototype])`. Canonical examples and round-trip tests use the
 operation heads.
 
 ## See also

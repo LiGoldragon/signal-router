@@ -24,15 +24,19 @@ router observation reads are:
 `Summary`, `MessageTrace`, and `ChannelState`. Durable read/write
 classification is daemon-side only.
 
-This crate depends on `signal-frame` for length-prefixed rkyv framing.
-It still owns only wire vocabulary, NOTA codecs, and bootstrap records;
-it does not own daemon actors, store tables, sockets, or routing
-policy.
+This schema-derived crate depends on `signal-frame` for length-prefixed
+rkyv framing. It still owns only wire vocabulary, NOTA codecs, and
+bootstrap records; it does not own daemon actors, store tables, sockets,
+or routing policy.
 
-There is one `signal_channel!` invocation in `src/lib.rs` declaring the
-`Router` observation channel. Bootstrap is not a live request/reply
-channel; it is a typed startup document projected as line-oriented NOTA
-records for the current manager-to-router handoff.
+`schema/lib.schema` declares the contract roots and payload records.
+`schema-rust-next` generates `Input`, `Output`, short-header routes,
+frame aliases, and codecs into `src/schema/lib.rs`; `src/lib.rs`
+re-exports the generated surface and keeps only small contract-owned
+helpers for bootstrap line projection and rkyv configuration archives.
+Bootstrap is not a live request/reply channel; it is a typed startup
+document projected as line-oriented NOTA records for the current
+manager-to-router handoff.
 
 Closed enums on the wire; positive names for "entity not in store"
 cases; one reply variant per concrete observation shape. Slot-lookup
@@ -53,7 +57,7 @@ observation reads.
 
 ## 2 · Owned surface
 
-- `RouterRequest` / `RouterReply` (closed enums).
+- `Input` / `Output` (closed generated wire enums).
 - `RouterBootstrapDocument` / `RouterBootstrapOperation`.
 - Bootstrap operation records:
   - `RegisterActor`
@@ -66,16 +70,16 @@ observation reads.
   - `EndpointKind`
 - `RouterSummaryQuery` / `RouterSummary`.
 - `RouterMessageTraceQuery` and the **two-variant reply split**:
-  - `RouterReply::MessageTrace(RouterMessageTrace)` — slot present;
+  - `Output::MessageTrace(RouterMessageTrace)` — slot present;
     `status` is a closed `RouterDeliveryStatus`.
-  - `RouterReply::MessageTraceMissing(RouterMessageTraceMissing)` —
+  - `Output::MessageTraceMissing(RouterMessageTraceMissing)` —
     slot not in store. The split keeps the inner status enum closed.
 - `RouterChannelStateQuery` / `RouterChannelState` /
   `RouterChannelStatus`. The "slot not in store" case is the positive
   `Missing` variant.
 - `RouterObservationUnimplemented` + closed
   `RouterObservationUnimplementedReason`.
-- Contract-local verbs declared in the `signal_channel!` invocation;
+- Contract-local verbs declared as root variants in `schema/lib.schema`;
   durable read/write classification is daemon-side only.
 
 ## 3 · Closed-enum integrity
@@ -135,28 +139,28 @@ lowering, not public operation roots.
 | Every request/reply travels as a Signal frame. | `tests/round_trip.rs` length-prefixed frame tests per variant. |
 | Manager-written router bootstrap uses router-owned typed vocabulary, not duplicated private records in `persona`. | `RouterBootstrapDocument` and `RouterBootstrapOperation` live in this crate; `bootstrap_document_owns_line_vocabulary_for_manager_and_router` round-trips the line projection. |
 | Router observation queries are contract-local operation heads, never universal database-action class roots. | `router_request_heads_are_contract_local_operations` and `router_contract_has_no_sema_classification_dependency_or_roots`. |
-| Message ingress remains in `signal-message`. | This crate imports `MessageSlot` but does not redefine message submission records. |
+| Message ingress remains outside this contract. | This crate carries only the router-facing `MessageSlot` scalar needed to observe a routed message; message submission records remain outside `signal-router`. |
 | Meta router channel policy orders remain out of this ordinary observation contract. | `meta-signal-router` owns `Grant`, `Extend`, `Revoke`, and `Deny`; Orchestrate calls that meta contract; this crate does not define those operations. |
 | Runtime code stays out of the contract. | Source scan: no Kameo, Tokio, socket, or storage code. |
 | Wire enums contain no `Unknown` variant. | `tests/round_trip.rs::router_status_enums_are_closed_no_unknown_variants` exhaustively matches every `RouterDeliveryStatus` and `RouterChannelStatus` variant. Adding an `Unknown` variant breaks the match. |
 | Any record name containing the word `Unknown` represents a positive "entity not in our state" rejection, not a polling-shape escape hatch. | This crate has no such records today; reply absence pivots at the reply variant (`MessageTraceMissing`) and channel absence at the positive `RouterChannelStatus::Missing`. |
 | Slot lookup miss travels as the typed `MessageTraceMissing` reply variant, not a sentinel inside `RouterMessageTrace.status`. | `router_message_trace_missing_reply_round_trips_through_length_prefixed_frame`. |
-| Each variant's NOTA head matches the contract-local verb declared in `signal_channel!`. | Generated by the macro; round-trip tests assert each variant's head. |
+| Each variant's NOTA head matches the contract-local verb declared in `schema/lib.schema`. | Generated by `schema-rust-next`; round-trip tests assert each variant's head. |
 | Round-trip witnesses cover every variant in rkyv. | `tests/round_trip.rs` exercises every request and reply variant through `Frame::encode_length_prefixed` / `decode_length_prefixed`. |
 | Round-trip witnesses cover every variant in NOTA. | `examples/canonical.nota` holds one canonical text example per request/reply variant; round-trip tests parse and re-emit each. |
 | Bootstrap line records round-trip through NOTA using the contract crate. | `bootstrap_register_actor_operation_round_trips_through_nota_line`, `bootstrap_direct_message_grant_operation_round_trips_through_nota_line`, and `bootstrap_document_owns_line_vocabulary_for_manager_and_router`. |
 | No stringly-typed dispatch (`match s.as_str()`) for closed-set states. | All status/scope/reason fields are typed closed enums. |
-| Contract crate dependencies use a named API reference (branch or tag), not a raw revision pin. | `Cargo.toml` review: `nota-next`, `signal-frame`, `signal-engine-management`, `signal-persona-origin`, and `signal-message` are declared `git = "..."` with a named-branch shape; raw `rev = "..."` pins are not used. |
+| Contract crate dependencies use a named API reference (branch or tag), not a raw revision pin. | `Cargo.toml` review: `nota-next`, `signal-frame`, and `schema-rust-next` are declared `git = "..."` with a named-branch shape; raw `rev = "..."` pins are not used. |
 
-## 6 · NOTA codec shape on `signal_channel!` operation heads
+## 6 · NOTA codec shape on schema operation heads
 
-The `signal_channel!` macro emits a request variant's NOTA head as
-the operation head. For example,
-`RouterRequest::Summary(RouterSummaryQuery { .. })` encodes as
-`(Summary (...))`. Tests and canonical examples carry the operation
-heads. The same shape applies to reply variants:
-`RouterReply::MessageTraceMissing(RouterMessageTraceMissing { .. })`
-encodes as `(MessageTraceMissing (...))`.
+The schema-derived codec emits a root variant's NOTA head as the operation
+head. For example, `Input::Summary(RouterSummaryQuery)` encodes as
+`(Summary [prototype])`, while struct payload roots keep their record body,
+such as `(MessageTrace ([prototype] 7))`. Tests and canonical examples carry
+the operation heads. The same shape applies to reply variants:
+`Output::MessageTraceMissing(RouterMessageTraceMissing { .. })` encodes as
+`(MessageTraceMissing ([prototype] 99))`.
 
 ## 7 · Versioning
 
@@ -181,7 +185,12 @@ branch/bookmark once that lane is declared.
 
 ```text
 src/
-└── lib.rs                — payloads + signal_channel! invocation
+├── lib.rs                — generated surface re-export + small contract helpers
+└── schema/
+    ├── mod.rs
+    └── lib.rs            — checked-in schema-rust-next generated wire contract
+schema/
+└── lib.schema            — authored wire roots and payload records
 examples/
 └── canonical.nota         — one canonical example per request/reply variant
 tests/
@@ -195,9 +204,8 @@ tests/
 
 - `meta-signal-router/ARCHITECTURE.md` — meta router
   channel policy orders.
-- `signal-frame/macros/src/validate.rs` — the macro
 - `~/primary/skills/component-triad.md`.
-- `signal-message/ARCHITECTURE.md` — companion crate that
-  carries message ingress records this crate imports.
+- `signal-message/ARCHITECTURE.md` — companion crate that carries message
+  ingress records outside this observation contract.
 - `signal-introspect/ARCHITECTURE.md` — the central
   introspection envelope that wraps router observations.

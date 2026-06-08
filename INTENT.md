@@ -21,10 +21,13 @@ Meta channel-policy intent stays in
 `router` daemon. It exists so `introspect` can ask the router for a
 typed summary, message trace, or channel state without opening
 `router.sema`. It also carries the manager-written router bootstrap
-vocabulary the daemon consumes at startup. Meta channel-policy
-orders — grants, extensions, revocations, adjudication denials — stay in
-`meta-signal-router`, called by Orchestrate; runtime
-actors, sockets, storage, and routing logic live in `router`.
+vocabulary the daemon consumes at startup. `schema/lib.schema` is the
+authored source of the contract; `src/schema/lib.rs` is the checked-in
+generated Rust surface that publishes `Input`, `Output`, frames, typed
+payload records, and codecs. Meta channel-policy orders — grants,
+extensions, revocations, adjudication denials — stay in
+`meta-signal-router`, called by Orchestrate; runtime actors, sockets,
+storage, and routing logic live in `router`.
 
 ## The channel shape
 
@@ -81,15 +84,16 @@ action becomes. Public contracts do not mirror `Assert`, `Mutate`, `Retract`,
 
 ## Constraints
 
-- This crate carries only typed wire vocabulary, NOTA codecs, and
+- This crate carries only typed wire vocabulary, generated codecs, and
   round-trip witnesses.
 - No runtime code: no actors, no tokio, no socket binding, no storage, no
   routing or adjudication policy logic.
-- Contract types derive NOTA in this crate. Clients do not carry shadow
-  types that re-derive the text surface.
-- Every operation and reply variant round-trips through both rkyv frames
-  and NOTA text; witnesses live in `tests/round_trip.rs` and
-  `examples/canonical.nota`.
+- Contract types derive their NOTA text surface in this crate when the
+  `nota-text` feature is enabled. Clients do not carry shadow types that
+  re-derive that human-edge surface.
+- Every operation and reply variant round-trips through rkyv frames by
+  default and through NOTA text under `nota-text`; witnesses live in
+  `tests/round_trip.rs` and `examples/canonical.nota`.
 - Manager-written router bootstrap uses router-owned typed vocabulary,
   not duplicated private records in `persona`.
 - Wire dependency pins use named branches or tags, not raw revision

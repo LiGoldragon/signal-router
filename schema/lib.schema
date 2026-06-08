@@ -1,0 +1,75 @@
+;; signal-router — ordinary working wire contract for the router daemon.
+;;
+;; Wire-only: emits the rkyv + optional NOTA codec and the signal-frame
+;; request/reply envelope. Runtime routing, durable storage, Nexus/SEMA
+;; lowering, and policy logic live in the router daemon. Meta channel-policy
+;; orders live in meta-signal-router.
+;;
+;; SELF-CONTAINED VOCABULARY. signal-message, signal-persona-origin, and
+;; signal-engine-management are not yet schema-derived contracts, so this
+;; schema defines the small router-facing vocabulary it needs locally. Daemon
+;; and client crates project these local wire nouns into their internal types.
+
+[(Summary RouterSummaryQuery)
+ (MessageTrace RouterMessageTraceQuery)
+ (ChannelState RouterChannelStateQuery)]
+[(Summary RouterSummary)
+ (MessageTrace RouterMessageTrace)
+ (MessageTraceMissing RouterMessageTraceMissing)
+ (ChannelState RouterChannelState)
+ (Unimplemented RouterObservationUnimplemented)]
+{
+  ObservationIdentifier String
+  ActorIdentifier String
+  EngineIdentifier String
+  ChannelIdentifier String
+  MessageSlot Integer
+  WirePath String
+  SocketMode Integer
+  UnixUserIdentifier Integer
+  OwnerIdentity [(UnixUser UnixUserIdentifier)]
+
+  EndpointKind [Human HarnessSocket PtySocket]
+  EndpointTransport { kind EndpointKind target String auxiliary (Optional String) }
+  Actor { name ActorIdentifier process Integer endpoint (Optional EndpointTransport) }
+  RegisterActor { actor Actor }
+  GrantDirectMessage { from ActorIdentifier to ActorIdentifier }
+  InstallStructuralChannels { requester ActorIdentifier }
+  RouterBootstrapOperation [
+    (RegisterActor RegisterActor)
+    (GrantDirectMessage GrantDirectMessage)
+    (InstallStructuralChannels InstallStructuralChannels)
+  ]
+  RouterBootstrapDocument { operations (Vec RouterBootstrapOperation) }
+
+  RouterObservationScope [Summary MessageTrace ChannelState]
+  RouterSummaryQuery { engine EngineIdentifier }
+  RouterMessageTraceQuery { engine EngineIdentifier message_slot MessageSlot }
+  RouterChannelStateQuery { engine EngineIdentifier channel ChannelIdentifier }
+  RouterSummary {
+    engine EngineIdentifier
+    accepted_messages Integer
+    routed_messages Integer
+    deferred_messages Integer
+    failed_messages Integer
+  }
+  RouterDeliveryStatus [Accepted Routed Delivered Deferred Failed]
+  RouterMessageTrace { engine EngineIdentifier message_slot MessageSlot status RouterDeliveryStatus }
+  RouterMessageTraceMissing { engine EngineIdentifier message_slot MessageSlot }
+  RouterChannelStatus [Installed Missing Disabled]
+  RouterChannelState { engine EngineIdentifier channel ChannelIdentifier status RouterChannelStatus }
+  RouterObservationUnimplementedReason [NotInPrototypeScope RouterStoreUnavailable MessageTraceUnavailable]
+  RouterObservationUnimplemented { scope RouterObservationScope reason RouterObservationUnimplementedReason }
+
+  RouterDaemonConfiguration {
+    router_socket_path WirePath
+    router_socket_mode SocketMode
+    meta_router_socket_path WirePath
+    meta_router_socket_mode SocketMode
+    supervision_socket_path WirePath
+    supervision_socket_mode SocketMode
+    store_path WirePath
+    bootstrap_path (Optional WirePath)
+    owner_identity OwnerIdentity
+  }
+}
