@@ -14,28 +14,44 @@ pub type Path = std::string::String;
 pub use nota_next::{NotaDecode, NotaDecodeError, NotaEncode, NotaSource};
 
 #[rustfmt::skip]
-pub type ObservationIdentifier = String;
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ObservationIdentifier(String);
 
 #[rustfmt::skip]
-pub type ActorIdentifier = String;
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ActorIdentifier(String);
 
 #[rustfmt::skip]
-pub type EngineIdentifier = String;
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct EngineIdentifier(String);
 
 #[rustfmt::skip]
-pub type ChannelIdentifier = String;
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ChannelIdentifier(String);
 
 #[rustfmt::skip]
-pub type MessageSlot = Integer;
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MessageSlot(Integer);
 
 #[rustfmt::skip]
-pub type WirePath = String;
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WirePath(String);
 
 #[rustfmt::skip]
-pub type SocketMode = Integer;
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SocketMode(Integer);
 
 #[rustfmt::skip]
-pub type UnixUserIdentifier = Integer;
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct UnixUserIdentifier(Integer);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -83,7 +99,7 @@ pub struct Actor {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RegisterActor(pub Actor);
+pub struct RegisterActor(Actor);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -96,7 +112,7 @@ pub struct GrantDirectMessage {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct InstallStructuralChannels(pub ActorIdentifier);
+pub struct InstallStructuralChannels(ActorIdentifier);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -110,7 +126,7 @@ pub enum RouterBootstrapOperation {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RouterBootstrapDocument(pub Vec<RouterBootstrapOperation>);
+pub struct RouterBootstrapDocument(Vec<RouterBootstrapOperation>);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -133,7 +149,7 @@ pub enum RouterObservationScope {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RouterSummaryQuery(pub EngineIdentifier);
+pub struct RouterSummaryQuery(EngineIdentifier);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -288,6 +304,158 @@ pub enum Output {
 }
 
 #[rustfmt::skip]
+impl ObservationIdentifier {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ObservationIdentifier {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ActorIdentifier {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ActorIdentifier {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl EngineIdentifier {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for EngineIdentifier {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ChannelIdentifier {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ChannelIdentifier {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl MessageSlot {
+    pub fn new(payload: Integer) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Integer {
+        &self.0
+    }
+    pub fn into_payload(self) -> Integer {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Integer> for MessageSlot {
+    fn from(payload: Integer) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl WirePath {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for WirePath {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl SocketMode {
+    pub fn new(payload: Integer) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Integer {
+        &self.0
+    }
+    pub fn into_payload(self) -> Integer {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Integer> for SocketMode {
+    fn from(payload: Integer) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl UnixUserIdentifier {
+    pub fn new(payload: Integer) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Integer {
+        &self.0
+    }
+    pub fn into_payload(self) -> Integer {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Integer> for UnixUserIdentifier {
+    fn from(payload: Integer) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl RegisterActor {
     pub fn new(payload: Actor) -> Self {
         Self(payload)
@@ -365,8 +533,8 @@ impl From<EngineIdentifier> for RouterSummaryQuery {
 
 #[rustfmt::skip]
 impl OwnerIdentity {
-    pub fn unix_user(payload: UnixUserIdentifier) -> Self {
-        Self::UnixUser(payload)
+    pub fn unix_user(payload: Integer) -> Self {
+        Self::UnixUser(UnixUserIdentifier::new(payload))
     }
 }
 
@@ -412,6 +580,13 @@ impl Output {
     }
     pub fn unimplemented(payload: RouterObservationUnimplemented) -> Self {
         Self::Unimplemented(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<UnixUserIdentifier> for OwnerIdentity {
+    fn from(payload: UnixUserIdentifier) -> Self {
+        Self::UnixUser(payload)
     }
 }
 
@@ -489,6 +664,94 @@ impl From<RouterChannelState> for Output {
 impl From<RouterObservationUnimplemented> for Output {
     fn from(payload: RouterObservationUnimplemented) -> Self {
         Self::Unimplemented(payload)
+    }
+}
+
+#[rustfmt::skip]
+#[cfg(feature = "nota-text")]
+impl ObservationIdentifier {
+    pub fn from_nota_block(block: &nota_next::Block) -> Result<Self, NotaDecodeError> {
+        <Self as NotaDecode>::from_nota_block(block)
+    }
+    pub fn to_nota(&self) -> String {
+        <Self as NotaEncode>::to_nota(self)
+    }
+}
+
+#[rustfmt::skip]
+#[cfg(feature = "nota-text")]
+impl ActorIdentifier {
+    pub fn from_nota_block(block: &nota_next::Block) -> Result<Self, NotaDecodeError> {
+        <Self as NotaDecode>::from_nota_block(block)
+    }
+    pub fn to_nota(&self) -> String {
+        <Self as NotaEncode>::to_nota(self)
+    }
+}
+
+#[rustfmt::skip]
+#[cfg(feature = "nota-text")]
+impl EngineIdentifier {
+    pub fn from_nota_block(block: &nota_next::Block) -> Result<Self, NotaDecodeError> {
+        <Self as NotaDecode>::from_nota_block(block)
+    }
+    pub fn to_nota(&self) -> String {
+        <Self as NotaEncode>::to_nota(self)
+    }
+}
+
+#[rustfmt::skip]
+#[cfg(feature = "nota-text")]
+impl ChannelIdentifier {
+    pub fn from_nota_block(block: &nota_next::Block) -> Result<Self, NotaDecodeError> {
+        <Self as NotaDecode>::from_nota_block(block)
+    }
+    pub fn to_nota(&self) -> String {
+        <Self as NotaEncode>::to_nota(self)
+    }
+}
+
+#[rustfmt::skip]
+#[cfg(feature = "nota-text")]
+impl MessageSlot {
+    pub fn from_nota_block(block: &nota_next::Block) -> Result<Self, NotaDecodeError> {
+        <Self as NotaDecode>::from_nota_block(block)
+    }
+    pub fn to_nota(&self) -> String {
+        <Self as NotaEncode>::to_nota(self)
+    }
+}
+
+#[rustfmt::skip]
+#[cfg(feature = "nota-text")]
+impl WirePath {
+    pub fn from_nota_block(block: &nota_next::Block) -> Result<Self, NotaDecodeError> {
+        <Self as NotaDecode>::from_nota_block(block)
+    }
+    pub fn to_nota(&self) -> String {
+        <Self as NotaEncode>::to_nota(self)
+    }
+}
+
+#[rustfmt::skip]
+#[cfg(feature = "nota-text")]
+impl SocketMode {
+    pub fn from_nota_block(block: &nota_next::Block) -> Result<Self, NotaDecodeError> {
+        <Self as NotaDecode>::from_nota_block(block)
+    }
+    pub fn to_nota(&self) -> String {
+        <Self as NotaEncode>::to_nota(self)
+    }
+}
+
+#[rustfmt::skip]
+#[cfg(feature = "nota-text")]
+impl UnixUserIdentifier {
+    pub fn from_nota_block(block: &nota_next::Block) -> Result<Self, NotaDecodeError> {
+        <Self as NotaDecode>::from_nota_block(block)
+    }
+    pub fn to_nota(&self) -> String {
+        <Self as NotaEncode>::to_nota(self)
     }
 }
 

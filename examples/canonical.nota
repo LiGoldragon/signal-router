@@ -11,27 +11,27 @@
 ;; ─── Requests ─────────────────────────────────────────────────────
 
 ;; Input::Summary
-(Summary [prototype])
+(Summary prototype)
 
 ;; Input::MessageTrace
-(MessageTrace ([prototype] 7))
+(MessageTrace (prototype 7))
 
 ;; Input::ChannelState
-(ChannelState ([prototype] [internal-message-router]))
+(ChannelState (prototype internal-message-router))
 
 ;; ─── Replies ──────────────────────────────────────────────────────
 
 ;; Output::Summary
-(Summary ([prototype] 1 1 0 0))
+(Summary (prototype 1 1 0 0))
 
 ;; Output::MessageTrace — slot present, status closed
-(MessageTrace ([prototype] 7 Routed))
+(MessageTrace (prototype 7 Routed))
 
 ;; Output::MessageTraceMissing — slot not in store
-(MessageTraceMissing ([prototype] 99))
+(MessageTraceMissing (prototype 99))
 
 ;; Output::ChannelState
-(ChannelState ([prototype] [internal-message-router] Installed))
+(ChannelState (prototype internal-message-router Installed))
 
 ;; Output::Unimplemented
 (Unimplemented (Summary NotInPrototypeScope))

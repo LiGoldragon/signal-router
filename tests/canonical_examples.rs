@@ -31,22 +31,22 @@ fn channel() -> String {
 fn canonical_request_examples_round_trip() {
     let expected: Vec<(Input, &str)> = vec![
         (
-            Input::Summary(RouterSummaryQuery::new(engine())),
-            "(Summary [prototype])",
+            Input::Summary(RouterSummaryQuery::new(engine().into())),
+            "(Summary prototype)",
         ),
         (
             Input::MessageTrace(RouterMessageTraceQuery {
-                engine: engine(),
-                message_slot: 7,
+                engine: engine().into(),
+                message_slot: 7.into(),
             }),
-            "(MessageTrace ([prototype] 7))",
+            "(MessageTrace (prototype 7))",
         ),
         (
             Input::ChannelState(RouterChannelStateQuery {
-                engine: engine(),
-                channel: channel(),
+                engine: engine().into(),
+                channel: channel().into(),
             }),
-            "(ChannelState ([prototype] [internal-message-router]))",
+            "(ChannelState (prototype internal-message-router))",
         ),
     ];
 
@@ -71,36 +71,36 @@ fn canonical_reply_examples_round_trip() {
     let expected: Vec<(Output, &str)> = vec![
         (
             Output::Summary(RouterSummary {
-                engine: engine(),
+                engine: engine().into(),
                 accepted_messages: 1,
                 routed_messages: 1,
                 deferred_messages: 0,
                 failed_messages: 0,
             }),
-            "(Summary ([prototype] 1 1 0 0))",
+            "(Summary (prototype 1 1 0 0))",
         ),
         (
             Output::MessageTrace(RouterMessageTrace {
-                engine: engine(),
-                message_slot: 7,
+                engine: engine().into(),
+                message_slot: 7.into(),
                 status: RouterDeliveryStatus::Routed,
             }),
-            "(MessageTrace ([prototype] 7 Routed))",
+            "(MessageTrace (prototype 7 Routed))",
         ),
         (
             Output::MessageTraceMissing(RouterMessageTraceMissing {
-                engine: engine(),
-                message_slot: 99,
+                engine: engine().into(),
+                message_slot: 99.into(),
             }),
-            "(MessageTraceMissing ([prototype] 99))",
+            "(MessageTraceMissing (prototype 99))",
         ),
         (
             Output::ChannelState(RouterChannelState {
-                engine: engine(),
-                channel: channel(),
+                engine: engine().into(),
+                channel: channel().into(),
                 status: RouterChannelStatus::Installed,
             }),
-            "(ChannelState ([prototype] [internal-message-router] Installed))",
+            "(ChannelState (prototype internal-message-router Installed))",
         ),
         (
             Output::Unimplemented(RouterObservationUnimplemented {

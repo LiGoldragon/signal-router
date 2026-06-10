@@ -156,11 +156,11 @@ lowering, not public operation roots.
 
 The schema-derived codec emits a root variant's NOTA head as the operation
 head. For example, `Input::Summary(RouterSummaryQuery)` encodes as
-`(Summary [prototype])`, while struct payload roots keep their record body,
-such as `(MessageTrace ([prototype] 7))`. Tests and canonical examples carry
+`(Summary prototype)`, while struct payload roots keep their record body,
+such as `(MessageTrace (prototype 7))`. Tests and canonical examples carry
 the operation heads. The same shape applies to reply variants:
 `Output::MessageTraceMissing(RouterMessageTraceMissing { .. })` encodes as
-`(MessageTraceMissing ([prototype] 99))`.
+`(MessageTraceMissing (prototype 99))`.
 
 ## 7 · Versioning
 

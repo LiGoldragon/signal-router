@@ -90,22 +90,22 @@ where
 
 #[test]
 fn router_summary_query_round_trips_through_length_prefixed_frame() {
-    round_trip_request(Input::Summary(RouterSummaryQuery::new(engine())));
+    round_trip_request(Input::Summary(RouterSummaryQuery::new(engine().into())));
 }
 
 #[test]
 fn router_message_trace_query_round_trips_through_length_prefixed_frame() {
     round_trip_request(Input::MessageTrace(RouterMessageTraceQuery {
-        engine: engine(),
-        message_slot: 7,
+        engine: engine().into(),
+        message_slot: 7.into(),
     }));
 }
 
 #[test]
 fn router_channel_state_query_round_trips_through_length_prefixed_frame() {
     round_trip_request(Input::ChannelState(RouterChannelStateQuery {
-        engine: engine(),
-        channel: channel(),
+        engine: engine().into(),
+        channel: channel().into(),
     }));
 }
 
@@ -144,7 +144,7 @@ fn router_contract_has_no_sema_classification_dependency_or_roots() {
 #[test]
 fn router_summary_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::Summary(RouterSummary {
-        engine: engine(),
+        engine: engine().into(),
         accepted_messages: 1,
         routed_messages: 1,
         deferred_messages: 0,
@@ -156,8 +156,8 @@ fn router_summary_reply_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_message_trace_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::MessageTrace(RouterMessageTrace {
-        engine: engine(),
-        message_slot: 7,
+        engine: engine().into(),
+        message_slot: 7.into(),
         status: RouterDeliveryStatus::Routed,
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
@@ -166,8 +166,8 @@ fn router_message_trace_reply_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_channel_state_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::ChannelState(RouterChannelState {
-        engine: engine(),
-        channel: channel(),
+        engine: engine().into(),
+        channel: channel().into(),
         status: RouterChannelStatus::Installed,
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
@@ -176,8 +176,8 @@ fn router_channel_state_reply_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_message_trace_missing_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::MessageTraceMissing(RouterMessageTraceMissing {
-        engine: engine(),
-        message_slot: 99,
+        engine: engine().into(),
+        message_slot: 99.into(),
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
 }
@@ -218,15 +218,15 @@ fn router_status_enums_are_closed_no_unknown_variants() {
 #[test]
 fn router_daemon_configuration_round_trips_through_nota_text() {
     let configuration = RouterDaemonConfiguration {
-        router_socket_path: String::from("/run/persona/X/router.sock"),
-        router_socket_mode: 0o600,
-        meta_router_socket_path: String::from("/run/persona/X/router-meta.sock"),
-        meta_router_socket_mode: 0o600,
-        supervision_socket_path: String::from("/run/persona/X/router-supervision.sock"),
-        supervision_socket_mode: 0o600,
-        store_path: String::from("/var/lib/persona/X/router.sema"),
-        bootstrap_path: Some(String::from("/var/lib/persona/X/router-bootstrap.nota")),
-        owner_identity: OwnerIdentity::UnixUser(1000),
+        router_socket_path: String::from("/run/persona/X/router.sock").into(),
+        router_socket_mode: 0o600.into(),
+        meta_router_socket_path: String::from("/run/persona/X/router-meta.sock").into(),
+        meta_router_socket_mode: 0o600.into(),
+        supervision_socket_path: String::from("/run/persona/X/router-supervision.sock").into(),
+        supervision_socket_mode: 0o600.into(),
+        store_path: String::from("/var/lib/persona/X/router.sema").into(),
+        bootstrap_path: Some(String::from("/var/lib/persona/X/router-bootstrap.nota").into()),
+        owner_identity: OwnerIdentity::UnixUser(1000.into()),
     };
 
     let text = configuration.to_nota();
@@ -235,21 +235,21 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
         .expect("decode configuration");
 
     assert_eq!(recovered, configuration);
-    assert!(text.contains("[/run/persona/X/router.sock]"));
+    assert!(text.contains("/run/persona/X/router.sock"));
 }
 
 #[test]
 fn router_daemon_configuration_round_trips_through_rkyv() {
     let configuration = RouterDaemonConfiguration {
-        router_socket_path: String::from("/run/persona/X/router.sock"),
-        router_socket_mode: 0o600,
-        meta_router_socket_path: String::from("/run/persona/X/router-meta.sock"),
-        meta_router_socket_mode: 0o600,
-        supervision_socket_path: String::from("/run/persona/X/router-supervision.sock"),
-        supervision_socket_mode: 0o600,
-        store_path: String::from("/var/lib/persona/X/router.sema"),
+        router_socket_path: String::from("/run/persona/X/router.sock").into(),
+        router_socket_mode: 0o600.into(),
+        meta_router_socket_path: String::from("/run/persona/X/router-meta.sock").into(),
+        meta_router_socket_mode: 0o600.into(),
+        supervision_socket_path: String::from("/run/persona/X/router-supervision.sock").into(),
+        supervision_socket_mode: 0o600.into(),
+        store_path: String::from("/var/lib/persona/X/router.sema").into(),
         bootstrap_path: None,
-        owner_identity: OwnerIdentity::UnixUser(1000),
+        owner_identity: OwnerIdentity::UnixUser(1000.into()),
     };
 
     let bytes = configuration.to_rkyv_bytes().expect("archive");
@@ -270,7 +270,7 @@ fn endpoint_transport(path: &str) -> EndpointTransport {
 #[test]
 fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
     let operation = RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor {
-        name: actor("responder"),
+        name: actor("responder").into(),
         process: 42,
         endpoint: Some(endpoint_transport("/tmp/responder.harness.sock")),
     }));
@@ -278,7 +278,7 @@ fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
     let text = operation.to_nota();
     assert_eq!(
         text,
-        "(RegisterActor ([responder] 42 (Some (HarnessSocket [/tmp/responder.harness.sock] None))))"
+        "(RegisterActor (responder 42 (Some (HarnessSocket /tmp/responder.harness.sock None))))"
     );
     assert_eq!(
         RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
@@ -290,12 +290,12 @@ fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
 #[test]
 fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
     let operation = RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage {
-        from: actor("owner"),
-        to: actor("initiator"),
+        from: actor("owner").into(),
+        to: actor("initiator").into(),
     });
 
     let text = operation.to_nota();
-    assert_eq!(text, "(GrantDirectMessage ([owner] [initiator]))");
+    assert_eq!(text, "(GrantDirectMessage (owner initiator))");
     assert_eq!(
         RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
         operation
@@ -307,15 +307,15 @@ fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
 fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
     let document = RouterBootstrapDocument::new(vec![
         RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor {
-            name: actor("initiator"),
+            name: actor("initiator").into(),
             process: 0,
             endpoint: Some(endpoint_transport(
                 "/run/persona/engine/harness/initiator.sock",
             )),
         })),
         RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage {
-            from: actor("initiator"),
-            to: actor("responder"),
+            from: actor("initiator").into(),
+            to: actor("responder").into(),
         }),
     ]);
 

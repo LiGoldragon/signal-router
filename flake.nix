@@ -23,11 +23,15 @@
           "rust-src"
         ];
         craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
+        schemaFilter = path: _type: builtins.match ".*/schema(/.*)?$" path != null;
         # Include `examples/` so canonical NOTA examples files are present
         # at build time for `include_str!` in `tests/canonical_examples.rs`.
         examplesFilter = path: _type: builtins.match ".*/examples(/.*)?$" path != null;
         sourceFilter = path: type:
-          (craneLib.filterCargoSources path type) || (examplesFilter path type);
+          type == "directory"
+          || (craneLib.filterCargoSources path type)
+          || (schemaFilter path type)
+          || (examplesFilter path type);
         src = pkgs.lib.cleanSourceWith {
           src = ./.;
           filter = sourceFilter;
