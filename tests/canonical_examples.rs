@@ -9,7 +9,7 @@
 //! value here; the witness is what keeps the examples file aligned
 //! with the typed surface.
 
-use nota_next::NotaSource;
+use nota_next::{NotaEncode, NotaSource};
 use signal_router::{
     Input, Output, RouterChannelState, RouterChannelStateQuery, RouterChannelStatus,
     RouterDeliveryStatus, RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
