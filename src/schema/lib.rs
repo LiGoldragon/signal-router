@@ -62,6 +62,31 @@ pub enum OwnerIdentity {
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct TailnetAddress(String);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RemoteRouterIdentity(String);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct HostName(String);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct TimestampNanos(Integer);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ReplayNonce(String);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(
     rkyv::Archive,
     rkyv::Serialize,
@@ -76,6 +101,7 @@ pub enum EndpointKind {
     Human,
     HarnessSocket,
     PtySocket,
+    RemoteRouter,
 }
 
 #[rustfmt::skip]
@@ -117,10 +143,19 @@ pub struct InstallStructuralChannels(ActorIdentifier);
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RegisterRemoteRouter {
+    pub identity: RemoteRouterIdentity,
+    pub address: TailnetAddress,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum RouterBootstrapOperation {
     RegisterActor(RegisterActor),
     GrantDirectMessage(GrantDirectMessage),
     InstallStructuralChannels(InstallStructuralChannels),
+    RegisterRemoteRouter(RegisterRemoteRouter),
 }
 
 #[rustfmt::skip]
@@ -196,6 +231,7 @@ pub enum RouterDeliveryStatus {
     Delivered,
     Deferred,
     Failed,
+    ForwardedRemote,
 }
 
 #[rustfmt::skip]
@@ -270,6 +306,106 @@ pub struct RouterObservationUnimplemented {
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+pub enum SignatureScheme {
+    Bls12_381MinPk,
+    Bls12_381MinSig,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterPeerAttestation {
+    pub signer: RemoteRouterIdentity,
+    pub scheme: SignatureScheme,
+    pub public_key: String,
+    pub signature: String,
+    pub content_digest: String,
+    pub issued_at: TimestampNanos,
+    pub nonce: ReplayNonce,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ForwardedMessagePayload {
+    pub from: ActorIdentifier,
+    pub to: ActorIdentifier,
+    pub body: String,
+    pub attachments: Vec<String>,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+pub enum ForwardMarker {
+    Origin,
+    Forwarded,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterForwardRequest {
+    pub submission: ForwardedMessagePayload,
+    pub attestation: RouterPeerAttestation,
+    pub forwarded: ForwardMarker,
+    pub nonce: ReplayNonce,
+    pub issued_at: TimestampNanos,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterForwardAccepted(MessageSlot);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+pub enum RouterForwardRefusalReason {
+    UnknownPeer,
+    AttestationInvalid,
+    ReplayDetected,
+    ClockSkew,
+    RecipientUnknown,
+    ChannelUnauthorized,
+    AlreadyForwarded,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterForwardRefused(RouterForwardRefusalReason);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterDaemonConfiguration {
     pub router_socket_path: WirePath,
@@ -281,6 +417,9 @@ pub struct RouterDaemonConfiguration {
     pub store_path: WirePath,
     pub bootstrap_path: Option<WirePath>,
     pub owner_identity: OwnerIdentity,
+    pub tailnet_listen_address: Option<TailnetAddress>,
+    pub router_identity: RemoteRouterIdentity,
+    pub criome_socket_path: Option<WirePath>,
 }
 
 #[rustfmt::skip]
@@ -290,6 +429,7 @@ pub enum Input {
     Summary(RouterSummaryQuery),
     MessageTrace(RouterMessageTraceQuery),
     ChannelState(RouterChannelStateQuery),
+    ForwardMessage(RouterForwardRequest),
 }
 
 #[rustfmt::skip]
@@ -300,6 +440,8 @@ pub enum Output {
     MessageTrace(RouterMessageTrace),
     MessageTraceMissing(RouterMessageTraceMissing),
     ChannelState(RouterChannelState),
+    ForwardAccepted(RouterForwardAccepted),
+    ForwardRefused(RouterForwardRefused),
     Unimplemented(RouterObservationUnimplemented),
 }
 
@@ -456,6 +598,101 @@ impl From<Integer> for UnixUserIdentifier {
 }
 
 #[rustfmt::skip]
+impl TailnetAddress {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for TailnetAddress {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RemoteRouterIdentity {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for RemoteRouterIdentity {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl HostName {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for HostName {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl TimestampNanos {
+    pub fn new(payload: Integer) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Integer {
+        &self.0
+    }
+    pub fn into_payload(self) -> Integer {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Integer> for TimestampNanos {
+    fn from(payload: Integer) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ReplayNonce {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ReplayNonce {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl RegisterActor {
     pub fn new(payload: Actor) -> Self {
         Self(payload)
@@ -532,6 +769,44 @@ impl From<EngineIdentifier> for RouterSummaryQuery {
 }
 
 #[rustfmt::skip]
+impl RouterForwardAccepted {
+    pub fn new(payload: MessageSlot) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &MessageSlot {
+        &self.0
+    }
+    pub fn into_payload(self) -> MessageSlot {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<MessageSlot> for RouterForwardAccepted {
+    fn from(payload: MessageSlot) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterForwardRefused {
+    pub fn new(payload: RouterForwardRefusalReason) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RouterForwardRefusalReason {
+        &self.0
+    }
+    pub fn into_payload(self) -> RouterForwardRefusalReason {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RouterForwardRefusalReason> for RouterForwardRefused {
+    fn from(payload: RouterForwardRefusalReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl OwnerIdentity {
     pub fn unix_user(payload: Integer) -> Self {
         Self::UnixUser(UnixUserIdentifier::new(payload))
@@ -549,6 +824,9 @@ impl RouterBootstrapOperation {
     pub fn install_structural_channels(payload: ActorIdentifier) -> Self {
         Self::InstallStructuralChannels(InstallStructuralChannels::new(payload))
     }
+    pub fn register_remote_router(payload: RegisterRemoteRouter) -> Self {
+        Self::RegisterRemoteRouter(payload)
+    }
 }
 
 #[rustfmt::skip]
@@ -561,6 +839,9 @@ impl Input {
     }
     pub fn channel_state(payload: RouterChannelStateQuery) -> Self {
         Self::ChannelState(payload)
+    }
+    pub fn forward_message(payload: RouterForwardRequest) -> Self {
+        Self::ForwardMessage(payload)
     }
 }
 
@@ -577,6 +858,12 @@ impl Output {
     }
     pub fn channel_state(payload: RouterChannelState) -> Self {
         Self::ChannelState(payload)
+    }
+    pub fn forward_accepted(payload: MessageSlot) -> Self {
+        Self::ForwardAccepted(RouterForwardAccepted::new(payload))
+    }
+    pub fn forward_refused(payload: RouterForwardRefusalReason) -> Self {
+        Self::ForwardRefused(RouterForwardRefused::new(payload))
     }
     pub fn unimplemented(payload: RouterObservationUnimplemented) -> Self {
         Self::Unimplemented(payload)
@@ -612,6 +899,13 @@ impl From<InstallStructuralChannels> for RouterBootstrapOperation {
 }
 
 #[rustfmt::skip]
+impl From<RegisterRemoteRouter> for RouterBootstrapOperation {
+    fn from(payload: RegisterRemoteRouter) -> Self {
+        Self::RegisterRemoteRouter(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl From<RouterSummaryQuery> for Input {
     fn from(payload: RouterSummaryQuery) -> Self {
         Self::Summary(payload)
@@ -629,6 +923,13 @@ impl From<RouterMessageTraceQuery> for Input {
 impl From<RouterChannelStateQuery> for Input {
     fn from(payload: RouterChannelStateQuery) -> Self {
         Self::ChannelState(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<RouterForwardRequest> for Input {
+    fn from(payload: RouterForwardRequest) -> Self {
+        Self::ForwardMessage(payload)
     }
 }
 
@@ -657,6 +958,20 @@ impl From<RouterMessageTraceMissing> for Output {
 impl From<RouterChannelState> for Output {
     fn from(payload: RouterChannelState) -> Self {
         Self::ChannelState(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<RouterForwardAccepted> for Output {
+    fn from(payload: RouterForwardAccepted) -> Self {
+        Self::ForwardAccepted(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<RouterForwardRefused> for Output {
+    fn from(payload: RouterForwardRefused) -> Self {
+        Self::ForwardRefused(payload)
     }
 }
 
@@ -704,11 +1019,14 @@ pub mod short_header {
     pub const INPUT_SUMMARY: u64 = 0x0000000000000000;
     pub const INPUT_MESSAGE_TRACE: u64 = 0x0001000000000000;
     pub const INPUT_CHANNEL_STATE: u64 = 0x0002000000000000;
+    pub const INPUT_FORWARD_MESSAGE: u64 = 0x0003000000000000;
     pub const OUTPUT_SUMMARY: u64 = 0x0100000000000000;
     pub const OUTPUT_MESSAGE_TRACE: u64 = 0x0101000000000000;
     pub const OUTPUT_MESSAGE_TRACE_MISSING: u64 = 0x0102000000000000;
     pub const OUTPUT_CHANNEL_STATE: u64 = 0x0103000000000000;
-    pub const OUTPUT_UNIMPLEMENTED: u64 = 0x0104000000000000;
+    pub const OUTPUT_FORWARD_ACCEPTED: u64 = 0x0104000000000000;
+    pub const OUTPUT_FORWARD_REFUSED: u64 = 0x0105000000000000;
+    pub const OUTPUT_UNIMPLEMENTED: u64 = 0x0106000000000000;
 }
 
 #[rustfmt::skip]
@@ -762,6 +1080,7 @@ pub enum InputRoute {
     Summary,
     MessageTrace,
     ChannelState,
+    ForwardMessage,
 }
 
 #[rustfmt::skip]
@@ -781,6 +1100,8 @@ pub enum OutputRoute {
     MessageTrace,
     MessageTraceMissing,
     ChannelState,
+    ForwardAccepted,
+    ForwardRefused,
     Unimplemented,
 }
 
@@ -791,6 +1112,7 @@ impl Input {
             Self::Summary(_) => InputRoute::Summary,
             Self::MessageTrace(_) => InputRoute::MessageTrace,
             Self::ChannelState(_) => InputRoute::ChannelState,
+            Self::ForwardMessage(_) => InputRoute::ForwardMessage,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -798,6 +1120,7 @@ impl Input {
             Self::Summary(_) => short_header::INPUT_SUMMARY,
             Self::MessageTrace(_) => short_header::INPUT_MESSAGE_TRACE,
             Self::ChannelState(_) => short_header::INPUT_CHANNEL_STATE,
+            Self::ForwardMessage(_) => short_header::INPUT_FORWARD_MESSAGE,
         }
     }
     pub fn route_from_short_header(header: u64) -> Result<InputRoute, SignalFrameError> {
@@ -805,6 +1128,7 @@ impl Input {
             short_header::INPUT_SUMMARY => Ok(InputRoute::Summary),
             short_header::INPUT_MESSAGE_TRACE => Ok(InputRoute::MessageTrace),
             short_header::INPUT_CHANNEL_STATE => Ok(InputRoute::ChannelState),
+            short_header::INPUT_FORWARD_MESSAGE => Ok(InputRoute::ForwardMessage),
             _ => {
                 Err(SignalFrameError::UnknownHeader {
                     root_enum: "Input",
@@ -859,6 +1183,8 @@ impl Output {
             Self::MessageTrace(_) => OutputRoute::MessageTrace,
             Self::MessageTraceMissing(_) => OutputRoute::MessageTraceMissing,
             Self::ChannelState(_) => OutputRoute::ChannelState,
+            Self::ForwardAccepted(_) => OutputRoute::ForwardAccepted,
+            Self::ForwardRefused(_) => OutputRoute::ForwardRefused,
             Self::Unimplemented(_) => OutputRoute::Unimplemented,
         }
     }
@@ -868,6 +1194,8 @@ impl Output {
             Self::MessageTrace(_) => short_header::OUTPUT_MESSAGE_TRACE,
             Self::MessageTraceMissing(_) => short_header::OUTPUT_MESSAGE_TRACE_MISSING,
             Self::ChannelState(_) => short_header::OUTPUT_CHANNEL_STATE,
+            Self::ForwardAccepted(_) => short_header::OUTPUT_FORWARD_ACCEPTED,
+            Self::ForwardRefused(_) => short_header::OUTPUT_FORWARD_REFUSED,
             Self::Unimplemented(_) => short_header::OUTPUT_UNIMPLEMENTED,
         }
     }
@@ -881,6 +1209,8 @@ impl Output {
                 Ok(OutputRoute::MessageTraceMissing)
             }
             short_header::OUTPUT_CHANNEL_STATE => Ok(OutputRoute::ChannelState),
+            short_header::OUTPUT_FORWARD_ACCEPTED => Ok(OutputRoute::ForwardAccepted),
+            short_header::OUTPUT_FORWARD_REFUSED => Ok(OutputRoute::ForwardRefused),
             short_header::OUTPUT_UNIMPLEMENTED => Ok(OutputRoute::Unimplemented),
             _ => {
                 Err(SignalFrameError::UnknownHeader {
@@ -932,7 +1262,12 @@ impl Output {
 impl signal_frame::RequestPayload for Input {}
 #[rustfmt::skip]
 impl signal_frame::SignalOperationHeads for Input {
-    const HEADS: &'static [&'static str] = &["Summary", "MessageTrace", "ChannelState"];
+    const HEADS: &'static [&'static str] = &[
+        "Summary",
+        "MessageTrace",
+        "ChannelState",
+        "ForwardMessage",
+    ];
 }
 #[rustfmt::skip]
 impl signal_frame::LogVariant for Input {

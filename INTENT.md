@@ -34,18 +34,55 @@ storage, and routing logic live in `router`.
 The router observation channel carries:
 
 - **Requests:** `Summary`, `MessageTrace`, and `ChannelState` read
-  operations, each carrying a typed `*Query` payload. Future
+  operations, each carrying a typed `*Query` payload, plus
+  `ForwardMessage` — the router-to-router forwarding relation. Future
   streaming uses the standardized observer hook persona components
   carry.
 - **Replies:** one reply variant per concrete observation shape
   (`Summary`, `MessageTrace`, `ChannelState`), with absence pivoting at
   the reply variant (`MessageTraceMissing`) and at the positive
-  `RouterChannelStatus::Missing`, plus `Unimplemented` for
+  `RouterChannelStatus::Missing`; the forwarding reply pair
+  `ForwardAccepted` / `ForwardRefused` (with closed
+  `RouterForwardRefusalReason`); plus `Unimplemented` for
   skeleton-honest unbuilt behavior.
 - **Bootstrap vocabulary:** `RouterBootstrapDocument` /
   `RouterBootstrapOperation` (`RegisterActor`, `GrantDirectMessage`,
-  `InstallStructuralChannels`) as typed startup data records, not a live
-  request/reply channel.
+  `InstallStructuralChannels`, `RegisterRemoteRouter`) as typed startup
+  data records, not a live request/reply channel.
+
+## Router-to-router forwarding (networking through the router)
+
+This contract carries the router↔router **forwarding relation** so a
+per-system router can hand a message to a peer router on another host.
+It realizes the comms-architecture intent (Spirit `wckt`) and the
+cross-system trust root (Spirit `ermr`).
+
+- **Self-contained addressing.** `TailnetAddress` is a dialed IPv6
+  literal + port; `RemoteRouterIdentity` is the peer's stable criome
+  `PrincipalName`. Addresses re-home; identity does not — a peer is
+  routed by identity and dialed by its current address.
+- **Self-contained attestation.** `RouterForwardRequest` carries a
+  `RouterPeerAttestation` that mirrors what criome produces (signer,
+  scheme, public key, signature, content digest, issue time, replay
+  nonce) **without** depending on `signal-criome`. The daemon maps it
+  to/from criome's `Attestation` at the boundary; the contract holds no
+  contract→contract dependency, honoring the self-contained-vocabulary
+  policy. The signed attestation replaces the local kernel's
+  `SO_PEERCRED` vouching that dies at the network hop.
+- **First-class loop guard.** `ForwardMarker` (`Origin` /`Forwarded`)
+  distinguishes an originating submission from one that already arrived
+  via a forward. A `Forwarded` message is delivered-local-or-parked
+  only; it must never be re-resolved to a remote route (refused
+  `AlreadyForwarded` if it would be).
+- **Self-contained payload.** `ForwardedMessagePayload` carries the
+  message essentials (from/to actor, body, attachments) rather than
+  importing `signal-message`'s stamped submission, keeping milestone 1
+  buildable in isolation.
+- **Networked config.** `RouterDaemonConfiguration` gains
+  `tailnet_listen_address` (Optional — absent ⇒ single-host, local-only,
+  no TCP tier), this router's own `router_identity`, and
+  `criome_socket_path` (Optional — the local criome daemon to ask for
+  attestation verification).
 
 The wire vocabulary is contract-local — the daemon lowers these public
 operations into component-local Nexus commands and SEMA reads or writes.
@@ -105,9 +142,17 @@ This crate does not own:
 
 - `router` daemon runtime, actors, or component lifecycle;
 - `router.sema` or any storage tables, channel state, or delivery logs;
-- socket binding, transport, reconnect, or version handshake policy;
+- socket binding, transport, reconnect, version handshake, TCP listener
+  binding, or peer-dial policy (the daemon owns the tailnet ingress and
+  the outbound peer client);
 - meta channel-policy orders (those live in `meta-signal-router`);
-- message ingress records (those live in `signal-message`);
+- message ingress records (those live in `signal-message`); the
+  forwarding contract carries a self-contained `ForwardedMessagePayload`,
+  not `signal-message`'s stamped submission;
+- attestation signing or verification (the daemon delegates to its local
+  criome daemon; this crate carries only the self-contained wire mirror);
+- replay-window or clock-skew tracking (router-daemon-owned runtime
+  state, not wire vocabulary);
 - NOTA projection policy or surface (CLI formatting, audit wrapping,
   introspection-envelope composition).
 

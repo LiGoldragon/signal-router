@@ -21,7 +21,9 @@ does not call Router's meta signal directly.
 
 The public wire carries only bare contract-local operation heads. The three
 router observation reads are:
-`Summary`, `MessageTrace`, and `ChannelState`. Durable read/write
+`Summary`, `MessageTrace`, and `ChannelState`. The router-to-router
+forwarding relation adds a fourth request head, `ForwardMessage`, with the
+reply pair `ForwardAccepted` / `ForwardRefused`. Durable read/write
 classification is daemon-side only.
 
 This schema-derived crate depends on `signal-frame` for length-prefixed
@@ -63,11 +65,29 @@ observation reads.
   - `RegisterActor`
   - `GrantDirectMessage`
   - `InstallStructuralChannels`
+  - `RegisterRemoteRouter` — deploy-time peer manifest line
+    (`RemoteRouterIdentity` → `TailnetAddress`).
 - Bootstrap actor endpoint records:
   - `ActorIdentifier`
   - `Actor`
   - `EndpointTransport`
-  - `EndpointKind`
+  - `EndpointKind` (now including `RemoteRouter`: for that kind the
+    transport `target` is a `TailnetAddress` literal and `auxiliary` a
+    `RemoteRouterIdentity` — one address model, not a parallel one).
+- Router-to-router forwarding surface:
+  - Addressing nouns `TailnetAddress`, `RemoteRouterIdentity`,
+    `HostName`, plus the self-contained `TimestampNanos` and
+    `ReplayNonce`.
+  - `ForwardMessage(RouterForwardRequest)` request, carrying a
+    self-contained `ForwardedMessagePayload`, a `RouterPeerAttestation`,
+    the first-class `ForwardMarker` loop guard, a `ReplayNonce`, and a
+    `TimestampNanos`.
+  - Reply pair `ForwardAccepted(RouterForwardAccepted)` (the minted
+    delivery slot) / `ForwardRefused(RouterForwardRefused)` with closed
+    `RouterForwardRefusalReason`.
+  - Closed `SignatureScheme` mirroring criome's scheme set.
+- `RouterDaemonConfiguration` extended with `tailnet_listen_address`
+  (Optional), `router_identity`, and `criome_socket_path` (Optional).
 - `RouterSummaryQuery` / `RouterSummary`.
 - `RouterMessageTraceQuery` and the **two-variant reply split**:
   - `Output::MessageTrace(RouterMessageTrace)` — slot present;
@@ -95,6 +115,7 @@ RouterDeliveryStatus
   | Delivered
   | Deferred
   | Failed
+  | ForwardedRemote    -- the message was handed to a peer router
 
 RouterChannelStatus
   | Installed
@@ -105,6 +126,23 @@ RouterObservationUnimplementedReason
   | NotInPrototypeScope
   | RouterStoreUnavailable
   | MessageTraceUnavailable
+
+ForwardMarker
+  | Origin             -- an originating submission, may resolve remotely
+  | Forwarded          -- already arrived via a forward; never re-resolved
+
+RouterForwardRefusalReason
+  | UnknownPeer
+  | AttestationInvalid
+  | ReplayDetected
+  | ClockSkew
+  | RecipientUnknown
+  | ChannelUnauthorized
+  | AlreadyForwarded
+
+SignatureScheme
+  | Bls12_381MinPk
+  | Bls12_381MinSig
 ```
 
 `Missing` is a domain answer, not a polling sentinel. It says "we
@@ -131,6 +169,57 @@ peer-callable router writes, once they earn a contract surface, belong
 in this ordinary contract. Their database effects still remain daemon-owned
 lowering, not public operation roots.
 
+## 4a · Router-to-router forwarding
+
+This contract carries the router↔router forwarding relation — the wire
+half of "networking through the router" (Spirit `wckt`, comms
+architecture; Spirit `ermr`, cross-system trust root). Milestone 1 is the
+contract only; the daemon's tailnet ingress, outbound peer client, remote
+registry, attestation verification, and replay window are separate
+milestones in `router`.
+
+**Self-contained attestation (the decision).** A networked router cannot
+rely on the kernel's `SO_PEERCRED` local vouching, which dies at the TCP
+hop. Instead `RouterForwardRequest` carries a `RouterPeerAttestation` —
+signer, scheme, public key, signature, content digest, issue time, replay
+nonce — that **mirrors what criome produces without depending on
+`signal-criome`.** The crate holds a self-contained-vocabulary policy and
+carries no contract→contract dependency; the daemon projects this record
+to/from criome's `Attestation` at the boundary and delegates all signing
+and verification to its local criome daemon. The router never holds keys
+or verifies signatures itself (`wckt`: tailnet encrypts the bytes, BLS
+authenticates the identity — two separate concerns). The closed
+`SignatureScheme` mirrors criome's scheme set for the same reason.
+
+**Self-contained payload (the dependency decision).** `signal-router`
+today depends only on `signal-frame` for framing — no contract→contract
+dependency, and `router_contract_has_no_sema_classification_dependency_or_roots`
+enforces the self-contained posture. Rather than import `signal-message`'s
+stamped submission (which would break self-containment and the
+"buildable in isolation" milestone-1 constraint), the forwarded message
+travels as a self-contained `ForwardedMessagePayload` (from/to actor,
+body, attachments). The daemon projects it into its stamped-submission
+ledger entry on receipt.
+
+**First-class loop guard.** `ForwardMarker` is a first-class field, not a
+risk footnote. The inbound handler sets it deterministically: an `Origin`
+submission may resolve to a remote route, but a `Forwarded` message is
+delivered-local-or-parked only and must never be re-resolved remotely
+(refused `AlreadyForwarded` if it would be). The guard keys on the marker,
+independent of the criome-derived origin identity.
+
+**Addressing.** `TailnetAddress` is the dialed IPv6 literal + port;
+`RemoteRouterIdentity` is the peer's stable criome `PrincipalName`.
+Addresses re-home, identity does not: peers are routed by identity and
+dialed by current address. `RegisterRemoteRouter` is the deploy-time peer
+manifest (bootstrap-as-config, not runtime discovery).
+
+**Config.** `tailnet_listen_address` is `Optional` — `Some` ⇒ the daemon
+binds a TCP forwarding tier; `None` ⇒ a single-host router stays
+local-only. `router_identity` is this router's own stable identity;
+`criome_socket_path` (`Optional`) is the local criome daemon for
+attestation.
+
 ## 5 · Constraints
 
 | Constraint | Witness |
@@ -151,6 +240,13 @@ lowering, not public operation roots.
 | Bootstrap line records round-trip through NOTA using the contract crate. | `bootstrap_register_actor_operation_round_trips_through_nota_line`, `bootstrap_direct_message_grant_operation_round_trips_through_nota_line`, and `bootstrap_document_owns_line_vocabulary_for_manager_and_router`. |
 | No stringly-typed dispatch (`match s.as_str()`) for closed-set states. | All status/scope/reason fields are typed closed enums. |
 | Contract crate dependencies use a named API reference (branch or tag), not a raw revision pin. | `Cargo.toml` review: `nota-next`, `signal-frame`, and `schema-rust-next` are declared `git = "..."` with a named-branch shape; raw `rev = "..."` pins are not used. |
+| The router-to-router forwarding relation has a router-owned contract home. | `ForwardMessage` / `ForwardAccepted` / `ForwardRefused` live on this wire; `router_forward_request_round_trips_through_length_prefixed_frame`, `..._reply_round_trips_..._for_every_reason`. |
+| The forwarding contract carries no contract→contract dependency and stays buildable in isolation. | `ForwardedMessagePayload` is self-contained; `Cargo.toml` has no `signal-message` / `signal-criome` dependency; `nix flake check` passes with no daemon and no network. |
+| Peer attestation is mirrored self-contained, not imported from `signal-criome`. | `RouterPeerAttestation` and `SignatureScheme` are local nouns; the daemon maps to/from criome at the boundary. |
+| `RouterForwardRefusalReason` and `ForwardMarker` are closed, no `Unknown`. | `router_forward_refusal_reason_is_closed_and_exhaustive`, `forward_marker_is_closed_origin_or_forwarded` exhaustively match every variant. |
+| A forwarded message is never re-resolved to a remote route. | First-class `ForwardMarker` (`Origin` / `Forwarded`); `AlreadyForwarded` refusal reason. Daemon enforcement lands in `router` (milestone 2). |
+| An absent `tailnet_listen_address` keeps a router single-host / local-only. | `single_host_router_configuration_has_no_tailnet_listen_address`. |
+| Round-trip witnesses cover every new variant in rkyv and NOTA. | `tests/round_trip.rs` per-variant frame + NOTA tests; `examples/canonical.nota` + `tests/canonical_examples.rs` for `ForwardMessage`, `ForwardAccepted`, every `ForwardRefused` reason, `RegisterRemoteRouter`, and the extended `RouterDaemonConfiguration`. |
 
 ## 6 · NOTA codec shape on schema operation heads
 

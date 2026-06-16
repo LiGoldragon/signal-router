@@ -19,6 +19,12 @@
 ;; Input::ChannelState
 (ChannelState (prototype internal-message-router))
 
+;; Input::ForwardMessage — a router-to-router forward carrying a
+;; self-contained payload, a self-contained peer attestation, the
+;; first-class loop-guard marker (Origin = not yet forwarded), a replay
+;; nonce, and the issue timestamp.
+(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001]) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))
+
 ;; ─── Replies ──────────────────────────────────────────────────────
 
 ;; Output::Summary
@@ -33,5 +39,33 @@
 ;; Output::ChannelState
 (ChannelState (prototype internal-message-router Installed))
 
+;; Output::ForwardAccepted — peer accepted the forward, returning the
+;; durable slot it minted for the delivered message.
+(ForwardAccepted 7)
+
+;; Output::ForwardRefused — one example per closed refusal reason.
+(ForwardRefused UnknownPeer)
+(ForwardRefused AttestationInvalid)
+(ForwardRefused ReplayDetected)
+(ForwardRefused ClockSkew)
+(ForwardRefused RecipientUnknown)
+(ForwardRefused ChannelUnauthorized)
+(ForwardRefused AlreadyForwarded)
+
 ;; Output::Unimplemented
 (Unimplemented (Summary NotInPrototypeScope))
+
+;; ─── Bootstrap operations ─────────────────────────────────────────
+
+;; RouterBootstrapOperation::RegisterRemoteRouter — deploy-time peer
+;; manifest line. The TailnetAddress carries an Yggdrasil/WireGuard IPv6
+;; literal whose own brackets force the bracket-safe NOTA delimiter form.
+(RegisterRemoteRouter (prometheus-router [|[201:abcd::2]:9930|]))
+
+;; ─── Daemon configuration ─────────────────────────────────────────
+
+;; RouterDaemonConfiguration — extended with the networked-router fields:
+;; an optional tailnet_listen_address (Some ⇒ a TCP forwarding tier;
+;; None ⇒ a single-host local-only router), this router's own stable
+;; router_identity, and an optional criome_socket_path for attestation.
+(/run/persona/X/router.sock 384 /run/persona/X/router-meta.sock 384 /run/persona/X/router-supervision.sock 384 /var/lib/persona/X/router.sema (Some /var/lib/persona/X/router-bootstrap.nota) (UnixUser 1000) (Some [|[200:1234::1]:9930|]) ouranos-router (Some /run/persona/X/criome.sock))
