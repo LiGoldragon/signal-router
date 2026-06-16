@@ -44,7 +44,12 @@
   EndpointKind [Human HarnessSocket PtySocket RemoteRouter]
   EndpointTransport { kind EndpointKind target String auxiliary (Optional String) }
   Actor { name ActorIdentifier process Integer endpoint (Optional EndpointTransport) }
-  RegisterActor { actor Actor }
+  ;; A registered actor's home router. None ⇒ local (delivered via the
+  ;; harness registry); Some(peer) ⇒ the actor lives behind that remote
+  ;; router, so the local router records it in the remote-route table and
+  ;; forwards to the peer. This is how a router learns which host a
+  ;; recipient lives on (the production source for remote-route resolution).
+  RegisterActor { actor Actor home (Optional RemoteRouterIdentity) }
   GrantDirectMessage { from ActorIdentifier to ActorIdentifier }
   InstallStructuralChannels { requester ActorIdentifier }
   RegisterRemoteRouter { identity RemoteRouterIdentity address TailnetAddress }

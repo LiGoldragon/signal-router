@@ -62,7 +62,11 @@ observation reads.
 - `Input` / `Output` (closed generated wire enums).
 - `RouterBootstrapDocument` / `RouterBootstrapOperation`.
 - Bootstrap operation records:
-  - `RegisterActor`
+  - `RegisterActor` — now carries `home (Optional RemoteRouterIdentity)`:
+    `None` ⇒ a local actor (harness-registry delivery); `Some(peer)` ⇒ the
+    actor lives behind that remote router, so the local router records it in
+    the remote-route table. This is how a router learns a recipient's host —
+    the production source for remote-route resolution.
   - `GrantDirectMessage`
   - `InstallStructuralChannels`
   - `RegisterRemoteRouter` — deploy-time peer manifest line
@@ -212,7 +216,9 @@ independent of the criome-derived origin identity.
 `RemoteRouterIdentity` is the peer's stable criome `PrincipalName`.
 Addresses re-home, identity does not: peers are routed by identity and
 dialed by current address. `RegisterRemoteRouter` is the deploy-time peer
-manifest (bootstrap-as-config, not runtime discovery).
+manifest of *which peers exist* (bootstrap-as-config, not runtime
+discovery); `RegisterActor.home` is the deploy-time source of *which
+recipient lives behind which peer* — the input to remote-route resolution.
 
 **Config.** `tailnet_listen_address` is `Optional` — `Some` ⇒ the daemon
 binds a TCP forwarding tier; `None` ⇒ a single-host router stays

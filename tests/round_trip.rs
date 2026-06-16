@@ -408,16 +408,45 @@ fn endpoint_transport(path: &str) -> EndpointTransport {
 #[cfg(feature = "nota-text")]
 #[test]
 fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
-    let operation = RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor {
-        name: actor("responder").into(),
-        process: 42,
-        endpoint: Some(endpoint_transport("/tmp/responder.harness.sock")),
-    }));
+    let operation = RouterBootstrapOperation::RegisterActor(RegisterActor {
+        actor: Actor {
+            name: actor("responder").into(),
+            process: 42,
+            endpoint: Some(endpoint_transport("/tmp/responder.harness.sock")),
+        },
+        home: None,
+    });
 
     let text = operation.to_nota();
     assert_eq!(
         text,
-        "(RegisterActor (responder 42 (Some (HarnessSocket /tmp/responder.harness.sock None))))"
+        "(RegisterActor ((responder 42 (Some (HarnessSocket /tmp/responder.harness.sock None))) None))"
+    );
+    assert_eq!(
+        RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
+        operation
+    );
+}
+
+#[cfg(feature = "nota-text")]
+#[test]
+fn bootstrap_register_actor_with_remote_home_round_trips_through_nota_line() {
+    // A remotely-homed actor: home names the peer router it lives behind, so
+    // the local router records it in the remote-route table rather than the
+    // harness registry. This is how a router learns the recipient's host.
+    let operation = RouterBootstrapOperation::RegisterActor(RegisterActor {
+        actor: Actor {
+            name: actor("responder").into(),
+            process: 42,
+            endpoint: Some(endpoint_transport("/tmp/responder.harness.sock")),
+        },
+        home: Some(String::from("prometheus-router").into()),
+    });
+
+    let text = operation.to_nota();
+    assert_eq!(
+        text,
+        "(RegisterActor ((responder 42 (Some (HarnessSocket /tmp/responder.harness.sock None))) (Some prometheus-router)))"
     );
     assert_eq!(
         RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
@@ -464,13 +493,16 @@ fn bootstrap_register_remote_router_operation_round_trips_through_nota_line() {
 #[test]
 fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
     let document = RouterBootstrapDocument::new(vec![
-        RouterBootstrapOperation::RegisterActor(RegisterActor::new(Actor {
-            name: actor("initiator").into(),
-            process: 0,
-            endpoint: Some(endpoint_transport(
-                "/run/persona/engine/harness/initiator.sock",
-            )),
-        })),
+        RouterBootstrapOperation::RegisterActor(RegisterActor {
+            actor: Actor {
+                name: actor("initiator").into(),
+                process: 0,
+                endpoint: Some(endpoint_transport(
+                    "/run/persona/engine/harness/initiator.sock",
+                )),
+            },
+            home: None,
+        }),
         RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage {
             from: actor("initiator").into(),
             to: actor("responder").into(),
