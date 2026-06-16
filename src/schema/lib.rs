@@ -99,7 +99,10 @@ pub struct Actor {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RegisterActor(Actor);
+pub struct RegisterActor {
+    pub actor: Actor,
+    pub home: Option<RemoteRouterIdentity>,
+}
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -600,25 +603,6 @@ impl PartialOrd<u64> for UnixUserIdentifier {
 }
 
 #[rustfmt::skip]
-impl RegisterActor {
-    pub fn new(payload: Actor) -> Self {
-        Self(payload)
-    }
-    pub fn payload(&self) -> &Actor {
-        &self.0
-    }
-    pub fn into_payload(self) -> Actor {
-        self.0
-    }
-}
-#[rustfmt::skip]
-impl From<Actor> for RegisterActor {
-    fn from(payload: Actor) -> Self {
-        Self::new(payload)
-    }
-}
-
-#[rustfmt::skip]
 impl InstallStructuralChannels {
     pub fn new(payload: ActorIdentifier) -> Self {
         Self(payload)
@@ -684,8 +668,8 @@ impl OwnerIdentity {
 
 #[rustfmt::skip]
 impl RouterBootstrapOperation {
-    pub fn register_actor(payload: Actor) -> Self {
-        Self::RegisterActor(RegisterActor::new(payload))
+    pub fn register_actor(payload: RegisterActor) -> Self {
+        Self::RegisterActor(payload)
     }
     pub fn grant_direct_message(payload: GrantDirectMessage) -> Self {
         Self::GrantDirectMessage(payload)
