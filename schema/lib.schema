@@ -40,7 +40,7 @@
     (GrantDirectMessage GrantDirectMessage)
     (InstallStructuralChannels InstallStructuralChannels)
   ]
-  RouterBootstrapDocument { operations (Vec RouterBootstrapOperation) }
+  RouterBootstrapDocument { operations (Vector RouterBootstrapOperation) }
 
   RouterObservationScope [Summary MessageTrace ChannelState]
   RouterSummaryQuery { engine EngineIdentifier }
