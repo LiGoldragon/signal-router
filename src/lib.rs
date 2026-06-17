@@ -6,6 +6,7 @@
 //! orders live in `meta-signal-router`.
 
 #[rustfmt::skip]
+#[allow(clippy::large_enum_variant)]
 pub mod schema;
 
 pub use schema::lib::*;

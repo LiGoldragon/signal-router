@@ -49,10 +49,22 @@
             inherit cargoArtifacts;
             cargoTestExtraArgs = "--test round_trip";
           });
+          # The NOTA text-edge witnesses (canonical_examples.rs and the
+          # nota-text round trips) are gated behind the nota-text feature;
+          # without this check `nix flake check` would compile them to zero
+          # tests and miss fixture breakage (audit 228).
+          test-nota-text = craneLib.cargoTest (commonArgs // {
+            inherit cargoArtifacts;
+            cargoTestExtraArgs = "--features nota-text --all-targets";
+          });
           fmt = craneLib.cargoFmt { inherit src; };
           clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
             cargoClippyExtraArgs = "--all-targets -- -D warnings";
+          });
+          clippy-nota-text = craneLib.cargoClippy (commonArgs // {
+            inherit cargoArtifacts;
+            cargoClippyExtraArgs = "--features nota-text --all-targets -- -D warnings";
           });
         };
         devShells.default = pkgs.mkShell {

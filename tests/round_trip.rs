@@ -7,12 +7,15 @@ use signal_frame::{
 #[cfg(feature = "nota-text")]
 use signal_router::{
     Actor, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
-    RouterBootstrapDocument, RouterBootstrapOperation, RouterObservationScope,
+    RegisterRemoteRouter, RouterBootstrapDocument, RouterBootstrapOperation,
+    RouterObservationScope,
 };
 use signal_router::{
-    Frame, FrameBody, Input, Output, OwnerIdentity, RouterChannelState, RouterChannelStateQuery,
-    RouterChannelStatus, RouterDaemonConfiguration, RouterDeliveryStatus, RouterMessageTrace,
-    RouterMessageTraceMissing, RouterMessageTraceQuery, RouterSummary, RouterSummaryQuery,
+    ForwardMarker, ForwardedMessagePayload, Frame, FrameBody, Input, Output, OwnerIdentity,
+    RouterChannelState, RouterChannelStateQuery, RouterChannelStatus, RouterDaemonConfiguration,
+    RouterDeliveryStatus, RouterForwardRefusalReason, RouterForwardRequest, RouterMessageTrace,
+    RouterMessageTraceMissing, RouterMessageTraceQuery, RouterPeerAttestation, RouterSummary,
+    RouterSummaryQuery, SignatureScheme,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -34,6 +37,29 @@ fn channel() -> String {
 #[cfg(feature = "nota-text")]
 fn actor(name: &str) -> String {
     String::from(name)
+}
+
+fn forward_request() -> RouterForwardRequest {
+    RouterForwardRequest {
+        submission: ForwardedMessagePayload {
+            from: String::from("ouranos-mind").into(),
+            to: String::from("prometheus-responder").into(),
+            body: String::from("hello over the tailnet"),
+            attachments: vec![String::from("digest-001")],
+        },
+        attestation: RouterPeerAttestation {
+            signer: String::from("prometheus-router").into(),
+            scheme: SignatureScheme::Bls12_381MinPk,
+            public_key: String::from("bls-pk-abc"),
+            signature: String::from("bls-sig-def"),
+            content_digest: String::from("blake3-0011"),
+            issued_at: 1_726_000_000_000_000_000u64.into(),
+            nonce: String::from("nonce-7f3a").into(),
+        },
+        forwarded: ForwardMarker::Origin,
+        nonce: String::from("nonce-7f3a").into(),
+        issued_at: 1_726_000_000_000_000_000u64.into(),
+    }
 }
 
 fn round_trip_request(request: Input) {
@@ -110,10 +136,24 @@ fn router_channel_state_query_round_trips_through_length_prefixed_frame() {
 }
 
 #[test]
+fn router_forward_request_round_trips_through_length_prefixed_frame() {
+    round_trip_request(Input::ForwardMessage(forward_request()));
+}
+
+#[cfg(feature = "nota-text")]
+#[test]
+fn router_forward_request_round_trips_through_nota_text() {
+    round_trip_nota(
+        Input::ForwardMessage(forward_request()),
+        "(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001]) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))",
+    );
+}
+
+#[test]
 fn router_request_heads_are_contract_local_operations() {
     assert_eq!(
         <Input as SignalOperationHeads>::HEADS,
-        &["Summary", "MessageTrace", "ChannelState"]
+        &["Summary", "MessageTrace", "ChannelState", "ForwardMessage"]
     );
 }
 
@@ -183,6 +223,69 @@ fn router_message_trace_missing_reply_round_trips_through_length_prefixed_frame(
 }
 
 #[test]
+fn router_forward_accepted_reply_round_trips_through_length_prefixed_frame() {
+    let reply = Output::forward_accepted(7.into());
+    assert_eq!(round_trip_reply(reply.clone()), reply);
+}
+
+#[cfg(feature = "nota-text")]
+#[test]
+fn router_forward_accepted_reply_round_trips_through_nota_text() {
+    round_trip_nota(Output::forward_accepted(7.into()), "(ForwardAccepted 7)");
+}
+
+#[test]
+fn router_forward_refused_reply_round_trips_through_length_prefixed_frame_for_every_reason() {
+    for reason in [
+        RouterForwardRefusalReason::UnknownPeer,
+        RouterForwardRefusalReason::AttestationInvalid,
+        RouterForwardRefusalReason::ReplayDetected,
+        RouterForwardRefusalReason::ClockSkew,
+        RouterForwardRefusalReason::RecipientUnknown,
+        RouterForwardRefusalReason::ChannelUnauthorized,
+        RouterForwardRefusalReason::AlreadyForwarded,
+    ] {
+        let reply = Output::forward_refused(reason);
+        assert_eq!(round_trip_reply(reply.clone()), reply);
+    }
+}
+
+#[test]
+fn router_forward_refusal_reason_is_closed_and_exhaustive() {
+    for reason in [
+        RouterForwardRefusalReason::UnknownPeer,
+        RouterForwardRefusalReason::AttestationInvalid,
+        RouterForwardRefusalReason::ReplayDetected,
+        RouterForwardRefusalReason::ClockSkew,
+        RouterForwardRefusalReason::RecipientUnknown,
+        RouterForwardRefusalReason::ChannelUnauthorized,
+        RouterForwardRefusalReason::AlreadyForwarded,
+    ] {
+        let observed = match reason {
+            RouterForwardRefusalReason::UnknownPeer => "unknown-peer",
+            RouterForwardRefusalReason::AttestationInvalid => "attestation-invalid",
+            RouterForwardRefusalReason::ReplayDetected => "replay-detected",
+            RouterForwardRefusalReason::ClockSkew => "clock-skew",
+            RouterForwardRefusalReason::RecipientUnknown => "recipient-unknown",
+            RouterForwardRefusalReason::ChannelUnauthorized => "channel-unauthorized",
+            RouterForwardRefusalReason::AlreadyForwarded => "already-forwarded",
+        };
+        assert!(!observed.is_empty());
+    }
+}
+
+#[test]
+fn forward_marker_is_closed_origin_or_forwarded() {
+    for marker in [ForwardMarker::Origin, ForwardMarker::Forwarded] {
+        let observed = match marker {
+            ForwardMarker::Origin => "origin",
+            ForwardMarker::Forwarded => "forwarded",
+        };
+        assert!(!observed.is_empty());
+    }
+}
+
+#[test]
 fn router_status_enums_are_closed_no_unknown_variants() {
     for status in [
         RouterDeliveryStatus::Accepted,
@@ -190,6 +293,7 @@ fn router_status_enums_are_closed_no_unknown_variants() {
         RouterDeliveryStatus::Delivered,
         RouterDeliveryStatus::Deferred,
         RouterDeliveryStatus::Failed,
+        RouterDeliveryStatus::ForwardedRemote,
     ] {
         let observed = match status {
             RouterDeliveryStatus::Accepted => "accepted",
@@ -197,6 +301,7 @@ fn router_status_enums_are_closed_no_unknown_variants() {
             RouterDeliveryStatus::Delivered => "delivered",
             RouterDeliveryStatus::Deferred => "deferred",
             RouterDeliveryStatus::Failed => "failed",
+            RouterDeliveryStatus::ForwardedRemote => "forwarded-remote",
         };
         assert!(!observed.is_empty());
     }
@@ -227,6 +332,9 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
         store_path: String::from("/var/lib/persona/X/router.sema").into(),
         bootstrap_path: Some(String::from("/var/lib/persona/X/router-bootstrap.nota").into()),
         owner_identity: OwnerIdentity::UnixUser(1000.into()),
+        tailnet_listen_address: Some(String::from("[200:1234::1]:9930").into()),
+        router_identity: String::from("ouranos-router").into(),
+        criome_socket_path: Some(String::from("/run/persona/X/criome.sock").into()),
     };
 
     let text = configuration.to_nota();
@@ -236,6 +344,7 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
 
     assert_eq!(recovered, configuration);
     assert!(text.contains("/run/persona/X/router.sock"));
+    assert!(text.contains("[|[200:1234::1]:9930|]"));
 }
 
 #[test]
@@ -250,7 +359,37 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
         store_path: String::from("/var/lib/persona/X/router.sema").into(),
         bootstrap_path: None,
         owner_identity: OwnerIdentity::UnixUser(1000.into()),
+        tailnet_listen_address: None,
+        router_identity: String::from("ouranos-router").into(),
+        criome_socket_path: None,
     };
+
+    let bytes = configuration.to_rkyv_bytes().expect("archive");
+    let recovered = RouterDaemonConfiguration::from_rkyv_bytes(&bytes).expect("decode rkyv");
+    assert_eq!(recovered, configuration);
+}
+
+#[test]
+fn single_host_router_configuration_has_no_tailnet_listen_address() {
+    let configuration = RouterDaemonConfiguration {
+        router_socket_path: String::from("/run/persona/X/router.sock").into(),
+        router_socket_mode: 0o600.into(),
+        meta_router_socket_path: String::from("/run/persona/X/router-meta.sock").into(),
+        meta_router_socket_mode: 0o600.into(),
+        supervision_socket_path: String::from("/run/persona/X/router-supervision.sock").into(),
+        supervision_socket_mode: 0o600.into(),
+        store_path: String::from("/var/lib/persona/X/router.sema").into(),
+        bootstrap_path: None,
+        owner_identity: OwnerIdentity::UnixUser(1000.into()),
+        tailnet_listen_address: None,
+        router_identity: String::from("solo-router").into(),
+        criome_socket_path: None,
+    };
+
+    assert!(
+        configuration.tailnet_listen_address.is_none(),
+        "an absent tailnet listen address keeps the router local-only with no TCP forwarding tier"
+    );
 
     let bytes = configuration.to_rkyv_bytes().expect("archive");
     let recovered = RouterDaemonConfiguration::from_rkyv_bytes(&bytes).expect("decode rkyv");
@@ -325,6 +464,25 @@ fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
 
     let text = operation.to_nota();
     assert_eq!(text, "(GrantDirectMessage (owner initiator))");
+    assert_eq!(
+        RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
+        operation
+    );
+}
+
+#[cfg(feature = "nota-text")]
+#[test]
+fn bootstrap_register_remote_router_operation_round_trips_through_nota_line() {
+    let operation = RouterBootstrapOperation::RegisterRemoteRouter(RegisterRemoteRouter {
+        identity: String::from("prometheus-router").into(),
+        address: String::from("[201:abcd::2]:9930").into(),
+    });
+
+    let text = operation.to_nota();
+    assert_eq!(
+        text,
+        "(RegisterRemoteRouter (prometheus-router [|[201:abcd::2]:9930|]))"
+    );
     assert_eq!(
         RouterBootstrapOperation::from_nota(&text).expect("decode bootstrap operation"),
         operation

@@ -12,11 +12,14 @@
 
 [(Summary RouterSummaryQuery)
  (MessageTrace RouterMessageTraceQuery)
- (ChannelState RouterChannelStateQuery)]
+ (ChannelState RouterChannelStateQuery)
+ (ForwardMessage RouterForwardRequest)]
 [(Summary RouterSummary)
  (MessageTrace RouterMessageTrace)
  (MessageTraceMissing RouterMessageTraceMissing)
  (ChannelState RouterChannelState)
+ (ForwardAccepted RouterForwardAccepted)
+ (ForwardRefused RouterForwardRefused)
  (Unimplemented RouterObservationUnimplemented)]
 {
   ObservationIdentifier String
@@ -29,7 +32,16 @@
   UnixUserIdentifier Integer
   OwnerIdentity [(UnixUser UnixUserIdentifier)]
 
-  EndpointKind [Human HarnessSocket PtySocket]
+  ;; Self-contained addressing vocabulary for router-to-router transport.
+  ;; Addresses re-home; identity does not — a peer is dialed by its
+  ;; TailnetAddress but routed by its stable RemoteRouterIdentity.
+  TailnetAddress { value String }
+  RemoteRouterIdentity { value String }
+  HostName { value String }
+  TimestampNanos { value Integer }
+  ReplayNonce { value String }
+
+  EndpointKind [Human HarnessSocket PtySocket RemoteRouter]
   EndpointTransport { kind EndpointKind target String auxiliary (Optional String) }
   Actor { name ActorIdentifier process Integer endpoint (Optional EndpointTransport) }
   ;; A registered actor's home router. None ⇒ local (delivered via the
@@ -40,12 +52,14 @@
   RegisterActor { actor Actor home (Optional RemoteRouterIdentity) }
   GrantDirectMessage { from ActorIdentifier to ActorIdentifier }
   InstallStructuralChannels { requester ActorIdentifier }
+  RegisterRemoteRouter { identity RemoteRouterIdentity address TailnetAddress }
   RouterBootstrapOperation [
     (RegisterActor RegisterActor)
     (GrantDirectMessage GrantDirectMessage)
     (InstallStructuralChannels InstallStructuralChannels)
+    (RegisterRemoteRouter RegisterRemoteRouter)
   ]
-  RouterBootstrapDocument { operations (Vector RouterBootstrapOperation) }
+  RouterBootstrapDocument { operations (Vec RouterBootstrapOperation) }
 
   RouterObservationScope [Summary MessageTrace ChannelState]
   RouterSummaryQuery { engine EngineIdentifier }
@@ -58,13 +72,69 @@
     deferred_messages Integer
     failed_messages Integer
   }
-  RouterDeliveryStatus [Accepted Routed Delivered Deferred Failed]
+  RouterDeliveryStatus [Accepted Routed Delivered Deferred Failed ForwardedRemote]
   RouterMessageTrace { engine EngineIdentifier message_slot MessageSlot status RouterDeliveryStatus }
   RouterMessageTraceMissing { engine EngineIdentifier message_slot MessageSlot }
   RouterChannelStatus [Installed Missing Disabled]
   RouterChannelState { engine EngineIdentifier channel ChannelIdentifier status RouterChannelStatus }
   RouterObservationUnimplementedReason [NotInPrototypeScope RouterStoreUnavailable MessageTraceUnavailable]
   RouterObservationUnimplemented { scope RouterObservationScope reason RouterObservationUnimplementedReason }
+
+  ;; ─── Router-to-router forwarding ──────────────────────────────────
+  ;;
+  ;; A self-contained closed signature scheme, mirroring the criome
+  ;; vocabulary without depending on signal-criome. The daemon maps this
+  ;; to/from criome's SignatureScheme at the boundary.
+  SignatureScheme [Bls12_381MinPk Bls12_381MinSig]
+
+  ;; Self-contained attestation carried inside a forwarded frame. It
+  ;; mirrors what criome produces; the receiving router projects it back
+  ;; into criome's Attestation for VerifyAttestation. The router never
+  ;; holds keys or verifies signatures itself.
+  RouterPeerAttestation {
+    signer RemoteRouterIdentity
+    scheme SignatureScheme
+    public_key String
+    signature String
+    content_digest String
+    issued_at TimestampNanos
+    nonce ReplayNonce
+  }
+
+  ;; Self-contained forwarding payload. signal-router holds the
+  ;; self-contained-vocabulary policy and carries no contract->contract
+  ;; dependency, so the message essentials travel as a local record; the
+  ;; daemon projects it into its stamped-submission ledger entry.
+  ForwardedMessagePayload {
+    from ActorIdentifier
+    to ActorIdentifier
+    body String
+    attachments (Vec String)
+  }
+
+  ;; First-class loop guard. The inbound handler sets this deterministically:
+  ;; an Origin submission may resolve to a remote route; a Forwarded one is
+  ;; delivered-local-or-parked only and must never be re-resolved remotely.
+  ForwardMarker [Origin Forwarded]
+
+  RouterForwardRequest {
+    submission ForwardedMessagePayload
+    attestation RouterPeerAttestation
+    forwarded ForwardMarker
+    nonce ReplayNonce
+    issued_at TimestampNanos
+  }
+  RouterForwardAccepted { message_slot MessageSlot }
+  RouterForwardRefusalReason [
+    UnknownPeer
+    AttestationInvalid
+    ReplayDetected
+    ClockSkew
+    RecipientUnknown
+    ChannelUnauthorized
+    AlreadyForwarded
+  ]
+  RouterForwardRefused { reason RouterForwardRefusalReason }
 
   RouterDaemonConfiguration {
     router_socket_path WirePath
@@ -76,5 +146,8 @@
     store_path WirePath
     bootstrap_path (Optional WirePath)
     owner_identity OwnerIdentity
+    tailnet_listen_address (Optional TailnetAddress)
+    router_identity RemoteRouterIdentity
+    criome_socket_path (Optional WirePath)
   }
 }
