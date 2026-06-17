@@ -43,7 +43,6 @@
   ContractName { value String }
   ContractOperation { value String }
   ContractPayloadSize { value Integer }
-  ContractPayloadBytes Bytes
 
   EndpointKind [Human HarnessSocket PtySocket RemoteRouter]
   EndpointTransport { kind EndpointKind target String auxiliary (Optional String) }
@@ -107,18 +106,18 @@
 
   ;; Opaque contract-owned object carried by the router protocol. Router
   ;; reads the metadata for routing/audit/authentication and hashes the raw
-  ;; bytes; it does not decode the inner contract payload.
+  ;; octets; it does not decode the inner contract payload.
   RoutedContractObject {
     contract ContractName
     operation ContractOperation
     payload_size ContractPayloadSize
-    payload ContractPayloadBytes
+    payload_octets (Vec Integer)
   }
 
   ;; Self-contained forwarding payload. signal-router holds the
   ;; standardized router protocol. The summary body remains the delivery
   ;; text for today's message/harness path; routed objects carry
-  ;; contract-owned rkyv bytes that Router forwards and authenticates
+  ;; contract-owned rkyv octets that Router forwards and authenticates
   ;; without decoding.
   ForwardedMessagePayload {
     from ActorIdentifier

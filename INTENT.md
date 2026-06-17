@@ -26,8 +26,8 @@ vocabulary the daemon consumes at startup and the standardized
 router-to-router forwarding protocol. The forwarding envelope is
 router-owned and payload-blind: `RoutedContractObject` names an inner
 contract and operation, declares the byte size, and carries opaque rkyv
-bytes. Router hashes, authenticates, replays-checks, routes, and
-delivers those bytes without decoding the inner contract. `schema/lib.schema`
+octets. Router hashes, authenticates, replays-checks, routes, and
+delivers those octets without decoding the inner contract. `schema/lib.schema`
 is the authored source of the contract; `src/schema/lib.rs` is the
 checked-in generated Rust surface that publishes `Input`, `Output`,
 frames, typed payload records, and codecs. Meta channel-policy orders —
@@ -83,7 +83,7 @@ cross-system trust root (Spirit `ermr`).
 - **Payload-blind contract objects.** `ForwardedMessagePayload` carries
   message essentials (from/to actor, body summary, attachments) plus a
   vector of `RoutedContractObject` values. Each object names the inner
-  contract and operation and carries declared-size opaque rkyv bytes. This
+  contract and operation and carries declared-size opaque rkyv octets. This
   is the router protocol: the router knows the envelope and stays blind to
   the contract-owned payload.
 - **Networked config.** `RouterDaemonConfiguration` gains

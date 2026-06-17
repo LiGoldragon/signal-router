@@ -11,7 +11,7 @@ a channel, or an engine. It also carries the manager-written router
 bootstrap vocabulary consumed by `router` at daemon startup, and the
 standardized router-to-router forwarding protocol. That protocol is a
 router-owned envelope around payload-blind contract objects: Router reads
-routing/authentication metadata and forwards opaque rkyv bytes without
+routing/authentication metadata and forwards opaque rkyv octets without
 decoding the inner contract.
 
 Meta channel-policy orders are not part of this ordinary
@@ -91,7 +91,7 @@ observation reads.
     the first-class `ForwardMarker` loop guard, a `ReplayNonce`, and a
     `TimestampNanos`.
   - `RoutedContractObject` — contract name, operation name, declared byte
-    size, and opaque contract payload bytes. This is how a mirror
+    size, and opaque contract payload octets. This is how a mirror
     `NotifyObject` or later component-owned object rides inside the router
     protocol while remaining owned by its own contract.
   - Reply pair `ForwardAccepted(RouterForwardAccepted)` (the minted
@@ -240,7 +240,7 @@ attestation.
 |---|---|
 | Router observations have a router-owned contract home. | This crate exists; central introspection contract does not define router rows. |
 | Every request/reply travels as a Signal frame. | `tests/round_trip.rs` length-prefixed frame tests per variant. |
-| Router forwarding can carry a contract-owned object without knowing the inner contract. | `router_forward_request_carries_contract_object_bytes_without_decoding_them` wraps `signal-mirror` / `NotifyObject` metadata plus opaque bytes, round-trips the router frame, and asserts the bytes are unchanged. |
+| Router forwarding can carry a contract-owned object without knowing the inner contract. | `router_forward_request_carries_contract_object_octets_without_decoding_them` wraps `signal-mirror` / `NotifyObject` metadata plus opaque octets, round-trips the router frame, and asserts the octets are unchanged. |
 | Manager-written router bootstrap uses router-owned typed vocabulary, not duplicated private records in `persona`. | `RouterBootstrapDocument` and `RouterBootstrapOperation` live in this crate; `bootstrap_document_owns_line_vocabulary_for_manager_and_router` round-trips the line projection. |
 | Router observation queries are contract-local operation heads, never universal database-action class roots. | `router_request_heads_are_contract_local_operations` and `router_contract_has_no_sema_classification_dependency_or_roots`. |
 | Message ingress remains outside this contract. | This crate carries only the router-facing `MessageSlot` scalar needed to observe a routed message; message submission records remain outside `signal-router`. |

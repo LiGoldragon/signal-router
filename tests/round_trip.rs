@@ -11,7 +11,7 @@ use signal_router::{
     RouterObservationScope,
 };
 use signal_router::{
-    Bytes, ForwardMarker, ForwardedMessagePayload, Frame, FrameBody, Input, Output, OwnerIdentity,
+    ForwardMarker, ForwardedMessagePayload, Frame, FrameBody, Input, Output, OwnerIdentity,
     RoutedContractObject, RouterChannelState, RouterChannelStateQuery, RouterChannelStatus,
     RouterDaemonConfiguration, RouterDeliveryStatus, RouterForwardRefusalReason,
     RouterForwardRequest, RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
@@ -80,7 +80,7 @@ fn mirror_object() -> RoutedContractObject {
         payload_size: u64::try_from(payload.len())
             .expect("payload size fits")
             .into(),
-        payload: Bytes::new(payload).into(),
+        payload_octets: payload.into_iter().map(u64::from).collect(),
     }
 }
 
@@ -163,7 +163,7 @@ fn router_forward_request_round_trips_through_length_prefixed_frame() {
 }
 
 #[test]
-fn router_forward_request_carries_contract_object_bytes_without_decoding_them() {
+fn router_forward_request_carries_contract_object_octets_without_decoding_them() {
     let request = Input::ForwardMessage(mirror_forward_request());
     let frame = Frame::new(FrameBody::Request {
         exchange: exchange(),
@@ -188,14 +188,17 @@ fn router_forward_request_carries_contract_object_bytes_without_decoding_them() 
     assert_eq!(object.operation.payload().as_str(), "NotifyObject");
     assert_eq!(
         usize::try_from(*object.payload_size.payload()).expect("payload size fits"),
-        object.payload.payload().payload().len()
+        object.payload_octets.len()
     );
     assert_eq!(
-        object.payload.payload().payload(),
-        &[
+        object.payload_octets,
+        vec![
             0x91, 0x26, 0xec, 0xcb, 0xb5, 0, 0, 0, b's', b'p', b'i', b'r', b'i', b't', 0, 0, 7,
-            0x42
+            0x42,
         ]
+        .into_iter()
+        .map(u64::from)
+        .collect::<Vec<_>>()
     );
 }
 

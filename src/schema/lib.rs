@@ -8,33 +8,6 @@ pub type Integer = u64;
 pub type Boolean = bool;
 #[rustfmt::skip]
 pub type Path = std::string::String;
-#[rustfmt::skip]
-#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
-#[derive(
-    rkyv::Archive,
-    rkyv::Serialize,
-    rkyv::Deserialize,
-    Clone,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-)]
-pub struct Bytes(nota_next::ByteSequence);
-#[rustfmt::skip]
-impl Bytes {
-    pub fn new(payload: Vec<u8>) -> Self {
-        Self(nota_next::ByteSequence::new(payload))
-    }
-    pub fn payload(&self) -> &[u8] {
-        self.0.payload()
-    }
-    pub fn into_payload(self) -> Vec<u8> {
-        self.0.into_payload()
-    }
-}
 
 #[rustfmt::skip]
 #[cfg(feature = "nota-text")]
@@ -126,11 +99,6 @@ pub struct ContractOperation(String);
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ContractPayloadSize(Integer);
-
-#[rustfmt::skip]
-#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
-#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct ContractPayloadBytes(Bytes);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -391,7 +359,7 @@ pub struct RoutedContractObject {
     pub contract: ContractName,
     pub operation: ContractOperation,
     pub payload_size: ContractPayloadSize,
-    pub payload: ContractPayloadBytes,
+    pub payload_octets: Vec<Integer>,
 }
 
 #[rustfmt::skip]
@@ -1095,25 +1063,6 @@ impl PartialEq<u64> for ContractPayloadSize {
 impl PartialOrd<u64> for ContractPayloadSize {
     fn partial_cmp(&self, other: &u64) -> Option<std::cmp::Ordering> {
         self.payload().partial_cmp(other)
-    }
-}
-
-#[rustfmt::skip]
-impl ContractPayloadBytes {
-    pub fn new(payload: Bytes) -> Self {
-        Self(payload)
-    }
-    pub fn payload(&self) -> &Bytes {
-        &self.0
-    }
-    pub fn into_payload(self) -> Bytes {
-        self.0
-    }
-}
-#[rustfmt::skip]
-impl From<Bytes> for ContractPayloadBytes {
-    fn from(payload: Bytes) -> Self {
-        Self::new(payload)
     }
 }
 
