@@ -44,7 +44,7 @@
   ContractOperation { value String }
   ContractPayloadSize { value Integer }
 
-  EndpointKind [Human HarnessSocket PtySocket RemoteRouter]
+  EndpointKind [Human HarnessSocket PtySocket RemoteRouter ComponentSocket]
   EndpointTransport { kind EndpointKind target String auxiliary (Optional String) }
   Actor { name ActorIdentifier process Integer endpoint (Optional EndpointTransport) }
   ;; A registered actor's home router. None ⇒ local (delivered via the

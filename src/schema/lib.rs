@@ -117,6 +117,7 @@ pub enum EndpointKind {
     HarnessSocket,
     PtySocket,
     RemoteRouter,
+    ComponentSocket,
 }
 
 #[rustfmt::skip]
