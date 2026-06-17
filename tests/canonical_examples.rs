@@ -36,6 +36,7 @@ fn forward_request() -> RouterForwardRequest {
             to: String::from("prometheus-responder").into(),
             body: String::from("hello over the tailnet"),
             attachments: vec![String::from("digest-001")],
+            routed_objects: Vec::new(),
         },
         attestation: RouterPeerAttestation {
             signer: String::from("prometheus-router").into(),
@@ -75,7 +76,7 @@ fn canonical_request_examples_round_trip() {
         ),
         (
             Input::ForwardMessage(forward_request()),
-            "(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001]) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))",
+            "(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001] []) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))",
         ),
     ];
 

@@ -3,7 +3,8 @@
 *The ordinary peer-callable wire contract for Persona's router. Defines
 the typed observation channel that `introspect` (and future observation
 clients) use to ask the router what happened to a message, a channel, or
-an engine, plus the manager-written router bootstrap vocabulary.
+an engine, the manager-written router bootstrap vocabulary, and the
+standardized router-to-router forwarding protocol.
 Companion to `ARCHITECTURE.md` and `Cargo.toml`. Maintenance:
 `primary/skills/repo-intent.md`.*
 
@@ -21,11 +22,16 @@ Meta channel-policy intent stays in
 `router` daemon. It exists so `introspect` can ask the router for a
 typed summary, message trace, or channel state without opening
 `router.sema`. It also carries the manager-written router bootstrap
-vocabulary the daemon consumes at startup. `schema/lib.schema` is the
-authored source of the contract; `src/schema/lib.rs` is the checked-in
-generated Rust surface that publishes `Input`, `Output`, frames, typed
-payload records, and codecs. Meta channel-policy orders — grants,
-extensions, revocations, adjudication denials — stay in
+vocabulary the daemon consumes at startup and the standardized
+router-to-router forwarding protocol. The forwarding envelope is
+router-owned and payload-blind: `RoutedContractObject` names an inner
+contract and operation, declares the byte size, and carries opaque rkyv
+bytes. Router hashes, authenticates, replays-checks, routes, and
+delivers those bytes without decoding the inner contract. `schema/lib.schema`
+is the authored source of the contract; `src/schema/lib.rs` is the
+checked-in generated Rust surface that publishes `Input`, `Output`,
+frames, typed payload records, and codecs. Meta channel-policy orders —
+grants, extensions, revocations, adjudication denials — stay in
 `meta-signal-router`, called by Orchestrate; runtime actors, sockets,
 storage, and routing logic live in `router`.
 
@@ -74,10 +80,12 @@ cross-system trust root (Spirit `ermr`).
   via a forward. A `Forwarded` message is delivered-local-or-parked
   only; it must never be re-resolved to a remote route (refused
   `AlreadyForwarded` if it would be).
-- **Self-contained payload.** `ForwardedMessagePayload` carries the
-  message essentials (from/to actor, body, attachments) rather than
-  importing `signal-message`'s stamped submission, keeping milestone 1
-  buildable in isolation.
+- **Payload-blind contract objects.** `ForwardedMessagePayload` carries
+  message essentials (from/to actor, body summary, attachments) plus a
+  vector of `RoutedContractObject` values. Each object names the inner
+  contract and operation and carries declared-size opaque rkyv bytes. This
+  is the router protocol: the router knows the envelope and stays blind to
+  the contract-owned payload.
 - **Networked config.** `RouterDaemonConfiguration` gains
   `tailnet_listen_address` (Optional — absent ⇒ single-host, local-only,
   no TCP tier), this router's own `router_identity`, and

@@ -11,11 +11,11 @@ use signal_router::{
     RouterObservationScope,
 };
 use signal_router::{
-    ForwardMarker, ForwardedMessagePayload, Frame, FrameBody, Input, Output, OwnerIdentity,
-    RouterChannelState, RouterChannelStateQuery, RouterChannelStatus, RouterDaemonConfiguration,
-    RouterDeliveryStatus, RouterForwardRefusalReason, RouterForwardRequest, RouterMessageTrace,
-    RouterMessageTraceMissing, RouterMessageTraceQuery, RouterPeerAttestation, RouterSummary,
-    RouterSummaryQuery, SignatureScheme,
+    Bytes, ForwardMarker, ForwardedMessagePayload, Frame, FrameBody, Input, Output, OwnerIdentity,
+    RoutedContractObject, RouterChannelState, RouterChannelStateQuery, RouterChannelStatus,
+    RouterDaemonConfiguration, RouterDeliveryStatus, RouterForwardRefusalReason,
+    RouterForwardRequest, RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
+    RouterPeerAttestation, RouterSummary, RouterSummaryQuery, SignatureScheme,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -46,6 +46,7 @@ fn forward_request() -> RouterForwardRequest {
             to: String::from("prometheus-responder").into(),
             body: String::from("hello over the tailnet"),
             attachments: vec![String::from("digest-001")],
+            routed_objects: Vec::new(),
         },
         attestation: RouterPeerAttestation {
             signer: String::from("prometheus-router").into(),
@@ -59,6 +60,27 @@ fn forward_request() -> RouterForwardRequest {
         forwarded: ForwardMarker::Origin,
         nonce: String::from("nonce-7f3a").into(),
         issued_at: 1_726_000_000_000_000_000u64.into(),
+    }
+}
+
+fn mirror_forward_request() -> RouterForwardRequest {
+    let mut request = forward_request();
+    request.submission.routed_objects.push(mirror_object());
+    request
+}
+
+fn mirror_object() -> RoutedContractObject {
+    let payload = vec![
+        0x91, 0x26, 0xec, 0xcb, 0xb5, 0x00, 0x00, 0x00, b's', b'p', b'i', b'r', b'i', b't', 0x00,
+        0x00, 0x07, 0x42,
+    ];
+    RoutedContractObject {
+        contract: String::from("signal-mirror").into(),
+        operation: String::from("NotifyObject").into(),
+        payload_size: u64::try_from(payload.len())
+            .expect("payload size fits")
+            .into(),
+        payload: Bytes::new(payload).into(),
     }
 }
 
@@ -140,12 +162,49 @@ fn router_forward_request_round_trips_through_length_prefixed_frame() {
     round_trip_request(Input::ForwardMessage(forward_request()));
 }
 
+#[test]
+fn router_forward_request_carries_contract_object_bytes_without_decoding_them() {
+    let request = Input::ForwardMessage(mirror_forward_request());
+    let frame = Frame::new(FrameBody::Request {
+        exchange: exchange(),
+        request: request.into_request(),
+    });
+    let bytes = frame.encode_length_prefixed().expect("encode router frame");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode router frame");
+
+    let FrameBody::Request { request, .. } = decoded.into_body() else {
+        panic!("expected router request");
+    };
+    let Input::ForwardMessage(forward) = request.payloads().head() else {
+        panic!("expected forward request");
+    };
+    let object = forward
+        .submission
+        .routed_objects
+        .first()
+        .expect("forward carries routed object");
+
+    assert_eq!(object.contract.payload().as_str(), "signal-mirror");
+    assert_eq!(object.operation.payload().as_str(), "NotifyObject");
+    assert_eq!(
+        usize::try_from(*object.payload_size.payload()).expect("payload size fits"),
+        object.payload.payload().payload().len()
+    );
+    assert_eq!(
+        object.payload.payload().payload(),
+        &[
+            0x91, 0x26, 0xec, 0xcb, 0xb5, 0, 0, 0, b's', b'p', b'i', b'r', b'i', b't', 0, 0, 7,
+            0x42
+        ]
+    );
+}
+
 #[cfg(feature = "nota-text")]
 #[test]
 fn router_forward_request_round_trips_through_nota_text() {
     round_trip_nota(
         Input::ForwardMessage(forward_request()),
-        "(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001]) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))",
+        "(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001] []) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))",
     );
 }
 

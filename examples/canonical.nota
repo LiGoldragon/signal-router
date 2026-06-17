@@ -20,10 +20,10 @@
 (ChannelState (prototype internal-message-router))
 
 ;; Input::ForwardMessage — a router-to-router forward carrying a
-;; self-contained payload, a self-contained peer attestation, the
-;; first-class loop-guard marker (Origin = not yet forwarded), a replay
-;; nonce, and the issue timestamp.
-(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001]) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))
+;; self-contained payload, an explicit routed-object vector (empty here),
+;; a self-contained peer attestation, the first-class loop-guard marker
+;; (Origin = not yet forwarded), a replay nonce, and the issue timestamp.
+(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001] []) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))
 
 ;; ─── Replies ──────────────────────────────────────────────────────
 

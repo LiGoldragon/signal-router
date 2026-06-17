@@ -40,6 +40,10 @@
   HostName { value String }
   TimestampNanos { value Integer }
   ReplayNonce { value String }
+  ContractName { value String }
+  ContractOperation { value String }
+  ContractPayloadSize { value Integer }
+  ContractPayloadBytes Bytes
 
   EndpointKind [Human HarnessSocket PtySocket RemoteRouter]
   EndpointTransport { kind EndpointKind target String auxiliary (Optional String) }
@@ -101,15 +105,27 @@
     nonce ReplayNonce
   }
 
+  ;; Opaque contract-owned object carried by the router protocol. Router
+  ;; reads the metadata for routing/audit/authentication and hashes the raw
+  ;; bytes; it does not decode the inner contract payload.
+  RoutedContractObject {
+    contract ContractName
+    operation ContractOperation
+    payload_size ContractPayloadSize
+    payload ContractPayloadBytes
+  }
+
   ;; Self-contained forwarding payload. signal-router holds the
-  ;; self-contained-vocabulary policy and carries no contract->contract
-  ;; dependency, so the message essentials travel as a local record; the
-  ;; daemon projects it into its stamped-submission ledger entry.
+  ;; standardized router protocol. The summary body remains the delivery
+  ;; text for today's message/harness path; routed objects carry
+  ;; contract-owned rkyv bytes that Router forwards and authenticates
+  ;; without decoding.
   ForwardedMessagePayload {
     from ActorIdentifier
     to ActorIdentifier
     body String
     attachments (Vec String)
+    routed_objects (Vec RoutedContractObject)
   }
 
   ;; First-class loop guard. The inbound handler sets this deterministically:
