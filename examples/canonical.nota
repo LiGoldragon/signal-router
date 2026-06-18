@@ -25,6 +25,14 @@
 ;; (Origin = not yet forwarded), a replay nonce, and the issue timestamp.
 (ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001] []) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))
 
+;; Input::OpenAttendance — Attend: a component opens attendance for ONE
+;; interest rung. Here the exact (component, kind) coordinate, with a
+;; ComponentSocket delivery endpoint the router pushes ObjectAvailable to.
+(OpenAttendance (terminal-daemon (ComponentObject (Spirit Contract)) (ComponentSocket /run/persona/X/mirror.sock None)))
+
+;; Input::CloseAttendance — Withdraw: close an open attendance by token.
+(CloseAttendance at-9f3ac1)
+
 ;; ─── Replies ──────────────────────────────────────────────────────
 
 ;; Output::Summary
@@ -54,6 +62,24 @@
 
 ;; Output::Unimplemented
 (Unimplemented (Summary NotInPrototypeScope))
+
+;; Output::AttendanceOpened — Attend reply: the router-minted token plus the
+;; echoed interest rung the attendance was opened for.
+(AttendanceOpened (at-9f3ac1 (ComponentObject (Spirit Contract))))
+
+;; Output::AttendanceClosed — Withdraw reply: the token whose attendance dropped.
+(AttendanceClosed at-9f3ac1)
+
+;; Output::AttendanceRefused — one example per closed refusal reason.
+(AttendanceRefused UnknownAttender)
+(AttendanceRefused EndpointNotComponentSocket)
+(AttendanceRefused UnknownAttendanceToken)
+(AttendanceRefused AttendanceStoreUnavailable)
+
+;; Output::ObjectAvailable — the reference-push (m0p2: a REFERENCE, never the
+;; payload). AuthorizedObjectReference is (component digest kind), imported
+;; verbatim from signal-standard — the same type criome emits at admission.
+(ObjectAvailable (at-7c12de (Mind 4f1aa20 Time)))
 
 ;; ─── Bootstrap operations ─────────────────────────────────────────
 

@@ -11,8 +11,12 @@
 
 use nota_next::{NotaEncode, NotaSource};
 use signal_router::{
-    Channel, ChannelIdentifier, ContentDigest, Engine, EngineIdentifier, ForwardMarker,
-    ForwardedMessagePayload, Input, IssuedAt, Nonce, Output, OwnerIdentity, PublicKey,
+    ActorIdentifier, AttendanceClosed, AttendanceEndpoint, AttendanceOpened,
+    AttendanceRefusalReason, AttendanceToken, Attender, AuthorizedObjectInterest,
+    AuthorizedObjectKind, AuthorizedObjectReference, Channel, ChannelIdentifier, CloseAttendance,
+    ComponentKind, ComponentObjectInterest, ContentDigest, EndpointKind, EndpointTransport, Engine,
+    EngineIdentifier, ForwardMarker, ForwardedMessagePayload, Input, IssuedAt, Nonce,
+    ObjectAvailable, ObjectDigest, OpenAttendance, Output, OwnerIdentity, PublicKey,
     RegisterRemoteRouter, RemoteRouterIdentity, ReplayNonce, RouterBootstrapOperation,
     RouterChannelState, RouterChannelStateQuery, RouterChannelStatus, RouterDaemonConfiguration,
     RouterDaemonConfigurationParts, RouterDeliveryStatus, RouterForwardRefusalReason,
@@ -90,6 +94,25 @@ fn canonical_request_examples_round_trip() {
         (
             Input::ForwardMessage(forward_request()),
             "(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001] []) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))",
+        ),
+        (
+            Input::OpenAttendance(OpenAttendance {
+                attender: Attender::new(ActorIdentifier::new(String::from("terminal-daemon"))),
+                interest: AuthorizedObjectInterest::ComponentObject(ComponentObjectInterest::new(
+                    ComponentKind::Spirit,
+                    AuthorizedObjectKind::Contract,
+                )),
+                endpoint: AttendanceEndpoint::new(EndpointTransport::new(
+                    EndpointKind::ComponentSocket,
+                    String::from("/run/persona/X/mirror.sock"),
+                    None,
+                )),
+            }),
+            "(OpenAttendance (terminal-daemon (ComponentObject (Spirit Contract)) (ComponentSocket /run/persona/X/mirror.sock None)))",
+        ),
+        (
+            Input::CloseAttendance(CloseAttendance::new(AttendanceToken::new("at-9f3ac1"))),
+            "(CloseAttendance at-9f3ac1)",
         ),
     ];
 
@@ -181,6 +204,47 @@ fn canonical_reply_examples_round_trip() {
                     .into(),
             }),
             "(Unimplemented (Summary NotInPrototypeScope))",
+        ),
+        (
+            Output::AttendanceOpened(AttendanceOpened {
+                token: AttendanceToken::new("at-9f3ac1"),
+                interest: AuthorizedObjectInterest::ComponentObject(ComponentObjectInterest::new(
+                    ComponentKind::Spirit,
+                    AuthorizedObjectKind::Contract,
+                )),
+            }),
+            "(AttendanceOpened (at-9f3ac1 (ComponentObject (Spirit Contract))))",
+        ),
+        (
+            Output::AttendanceClosed(AttendanceClosed::new(AttendanceToken::new("at-9f3ac1"))),
+            "(AttendanceClosed at-9f3ac1)",
+        ),
+        (
+            Output::attendance_refused(AttendanceRefusalReason::UnknownAttender),
+            "(AttendanceRefused UnknownAttender)",
+        ),
+        (
+            Output::attendance_refused(AttendanceRefusalReason::EndpointNotComponentSocket),
+            "(AttendanceRefused EndpointNotComponentSocket)",
+        ),
+        (
+            Output::attendance_refused(AttendanceRefusalReason::UnknownAttendanceToken),
+            "(AttendanceRefused UnknownAttendanceToken)",
+        ),
+        (
+            Output::attendance_refused(AttendanceRefusalReason::AttendanceStoreUnavailable),
+            "(AttendanceRefused AttendanceStoreUnavailable)",
+        ),
+        (
+            Output::ObjectAvailable(ObjectAvailable {
+                token: AttendanceToken::new("at-7c12de"),
+                reference: AuthorizedObjectReference::new(
+                    ComponentKind::Mind,
+                    ObjectDigest::new("4f1aa20"),
+                    AuthorizedObjectKind::Time,
+                ),
+            }),
+            "(ObjectAvailable (at-7c12de (Mind 4f1aa20 Time)))",
         ),
     ];
 

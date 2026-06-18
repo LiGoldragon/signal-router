@@ -11,6 +11,12 @@ use signal_router::{
     RouterObservationScope, SourceActor, TailnetAddress,
 };
 use signal_router::{
+    AttendanceClosed, AttendanceEndpoint, AttendanceOpened, AttendanceRefusalReason,
+    AttendanceToken, Attender, AuthorizedObjectInterest, AuthorizedObjectKind,
+    AuthorizedObjectReference, CloseAttendance, ComponentKind, ComponentObjectInterest,
+    ObjectAvailable, ObjectDigest, OpenAttendance,
+};
+use signal_router::{
     Channel, ChannelIdentifier, ContentDigest, Engine, EngineIdentifier, ForwardMarker,
     ForwardedMessagePayload, Frame, FrameBody, Input, IssuedAt, Nonce, Output, OwnerIdentity,
     PublicKey, RemoteRouterIdentity, ReplayNonce, RoutedContractObject, RouterChannelState,
@@ -237,7 +243,14 @@ fn router_forward_request_round_trips_through_nota_text() {
 fn router_request_heads_are_contract_local_operations() {
     assert_eq!(
         <Input as SignalOperationHeads>::HEADS,
-        &["Summary", "MessageTrace", "ChannelState", "ForwardMessage"]
+        &[
+            "Summary",
+            "MessageTrace",
+            "ChannelState",
+            "ForwardMessage",
+            "OpenAttendance",
+            "CloseAttendance",
+        ]
     );
 }
 
@@ -601,4 +614,149 @@ fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
 #[test]
 fn router_observation_operation_kind_round_trips_through_nota_text() {
     round_trip_nota(RouterObservationScope::MessageTrace, "MessageTrace");
+}
+
+// ─── Attend / Withdraw working surface (router-sole subscribe + fan-out) ───
+
+fn component_socket_endpoint(path: &str) -> EndpointTransport {
+    EndpointTransport::new(EndpointKind::ComponentSocket, String::from(path), None)
+}
+
+fn open_attendance_for(interest: AuthorizedObjectInterest, attender: &str) -> OpenAttendance {
+    OpenAttendance {
+        attender: Attender::new(ActorIdentifier::new(String::from(attender))),
+        interest,
+        endpoint: AttendanceEndpoint::new(component_socket_endpoint("/run/persona/X/mirror.sock")),
+    }
+}
+
+#[test]
+fn open_attendance_request_round_trips_for_every_interest_rung() {
+    for interest in [
+        AuthorizedObjectInterest::AnyAuthorizedObject,
+        AuthorizedObjectInterest::Component(ComponentKind::Spirit),
+        AuthorizedObjectInterest::ObjectKind(AuthorizedObjectKind::Contract),
+        AuthorizedObjectInterest::ComponentObject(ComponentObjectInterest::new(
+            ComponentKind::Spirit,
+            AuthorizedObjectKind::Contract,
+        )),
+    ] {
+        round_trip_request(Input::OpenAttendance(open_attendance_for(
+            interest,
+            "mirror-daemon",
+        )));
+    }
+}
+
+#[test]
+fn close_attendance_request_round_trips_through_length_prefixed_frame() {
+    round_trip_request(Input::CloseAttendance(CloseAttendance::new(
+        AttendanceToken::new("at-9f3ac1"),
+    )));
+}
+
+#[test]
+fn attendance_opened_reply_round_trips_through_length_prefixed_frame() {
+    let reply = Output::AttendanceOpened(AttendanceOpened {
+        token: AttendanceToken::new("at-9f3ac1"),
+        interest: AuthorizedObjectInterest::ComponentObject(ComponentObjectInterest::new(
+            ComponentKind::Spirit,
+            AuthorizedObjectKind::Contract,
+        )),
+    });
+    assert_eq!(round_trip_reply(reply.clone()), reply);
+}
+
+#[test]
+fn attendance_closed_reply_round_trips_through_length_prefixed_frame() {
+    let reply = Output::AttendanceClosed(AttendanceClosed::new(AttendanceToken::new("at-9f3ac1")));
+    assert_eq!(round_trip_reply(reply.clone()), reply);
+}
+
+#[test]
+fn attendance_refused_reply_round_trips_for_every_reason() {
+    for reason in [
+        AttendanceRefusalReason::UnknownAttender,
+        AttendanceRefusalReason::EndpointNotComponentSocket,
+        AttendanceRefusalReason::UnknownAttendanceToken,
+        AttendanceRefusalReason::AttendanceStoreUnavailable,
+    ] {
+        let reply = Output::attendance_refused(reason);
+        assert_eq!(round_trip_reply(reply.clone()), reply);
+    }
+}
+
+#[test]
+fn object_available_push_carries_reference_not_payload() {
+    // m0p2: the push is a REFERENCE (component, digest, kind) only — never the
+    // object body. The witness is that the entire payload is the digest string,
+    // not contract octets, and it round-trips through the same Output frame the
+    // ComponentSocket reader decodes.
+    let reference = AuthorizedObjectReference::new(
+        ComponentKind::Spirit,
+        ObjectDigest::new("z9d6abc"),
+        AuthorizedObjectKind::Contract,
+    );
+    let reply = Output::ObjectAvailable(ObjectAvailable {
+        token: AttendanceToken::new("at-9f3ac1"),
+        reference: reference.clone(),
+    });
+    let recovered = round_trip_reply(reply.clone());
+    assert_eq!(recovered, reply);
+    let Output::ObjectAvailable(push) = recovered else {
+        panic!("expected ObjectAvailable push");
+    };
+    assert_eq!(push.reference.digest.payload().as_str(), "z9d6abc");
+}
+
+#[cfg(feature = "nota-text")]
+#[test]
+fn open_attendance_request_round_trips_through_nota_text() {
+    round_trip_nota(
+        Input::OpenAttendance(open_attendance_for(
+            AuthorizedObjectInterest::ComponentObject(ComponentObjectInterest::new(
+                ComponentKind::Spirit,
+                AuthorizedObjectKind::Contract,
+            )),
+            "terminal-daemon",
+        )),
+        "(OpenAttendance (terminal-daemon (ComponentObject (Spirit Contract)) (ComponentSocket /run/persona/X/mirror.sock None)))",
+    );
+}
+
+#[cfg(feature = "nota-text")]
+#[test]
+fn object_available_push_round_trips_through_nota_text() {
+    round_trip_nota(
+        Output::ObjectAvailable(ObjectAvailable {
+            token: AttendanceToken::new("at-7c12de"),
+            reference: AuthorizedObjectReference::new(
+                ComponentKind::Mind,
+                ObjectDigest::new("4f1aa20"),
+                AuthorizedObjectKind::Time,
+            ),
+        }),
+        "(ObjectAvailable (at-7c12de (Mind 4f1aa20 Time)))",
+    );
+}
+
+#[test]
+fn attendance_root_verbs_carry_no_sema_classification_word() {
+    // The conceptual verb pair is Attend / Withdraw; the descriptive root names
+    // OpenAttendance / CloseAttendance carry none of the six 7l7l-forbidden wire
+    // words. This is the same gate router_contract_has_no_sema_classification
+    // applies, asserted against the new heads explicitly.
+    let heads = <Input as SignalOperationHeads>::HEADS;
+    assert!(heads.contains(&"OpenAttendance"));
+    assert!(heads.contains(&"CloseAttendance"));
+    for forbidden in [
+        "Assert",
+        "Mutate",
+        "Retract",
+        "Match",
+        "Subscribe",
+        "Validate",
+    ] {
+        assert!(!heads.contains(&forbidden));
+    }
 }

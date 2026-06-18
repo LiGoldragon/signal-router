@@ -16,12 +16,17 @@ path = "src/lib.rs"
 
 [features]
 default = []
-nota-text = ["dep:nota-next", "signal-frame/nota-text"]
+nota-text = ["dep:nota-next", "signal-frame/nota-text", "signal-standard/nota-text"]
 
 [dependencies]
 nota-next   = { git = "https://github.com/LiGoldragon/nota-next.git", branch = "main", optional = true }
 rkyv        = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", branch = "main", default-features = false }
+# signal-standard owns the cross-component authorized-object vocabulary (the
+# 4-rung interest lattice + reference type) the attendance surface imports.
+# Feature branch points at the attendance-fanout-139 branch; operator flips to
+# branch = "main" once the lift lands on main.
+signal-standard = { git = "https://github.com/LiGoldragon/signal-standard.git", branch = "attendance-fanout-139", default-features = false }
 thiserror   = "2"
 
 [build-dependencies]

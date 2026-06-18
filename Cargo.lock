@@ -397,6 +397,18 @@ dependencies = [
  "rkyv",
  "schema-rust-next",
  "signal-frame",
+ "signal-standard",
+ "thiserror",
+]
+
+[[package]]
+name = "signal-standard"
+version = "0.1.0"
+source = "git+https://github.com/LiGoldragon/signal-standard.git?branch=attendance-fanout-139#8befd44ec3545278ee8748efa9a3955fb1ce7a73"
+dependencies = [
+ "nota-next",
+ "rkyv",
+ "schema-rust-next",
  "thiserror",
 ]
 

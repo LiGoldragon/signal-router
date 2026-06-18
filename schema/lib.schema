@@ -10,16 +10,37 @@
 ;; schema defines the small router-facing vocabulary it needs locally. Daemon
 ;; and client crates project these local wire nouns into their internal types.
 
+;; Imports brace — cross-component vocabulary owned by signal-standard, the
+;; shared standards library (Spirit eeeo). The authorized-object interest
+;; lattice and reference type were born local in signal-criome and lifted to
+;; signal-standard; signal-router imports them rather than re-declaring, so the
+;; router-sole attendance surface matches on the SAME type criome admits — no
+;; projection/restamp at the router (retires the PoC-680 Differentiator
+;; projection). Single-colon path form: LocalName crate:module:Type.
+{
+  AuthorizedObjectInterest    signal-standard:lib:AuthorizedObjectInterest
+  AuthorizedObjectReference   signal-standard:lib:AuthorizedObjectReference
+  ComponentObjectInterest     signal-standard:lib:ComponentObjectInterest
+  ObjectDigest                signal-standard:lib:ObjectDigest
+  ComponentKind               signal-standard:lib:ComponentKind
+  AuthorizedObjectKind        signal-standard:lib:AuthorizedObjectKind
+}
 [(Summary RouterSummaryQuery)
  (MessageTrace RouterMessageTraceQuery)
  (ChannelState RouterChannelStateQuery)
- (ForwardMessage RouterForwardRequest)]
+ (ForwardMessage RouterForwardRequest)
+ (OpenAttendance OpenAttendance)
+ (CloseAttendance CloseAttendance)]
 [(Summary RouterSummary)
  (MessageTrace RouterMessageTrace)
  (MessageTraceMissing RouterMessageTraceMissing)
  (ChannelState RouterChannelState)
  (ForwardAccepted RouterForwardAccepted)
  (ForwardRefused RouterForwardRefused)
+ (AttendanceOpened AttendanceOpened)
+ (AttendanceClosed AttendanceClosed)
+ (AttendanceRefused AttendanceRefused)
+ (ObjectAvailable ObjectAvailable)
  (Unimplemented RouterObservationUnimplemented)]
 {
   ObservationIdentifier String
@@ -203,5 +224,67 @@
     (TailnetListenAddress (Optional TailnetAddress))
     RouterIdentity
     (CriomeSocketPath (Optional WirePath))
+  }
+
+  ;; ── Attend / Withdraw working surface (router-sole subscribe + fan-out) ──
+  ;;
+  ;; Resolution ROUTER-SOLE (Spirit m0p2): the router is the sole operational
+  ;; matcher for non-direct message passing. criome emits references and keeps
+  ;; no operational delivery registry; the attendance table and fan-out are
+  ;; entirely router-local.
+  ;;
+  ;; SEMA-free root verbs: NOT Subscribe, NOT Retract, NOT Assert/Mutate/
+  ;; Match/Validate (the six 7l7l-forbidden wire words). The pair is
+  ;; Attend / Withdraw, surfaced as OpenAttendance / CloseAttendance roots.
+
+  ;; The attender's delivery endpoint. For the router-sole fan-out this is
+  ;; always a ComponentSocket (the router pushes ObjectAvailable here). Carried
+  ;; as the same EndpointTransport the router already delivers through, so the
+  ;; attendance table reuses the existing delivery machinery with no new path.
+  AttendanceEndpoint EndpointTransport
+
+  ;; Who is attending — the component's stable identity, reused as the SEMA
+  ;; durable key prefix and audit attribution. ActorIdentifier already names a
+  ;; registered actor; an attender is a registered actor.
+  Attender ActorIdentifier
+
+  ;; A component opens attendance for ONE interest rung. AuthorizedObjectInterest
+  ;; is imported from signal-standard (the 4-rung lattice); matching uses its
+  ;; matches_reference semantics against an admitted object's (component, kind).
+  ;; Short explicit field labels keep the daemon-facing field names stable
+  ;; across the field-label schema generations the operator integrates.
+  OpenAttendance {
+    Attender
+    interest.AuthorizedObjectInterest
+    endpoint.AttendanceEndpoint
+  }
+
+  ;; The router-minted handle for an open attendance. Opaque to the client; the
+  ;; router derives it deterministically from (attender, interest) so a
+  ;; re-Attend with the same interest is idempotent.
+  AttendanceToken String
+
+  ;; Reply to OpenAttendance — the minted token the client later Withdraws.
+  AttendanceOpened { token.AttendanceToken interest.AuthorizedObjectInterest }
+
+  CloseAttendance { token.AttendanceToken }
+  AttendanceClosed { token.AttendanceToken }
+
+  AttendanceRefusalReason [
+    UnknownAttender             ;; attender is not a registered actor
+    EndpointNotComponentSocket  ;; router-sole fan-out delivers to ComponentSocket only
+    UnknownAttendanceToken      ;; Withdraw named a token with no open attendance
+    AttendanceStoreUnavailable  ;; SEMA store error opening/mutating the table
+  ]
+  AttendanceRefused { reason.AttendanceRefusalReason }
+
+  ;; The reference-push. m0p2: a REFERENCE, never the payload. The push reuses
+  ;; AuthorizedObjectReference imported from signal-standard verbatim — the same
+  ;; type criome emits at admission, so no projection/restamp at the router. The
+  ;; attender fetches the rkyv object body by ObjectDigest through the
+  ;; object-distribution layer (out of router scope).
+  ObjectAvailable {
+    token.AttendanceToken
+    reference.AuthorizedObjectReference
   }
 }
