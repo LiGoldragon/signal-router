@@ -54,8 +54,8 @@ impl RouterBootstrapDocument {
 impl EndpointTransport {
     pub fn new(kind: EndpointKind, target: String, auxiliary: Option<String>) -> Self {
         Self {
-            kind,
-            target,
+            kind: Kind::new(kind),
+            target: Target::new(target),
             auxiliary: Auxiliary::new(auxiliary),
         }
     }
@@ -72,8 +72,8 @@ impl Actor {
         endpoint: Option<EndpointTransport>,
     ) -> Self {
         Self {
-            name,
-            process,
+            name: Name::new(name),
+            process: Process::new(process),
             endpoint: Endpoint::new(endpoint),
         }
     }
@@ -125,9 +125,9 @@ impl ForwardedMessagePayload {
         routed_objects: Vec<RoutedContractObject>,
     ) -> Self {
         Self {
-            from,
-            to,
-            body,
+            source_actor: SourceActor::new(from),
+            destination_actor: DestinationActor::new(to),
+            body: Body::new(body),
             attachments: Attachments::new(attachments),
             routed_objects: RoutedObjects::new(routed_objects),
         }
@@ -167,17 +167,17 @@ pub struct RouterDaemonConfigurationParts {
 impl From<RouterDaemonConfigurationParts> for RouterDaemonConfiguration {
     fn from(parts: RouterDaemonConfigurationParts) -> Self {
         Self {
-            router_socket_path: parts.router_socket_path,
-            router_socket_mode: parts.router_socket_mode,
-            meta_router_socket_path: parts.meta_router_socket_path,
-            meta_router_socket_mode: parts.meta_router_socket_mode,
-            supervision_socket_path: parts.supervision_socket_path,
-            supervision_socket_mode: parts.supervision_socket_mode,
-            store_path: parts.store_path,
+            router_socket_path: RouterSocketPath::new(parts.router_socket_path),
+            router_socket_mode: RouterSocketMode::new(parts.router_socket_mode),
+            meta_router_socket_path: MetaRouterSocketPath::new(parts.meta_router_socket_path),
+            meta_router_socket_mode: MetaRouterSocketMode::new(parts.meta_router_socket_mode),
+            supervision_socket_path: SupervisionSocketPath::new(parts.supervision_socket_path),
+            supervision_socket_mode: SupervisionSocketMode::new(parts.supervision_socket_mode),
+            store_path: StorePath::new(parts.store_path),
             bootstrap_path: BootstrapPath::new(parts.bootstrap_path),
             owner_identity: parts.owner_identity,
             tailnet_listen_address: TailnetListenAddress::new(parts.tailnet_listen_address),
-            router_identity: parts.router_identity,
+            router_identity: RouterIdentity::new(parts.router_identity),
             criome_socket_path: CriomeSocketPath::new(parts.criome_socket_path),
         }
     }

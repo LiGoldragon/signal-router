@@ -6,17 +6,19 @@ use signal_frame::{
 };
 #[cfg(feature = "nota-text")]
 use signal_router::{
-    Actor, EndpointKind, EndpointTransport, GrantDirectMessage, RegisterActor,
-    RegisterRemoteRouter, RouterBootstrapDocument, RouterBootstrapOperation,
-    RouterObservationScope,
+    Actor, ActorIdentifier, DestinationActor, EndpointKind, EndpointTransport, GrantDirectMessage,
+    RegisterActor, RegisterRemoteRouter, RouterBootstrapDocument, RouterBootstrapOperation,
+    RouterObservationScope, SourceActor, TailnetAddress,
 };
 use signal_router::{
-    ForwardMarker, ForwardedMessagePayload, Frame, FrameBody, Input, Output, OwnerIdentity,
-    RoutedContractObject, RouterChannelState, RouterChannelStateQuery, RouterChannelStatus,
-    RouterDaemonConfiguration, RouterDaemonConfigurationParts, RouterDeliveryStatus,
-    RouterForwardRefusalReason, RouterForwardRequest, RouterMessageTrace,
-    RouterMessageTraceMissing, RouterMessageTraceQuery, RouterPeerAttestation, RouterSummary,
-    RouterSummaryQuery, SignatureScheme,
+    Channel, ChannelIdentifier, ContentDigest, Engine, EngineIdentifier, ForwardMarker,
+    ForwardedMessagePayload, Frame, FrameBody, Input, IssuedAt, Nonce, Output, OwnerIdentity,
+    PublicKey, RemoteRouterIdentity, ReplayNonce, RoutedContractObject, RouterChannelState,
+    RouterChannelStateQuery, RouterChannelStatus, RouterDaemonConfiguration,
+    RouterDaemonConfigurationParts, RouterDeliveryStatus, RouterForwardRefusalReason,
+    RouterForwardRequest, RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
+    RouterPeerAttestation, RouterSummary, RouterSummaryQuery, Signature, SignatureScheme,
+    TimestampNanos,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -31,13 +33,26 @@ fn engine() -> String {
     String::from("prototype")
 }
 
+fn engine_ref() -> Engine {
+    EngineIdentifier::new(engine()).into()
+}
+
 fn channel() -> String {
     String::from("internal-message-router")
+}
+
+fn channel_ref() -> Channel {
+    ChannelIdentifier::new(channel()).into()
 }
 
 #[cfg(feature = "nota-text")]
 fn actor(name: &str) -> String {
     String::from(name)
+}
+
+#[cfg(feature = "nota-text")]
+fn actor_ref(name: &str) -> ActorIdentifier {
+    ActorIdentifier::new(actor(name))
 }
 
 fn forward_request() -> RouterForwardRequest {
@@ -48,25 +63,29 @@ fn forward_request() -> RouterForwardRequest {
             String::from("hello over the tailnet"),
             vec![String::from("digest-001")],
             Vec::new(),
-        ),
+        )
+        .into(),
         attestation: RouterPeerAttestation {
-            signer: String::from("prometheus-router").into(),
-            scheme: SignatureScheme::Bls12_381MinPk,
-            public_key: String::from("bls-pk-abc"),
-            signature: String::from("bls-sig-def"),
-            content_digest: String::from("blake3-0011"),
-            issued_at: 1_726_000_000_000_000_000u64.into(),
-            nonce: String::from("nonce-7f3a").into(),
-        },
-        forwarded: ForwardMarker::Origin,
-        nonce: String::from("nonce-7f3a").into(),
-        issued_at: 1_726_000_000_000_000_000u64.into(),
+            signer: RemoteRouterIdentity::new("prometheus-router").into(),
+            scheme: SignatureScheme::Bls12_381MinPk.into(),
+            public_key: PublicKey::new("bls-pk-abc"),
+            signature: Signature::new("bls-sig-def"),
+            content_digest: ContentDigest::new("blake3-0011"),
+            issued_at: IssuedAt::new(TimestampNanos::new(1_726_000_000_000_000_000)),
+            nonce: Nonce::new(ReplayNonce::new("nonce-7f3a")),
+        }
+        .into(),
+        forwarded: ForwardMarker::Origin.into(),
+        nonce: ReplayNonce::new("nonce-7f3a").into(),
+        issued_at: TimestampNanos::new(1_726_000_000_000_000_000).into(),
     }
 }
 
 fn mirror_forward_request() -> RouterForwardRequest {
     let mut request = forward_request();
-    request.submission.push_routed_object(mirror_object());
+    let mut submission = request.submission.into_payload();
+    submission.push_routed_object(mirror_object());
+    request.submission = submission.into();
     request
 }
 
@@ -139,13 +158,13 @@ where
 
 #[test]
 fn router_summary_query_round_trips_through_length_prefixed_frame() {
-    round_trip_request(Input::Summary(RouterSummaryQuery::new(engine().into())));
+    round_trip_request(Input::Summary(RouterSummaryQuery::new(engine_ref())));
 }
 
 #[test]
 fn router_message_trace_query_round_trips_through_length_prefixed_frame() {
     round_trip_request(Input::MessageTrace(RouterMessageTraceQuery {
-        engine: engine().into(),
+        engine: engine_ref(),
         message_slot: 7.into(),
     }));
 }
@@ -153,8 +172,8 @@ fn router_message_trace_query_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_channel_state_query_round_trips_through_length_prefixed_frame() {
     round_trip_request(Input::ChannelState(RouterChannelStateQuery {
-        engine: engine().into(),
-        channel: channel().into(),
+        engine: engine_ref(),
+        channel: channel_ref(),
     }));
 }
 
@@ -181,6 +200,7 @@ fn router_forward_request_carries_contract_object_octets_without_decoding_them()
     };
     let object = forward
         .submission
+        .payload()
         .routed_objects()
         .first()
         .expect("forward carries routed object");
@@ -248,11 +268,11 @@ fn router_contract_has_no_sema_classification_dependency_or_roots() {
 #[test]
 fn router_summary_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::Summary(RouterSummary {
-        engine: engine().into(),
-        accepted_messages: 1,
-        routed_messages: 1,
-        deferred_messages: 0,
-        failed_messages: 0,
+        engine: engine_ref(),
+        accepted_messages: 1.into(),
+        routed_messages: 1.into(),
+        deferred_messages: 0.into(),
+        failed_messages: 0.into(),
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
 }
@@ -260,9 +280,9 @@ fn router_summary_reply_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_message_trace_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::MessageTrace(RouterMessageTrace {
-        engine: engine().into(),
+        engine: engine_ref(),
         message_slot: 7.into(),
-        status: RouterDeliveryStatus::Routed,
+        delivery_status: RouterDeliveryStatus::Routed.into(),
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
 }
@@ -270,9 +290,9 @@ fn router_message_trace_reply_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_channel_state_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::ChannelState(RouterChannelState {
-        engine: engine().into(),
-        channel: channel().into(),
-        status: RouterChannelStatus::Installed,
+        engine: engine_ref(),
+        channel: channel_ref(),
+        channel_status: RouterChannelStatus::Installed.into(),
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
 }
@@ -280,7 +300,7 @@ fn router_channel_state_reply_round_trips_through_length_prefixed_frame() {
 #[test]
 fn router_message_trace_missing_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::MessageTraceMissing(RouterMessageTraceMissing {
-        engine: engine().into(),
+        engine: engine_ref(),
         message_slot: 99.into(),
     });
     assert_eq!(round_trip_reply(reply.clone()), reply);
@@ -309,7 +329,7 @@ fn router_forward_refused_reply_round_trips_through_length_prefixed_frame_for_ev
         RouterForwardRefusalReason::ChannelUnauthorized,
         RouterForwardRefusalReason::AlreadyForwarded,
     ] {
-        let reply = Output::forward_refused(reason);
+        let reply = Output::forward_refused(reason.into());
         assert_eq!(round_trip_reply(reply.clone()), reply);
     }
 }
@@ -518,8 +538,8 @@ fn bootstrap_register_actor_with_remote_home_round_trips_through_nota_line() {
 #[test]
 fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
     let operation = RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage {
-        from: actor("owner").into(),
-        to: actor("initiator").into(),
+        source_actor: SourceActor::new(actor_ref("owner")),
+        destination_actor: DestinationActor::new(actor_ref("initiator")),
     });
 
     let text = operation.to_nota();
@@ -534,8 +554,8 @@ fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
 #[test]
 fn bootstrap_register_remote_router_operation_round_trips_through_nota_line() {
     let operation = RouterBootstrapOperation::RegisterRemoteRouter(RegisterRemoteRouter {
-        identity: String::from("prometheus-router").into(),
-        address: String::from("[201:abcd::2]:9930").into(),
+        identity: RemoteRouterIdentity::new("prometheus-router").into(),
+        address: TailnetAddress::new("[201:abcd::2]:9930").into(),
     });
 
     let text = operation.to_nota();
@@ -564,8 +584,8 @@ fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
             None,
         )),
         RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage {
-            from: actor("initiator").into(),
-            to: actor("responder").into(),
+            source_actor: SourceActor::new(actor_ref("initiator")),
+            destination_actor: DestinationActor::new(actor_ref("responder")),
         }),
     ]);
 

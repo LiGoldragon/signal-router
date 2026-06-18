@@ -123,16 +123,36 @@ pub enum EndpointKind {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Kind(EndpointKind);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Target(String);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Auxiliary(Option<String>);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EndpointTransport {
-    pub kind: EndpointKind,
-    pub target: String,
+    pub kind: Kind,
+    pub target: Target,
     pub(crate) auxiliary: Auxiliary,
 }
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Name(ActorIdentifier);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Process(Integer);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -143,8 +163,8 @@ pub(crate) struct Endpoint(Option<EndpointTransport>);
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Actor {
-    pub name: ActorIdentifier,
-    pub process: Integer,
+    pub name: Name,
+    pub process: Process,
     pub(crate) endpoint: Endpoint,
 }
 
@@ -164,22 +184,47 @@ pub struct RegisterActor {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SourceActor(ActorIdentifier);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct DestinationActor(ActorIdentifier);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Requester(ActorIdentifier);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Identity(RemoteRouterIdentity);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Address(TailnetAddress);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct GrantDirectMessage {
-    pub from: ActorIdentifier,
-    pub to: ActorIdentifier,
+    pub source_actor: SourceActor,
+    pub destination_actor: DestinationActor,
 }
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct InstallStructuralChannels(ActorIdentifier);
+pub struct InstallStructuralChannels(Requester);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RegisterRemoteRouter {
-    pub identity: RemoteRouterIdentity,
-    pub address: TailnetAddress,
+    pub identity: Identity,
+    pub address: Address,
 }
 
 #[rustfmt::skip]
@@ -223,13 +268,23 @@ pub enum RouterObservationScope {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RouterSummaryQuery(EngineIdentifier);
+pub struct Engine(EngineIdentifier);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Channel(ChannelIdentifier);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterSummaryQuery(Engine);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterMessageTraceQuery {
-    pub engine: EngineIdentifier,
+    pub engine: Engine,
     pub message_slot: MessageSlot,
 }
 
@@ -237,19 +292,39 @@ pub struct RouterMessageTraceQuery {
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterChannelStateQuery {
-    pub engine: EngineIdentifier,
-    pub channel: ChannelIdentifier,
+    pub engine: Engine,
+    pub channel: Channel,
 }
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AcceptedMessages(Integer);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RoutedMessages(Integer);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct DeferredMessages(Integer);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct FailedMessages(Integer);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterSummary {
-    pub engine: EngineIdentifier,
-    pub accepted_messages: Integer,
-    pub routed_messages: Integer,
-    pub deferred_messages: Integer,
-    pub failed_messages: Integer,
+    pub engine: Engine,
+    pub accepted_messages: AcceptedMessages,
+    pub routed_messages: RoutedMessages,
+    pub deferred_messages: DeferredMessages,
+    pub failed_messages: FailedMessages,
 }
 
 #[rustfmt::skip]
@@ -276,17 +351,22 @@ pub enum RouterDeliveryStatus {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct DeliveryStatus(RouterDeliveryStatus);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterMessageTrace {
-    pub engine: EngineIdentifier,
+    pub engine: Engine,
     pub message_slot: MessageSlot,
-    pub status: RouterDeliveryStatus,
+    pub delivery_status: DeliveryStatus,
 }
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterMessageTraceMissing {
-    pub engine: EngineIdentifier,
+    pub engine: Engine,
     pub message_slot: MessageSlot,
 }
 
@@ -311,10 +391,15 @@ pub enum RouterChannelStatus {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ChannelStatus(RouterChannelStatus);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterChannelState {
-    pub engine: EngineIdentifier,
-    pub channel: ChannelIdentifier,
-    pub status: RouterChannelStatus,
+    pub engine: Engine,
+    pub channel: Channel,
+    pub channel_status: ChannelStatus,
 }
 
 #[rustfmt::skip]
@@ -338,9 +423,19 @@ pub enum RouterObservationUnimplementedReason {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ObservationScope(RouterObservationScope);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ObservationReason(RouterObservationUnimplementedReason);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterObservationUnimplemented {
-    pub scope: RouterObservationScope,
-    pub reason: RouterObservationUnimplementedReason,
+    pub observation_scope: ObservationScope,
+    pub observation_reason: ObservationReason,
 }
 
 #[rustfmt::skip]
@@ -363,14 +458,49 @@ pub enum SignatureScheme {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Signer(RemoteRouterIdentity);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Scheme(SignatureScheme);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PublicKey(String);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Signature(String);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ContentDigest(String);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct IssuedAt(TimestampNanos);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Nonce(ReplayNonce);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterPeerAttestation {
-    pub signer: RemoteRouterIdentity,
-    pub scheme: SignatureScheme,
-    pub public_key: String,
-    pub signature: String,
-    pub content_digest: String,
-    pub issued_at: TimestampNanos,
-    pub nonce: ReplayNonce,
+    pub signer: Signer,
+    pub scheme: Scheme,
+    pub public_key: PublicKey,
+    pub signature: Signature,
+    pub content_digest: ContentDigest,
+    pub issued_at: IssuedAt,
+    pub nonce: Nonce,
 }
 
 #[rustfmt::skip]
@@ -391,6 +521,11 @@ pub struct RoutedContractObject {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Body(String);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Attachments(Vec<String>);
 
 #[rustfmt::skip]
@@ -402,9 +537,9 @@ pub(crate) struct RoutedObjects(Vec<RoutedContractObject>);
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ForwardedMessagePayload {
-    pub from: ActorIdentifier,
-    pub to: ActorIdentifier,
-    pub body: String,
+    pub source_actor: SourceActor,
+    pub destination_actor: DestinationActor,
+    pub body: Body,
     pub(crate) attachments: Attachments,
     pub(crate) routed_objects: RoutedObjects,
 }
@@ -429,12 +564,27 @@ pub enum ForwardMarker {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Submission(ForwardedMessagePayload);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Attestation(RouterPeerAttestation);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Forwarded(ForwardMarker);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterForwardRequest {
-    pub submission: ForwardedMessagePayload,
-    pub attestation: RouterPeerAttestation,
-    pub forwarded: ForwardMarker,
-    pub nonce: ReplayNonce,
-    pub issued_at: TimestampNanos,
+    pub submission: Submission,
+    pub attestation: Attestation,
+    pub forwarded: Forwarded,
+    pub nonce: Nonce,
+    pub issued_at: IssuedAt,
 }
 
 #[rustfmt::skip]
@@ -467,7 +617,52 @@ pub enum RouterForwardRefusalReason {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RouterForwardRefused(RouterForwardRefusalReason);
+pub struct ForwardRefusalReason(RouterForwardRefusalReason);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterForwardRefused(ForwardRefusalReason);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterSocketPath(WirePath);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterSocketMode(SocketMode);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MetaRouterSocketPath(WirePath);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MetaRouterSocketMode(SocketMode);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SupervisionSocketPath(WirePath);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SupervisionSocketMode(SocketMode);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct StorePath(WirePath);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterIdentity(RemoteRouterIdentity);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -488,17 +683,17 @@ pub(crate) struct CriomeSocketPath(Option<WirePath>);
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterDaemonConfiguration {
-    pub router_socket_path: WirePath,
-    pub router_socket_mode: SocketMode,
-    pub meta_router_socket_path: WirePath,
-    pub meta_router_socket_mode: SocketMode,
-    pub supervision_socket_path: WirePath,
-    pub supervision_socket_mode: SocketMode,
-    pub store_path: WirePath,
+    pub router_socket_path: RouterSocketPath,
+    pub router_socket_mode: RouterSocketMode,
+    pub meta_router_socket_path: MetaRouterSocketPath,
+    pub meta_router_socket_mode: MetaRouterSocketMode,
+    pub supervision_socket_path: SupervisionSocketPath,
+    pub supervision_socket_mode: SupervisionSocketMode,
+    pub store_path: StorePath,
     pub(crate) bootstrap_path: BootstrapPath,
     pub owner_identity: OwnerIdentity,
     pub(crate) tailnet_listen_address: TailnetListenAddress,
-    pub router_identity: RemoteRouterIdentity,
+    pub router_identity: RouterIdentity,
     pub(crate) criome_socket_path: CriomeSocketPath,
 }
 
@@ -1118,6 +1313,62 @@ impl PartialOrd<u64> for ContractPayloadSize {
 }
 
 #[rustfmt::skip]
+impl Kind {
+    pub fn new(payload: EndpointKind) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &EndpointKind {
+        &self.0
+    }
+    pub fn into_payload(self) -> EndpointKind {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<EndpointKind> for Kind {
+    fn from(payload: EndpointKind) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Target {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for Target {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for Target {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl AsRef<str> for Target {
+    fn as_ref(&self) -> &str {
+        self.payload().as_str()
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<&str> for Target {
+    fn eq(&self, other: &&str) -> bool {
+        self.payload() == other
+    }
+}
+
+#[rustfmt::skip]
 impl Auxiliary {
     pub fn new(payload: Option<String>) -> Self {
         Self(payload)
@@ -1133,6 +1384,62 @@ impl Auxiliary {
 impl From<Option<String>> for Auxiliary {
     fn from(payload: Option<String>) -> Self {
         Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Name {
+    pub fn new(payload: ActorIdentifier) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ActorIdentifier {
+        &self.0
+    }
+    pub fn into_payload(self) -> ActorIdentifier {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ActorIdentifier> for Name {
+    fn from(payload: ActorIdentifier) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Process {
+    pub fn new(payload: Integer) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Integer {
+        &self.0
+    }
+    pub fn into_payload(self) -> Integer {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Integer> for Process {
+    fn from(payload: Integer) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for Process {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<u64> for Process {
+    fn eq(&self, other: &u64) -> bool {
+        self.payload() == other
+    }
+}
+#[rustfmt::skip]
+impl PartialOrd<u64> for Process {
+    fn partial_cmp(&self, other: &u64) -> Option<std::cmp::Ordering> {
+        self.payload().partial_cmp(other)
     }
 }
 
@@ -1175,7 +1482,7 @@ impl From<Option<RemoteRouterIdentity>> for Home {
 }
 
 #[rustfmt::skip]
-impl InstallStructuralChannels {
+impl SourceActor {
     pub fn new(payload: ActorIdentifier) -> Self {
         Self(payload)
     }
@@ -1187,8 +1494,103 @@ impl InstallStructuralChannels {
     }
 }
 #[rustfmt::skip]
-impl From<ActorIdentifier> for InstallStructuralChannels {
+impl From<ActorIdentifier> for SourceActor {
     fn from(payload: ActorIdentifier) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl DestinationActor {
+    pub fn new(payload: ActorIdentifier) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ActorIdentifier {
+        &self.0
+    }
+    pub fn into_payload(self) -> ActorIdentifier {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ActorIdentifier> for DestinationActor {
+    fn from(payload: ActorIdentifier) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Requester {
+    pub fn new(payload: ActorIdentifier) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ActorIdentifier {
+        &self.0
+    }
+    pub fn into_payload(self) -> ActorIdentifier {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ActorIdentifier> for Requester {
+    fn from(payload: ActorIdentifier) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Identity {
+    pub fn new(payload: RemoteRouterIdentity) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RemoteRouterIdentity {
+        &self.0
+    }
+    pub fn into_payload(self) -> RemoteRouterIdentity {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RemoteRouterIdentity> for Identity {
+    fn from(payload: RemoteRouterIdentity) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Address {
+    pub fn new(payload: TailnetAddress) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &TailnetAddress {
+        &self.0
+    }
+    pub fn into_payload(self) -> TailnetAddress {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<TailnetAddress> for Address {
+    fn from(payload: TailnetAddress) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl InstallStructuralChannels {
+    pub fn new(payload: Requester) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Requester {
+        &self.0
+    }
+    pub fn into_payload(self) -> Requester {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Requester> for InstallStructuralChannels {
+    fn from(payload: Requester) -> Self {
         Self::new(payload)
     }
 }
@@ -1232,7 +1634,7 @@ impl From<Operations> for RouterBootstrapDocument {
 }
 
 #[rustfmt::skip]
-impl RouterSummaryQuery {
+impl Engine {
     pub fn new(payload: EngineIdentifier) -> Self {
         Self(payload)
     }
@@ -1244,8 +1646,457 @@ impl RouterSummaryQuery {
     }
 }
 #[rustfmt::skip]
-impl From<EngineIdentifier> for RouterSummaryQuery {
+impl From<EngineIdentifier> for Engine {
     fn from(payload: EngineIdentifier) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Channel {
+    pub fn new(payload: ChannelIdentifier) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ChannelIdentifier {
+        &self.0
+    }
+    pub fn into_payload(self) -> ChannelIdentifier {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ChannelIdentifier> for Channel {
+    fn from(payload: ChannelIdentifier) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterSummaryQuery {
+    pub fn new(payload: Engine) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Engine {
+        &self.0
+    }
+    pub fn into_payload(self) -> Engine {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Engine> for RouterSummaryQuery {
+    fn from(payload: Engine) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl AcceptedMessages {
+    pub fn new(payload: Integer) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Integer {
+        &self.0
+    }
+    pub fn into_payload(self) -> Integer {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Integer> for AcceptedMessages {
+    fn from(payload: Integer) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for AcceptedMessages {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<u64> for AcceptedMessages {
+    fn eq(&self, other: &u64) -> bool {
+        self.payload() == other
+    }
+}
+#[rustfmt::skip]
+impl PartialOrd<u64> for AcceptedMessages {
+    fn partial_cmp(&self, other: &u64) -> Option<std::cmp::Ordering> {
+        self.payload().partial_cmp(other)
+    }
+}
+
+#[rustfmt::skip]
+impl RoutedMessages {
+    pub fn new(payload: Integer) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Integer {
+        &self.0
+    }
+    pub fn into_payload(self) -> Integer {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Integer> for RoutedMessages {
+    fn from(payload: Integer) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for RoutedMessages {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<u64> for RoutedMessages {
+    fn eq(&self, other: &u64) -> bool {
+        self.payload() == other
+    }
+}
+#[rustfmt::skip]
+impl PartialOrd<u64> for RoutedMessages {
+    fn partial_cmp(&self, other: &u64) -> Option<std::cmp::Ordering> {
+        self.payload().partial_cmp(other)
+    }
+}
+
+#[rustfmt::skip]
+impl DeferredMessages {
+    pub fn new(payload: Integer) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Integer {
+        &self.0
+    }
+    pub fn into_payload(self) -> Integer {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Integer> for DeferredMessages {
+    fn from(payload: Integer) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for DeferredMessages {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<u64> for DeferredMessages {
+    fn eq(&self, other: &u64) -> bool {
+        self.payload() == other
+    }
+}
+#[rustfmt::skip]
+impl PartialOrd<u64> for DeferredMessages {
+    fn partial_cmp(&self, other: &u64) -> Option<std::cmp::Ordering> {
+        self.payload().partial_cmp(other)
+    }
+}
+
+#[rustfmt::skip]
+impl FailedMessages {
+    pub fn new(payload: Integer) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Integer {
+        &self.0
+    }
+    pub fn into_payload(self) -> Integer {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Integer> for FailedMessages {
+    fn from(payload: Integer) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for FailedMessages {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<u64> for FailedMessages {
+    fn eq(&self, other: &u64) -> bool {
+        self.payload() == other
+    }
+}
+#[rustfmt::skip]
+impl PartialOrd<u64> for FailedMessages {
+    fn partial_cmp(&self, other: &u64) -> Option<std::cmp::Ordering> {
+        self.payload().partial_cmp(other)
+    }
+}
+
+#[rustfmt::skip]
+impl DeliveryStatus {
+    pub fn new(payload: RouterDeliveryStatus) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RouterDeliveryStatus {
+        &self.0
+    }
+    pub fn into_payload(self) -> RouterDeliveryStatus {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RouterDeliveryStatus> for DeliveryStatus {
+    fn from(payload: RouterDeliveryStatus) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ChannelStatus {
+    pub fn new(payload: RouterChannelStatus) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RouterChannelStatus {
+        &self.0
+    }
+    pub fn into_payload(self) -> RouterChannelStatus {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RouterChannelStatus> for ChannelStatus {
+    fn from(payload: RouterChannelStatus) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ObservationScope {
+    pub fn new(payload: RouterObservationScope) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RouterObservationScope {
+        &self.0
+    }
+    pub fn into_payload(self) -> RouterObservationScope {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RouterObservationScope> for ObservationScope {
+    fn from(payload: RouterObservationScope) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ObservationReason {
+    pub fn new(payload: RouterObservationUnimplementedReason) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RouterObservationUnimplementedReason {
+        &self.0
+    }
+    pub fn into_payload(self) -> RouterObservationUnimplementedReason {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RouterObservationUnimplementedReason> for ObservationReason {
+    fn from(payload: RouterObservationUnimplementedReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Signer {
+    pub fn new(payload: RemoteRouterIdentity) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RemoteRouterIdentity {
+        &self.0
+    }
+    pub fn into_payload(self) -> RemoteRouterIdentity {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RemoteRouterIdentity> for Signer {
+    fn from(payload: RemoteRouterIdentity) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Scheme {
+    pub fn new(payload: SignatureScheme) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SignatureScheme {
+        &self.0
+    }
+    pub fn into_payload(self) -> SignatureScheme {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SignatureScheme> for Scheme {
+    fn from(payload: SignatureScheme) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl PublicKey {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for PublicKey {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for PublicKey {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl AsRef<str> for PublicKey {
+    fn as_ref(&self) -> &str {
+        self.payload().as_str()
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<&str> for PublicKey {
+    fn eq(&self, other: &&str) -> bool {
+        self.payload() == other
+    }
+}
+
+#[rustfmt::skip]
+impl Signature {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for Signature {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for Signature {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl AsRef<str> for Signature {
+    fn as_ref(&self) -> &str {
+        self.payload().as_str()
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<&str> for Signature {
+    fn eq(&self, other: &&str) -> bool {
+        self.payload() == other
+    }
+}
+
+#[rustfmt::skip]
+impl ContentDigest {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ContentDigest {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for ContentDigest {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl AsRef<str> for ContentDigest {
+    fn as_ref(&self) -> &str {
+        self.payload().as_str()
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<&str> for ContentDigest {
+    fn eq(&self, other: &&str) -> bool {
+        self.payload() == other
+    }
+}
+
+#[rustfmt::skip]
+impl IssuedAt {
+    pub fn new(payload: TimestampNanos) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &TimestampNanos {
+        &self.0
+    }
+    pub fn into_payload(self) -> TimestampNanos {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<TimestampNanos> for IssuedAt {
+    fn from(payload: TimestampNanos) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Nonce {
+    pub fn new(payload: ReplayNonce) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ReplayNonce {
+        &self.0
+    }
+    pub fn into_payload(self) -> ReplayNonce {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ReplayNonce> for Nonce {
+    fn from(payload: ReplayNonce) -> Self {
         Self::new(payload)
     }
 }
@@ -1266,6 +2117,43 @@ impl PayloadOctets {
 impl From<Vec<Integer>> for PayloadOctets {
     fn from(payload: Vec<Integer>) -> Self {
         Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Body {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for Body {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for Body {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl AsRef<str> for Body {
+    fn as_ref(&self) -> &str {
+        self.payload().as_str()
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<&str> for Body {
+    fn eq(&self, other: &&str) -> bool {
+        self.payload() == other
     }
 }
 
@@ -1308,6 +2196,63 @@ impl From<Vec<RoutedContractObject>> for RoutedObjects {
 }
 
 #[rustfmt::skip]
+impl Submission {
+    pub fn new(payload: ForwardedMessagePayload) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ForwardedMessagePayload {
+        &self.0
+    }
+    pub fn into_payload(self) -> ForwardedMessagePayload {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ForwardedMessagePayload> for Submission {
+    fn from(payload: ForwardedMessagePayload) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Attestation {
+    pub fn new(payload: RouterPeerAttestation) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RouterPeerAttestation {
+        &self.0
+    }
+    pub fn into_payload(self) -> RouterPeerAttestation {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RouterPeerAttestation> for Attestation {
+    fn from(payload: RouterPeerAttestation) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Forwarded {
+    pub fn new(payload: ForwardMarker) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ForwardMarker {
+        &self.0
+    }
+    pub fn into_payload(self) -> ForwardMarker {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ForwardMarker> for Forwarded {
+    fn from(payload: ForwardMarker) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl RouterForwardAccepted {
     pub fn new(payload: MessageSlot) -> Self {
         Self(payload)
@@ -1327,7 +2272,7 @@ impl From<MessageSlot> for RouterForwardAccepted {
 }
 
 #[rustfmt::skip]
-impl RouterForwardRefused {
+impl ForwardRefusalReason {
     pub fn new(payload: RouterForwardRefusalReason) -> Self {
         Self(payload)
     }
@@ -1339,8 +2284,179 @@ impl RouterForwardRefused {
     }
 }
 #[rustfmt::skip]
-impl From<RouterForwardRefusalReason> for RouterForwardRefused {
+impl From<RouterForwardRefusalReason> for ForwardRefusalReason {
     fn from(payload: RouterForwardRefusalReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterForwardRefused {
+    pub fn new(payload: ForwardRefusalReason) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ForwardRefusalReason {
+        &self.0
+    }
+    pub fn into_payload(self) -> ForwardRefusalReason {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ForwardRefusalReason> for RouterForwardRefused {
+    fn from(payload: ForwardRefusalReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterSocketPath {
+    pub fn new(payload: WirePath) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &WirePath {
+        &self.0
+    }
+    pub fn into_payload(self) -> WirePath {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<WirePath> for RouterSocketPath {
+    fn from(payload: WirePath) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterSocketMode {
+    pub fn new(payload: SocketMode) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SocketMode {
+        &self.0
+    }
+    pub fn into_payload(self) -> SocketMode {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SocketMode> for RouterSocketMode {
+    fn from(payload: SocketMode) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl MetaRouterSocketPath {
+    pub fn new(payload: WirePath) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &WirePath {
+        &self.0
+    }
+    pub fn into_payload(self) -> WirePath {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<WirePath> for MetaRouterSocketPath {
+    fn from(payload: WirePath) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl MetaRouterSocketMode {
+    pub fn new(payload: SocketMode) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SocketMode {
+        &self.0
+    }
+    pub fn into_payload(self) -> SocketMode {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SocketMode> for MetaRouterSocketMode {
+    fn from(payload: SocketMode) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl SupervisionSocketPath {
+    pub fn new(payload: WirePath) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &WirePath {
+        &self.0
+    }
+    pub fn into_payload(self) -> WirePath {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<WirePath> for SupervisionSocketPath {
+    fn from(payload: WirePath) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl SupervisionSocketMode {
+    pub fn new(payload: SocketMode) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SocketMode {
+        &self.0
+    }
+    pub fn into_payload(self) -> SocketMode {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SocketMode> for SupervisionSocketMode {
+    fn from(payload: SocketMode) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl StorePath {
+    pub fn new(payload: WirePath) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &WirePath {
+        &self.0
+    }
+    pub fn into_payload(self) -> WirePath {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<WirePath> for StorePath {
+    fn from(payload: WirePath) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterIdentity {
+    pub fn new(payload: RemoteRouterIdentity) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RemoteRouterIdentity {
+        &self.0
+    }
+    pub fn into_payload(self) -> RemoteRouterIdentity {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RemoteRouterIdentity> for RouterIdentity {
+    fn from(payload: RemoteRouterIdentity) -> Self {
         Self::new(payload)
     }
 }
@@ -1417,7 +2533,7 @@ impl RouterBootstrapOperation {
     pub fn grant_direct_message(payload: GrantDirectMessage) -> Self {
         Self::GrantDirectMessage(payload)
     }
-    pub fn install_structural_channels(payload: ActorIdentifier) -> Self {
+    pub fn install_structural_channels(payload: Requester) -> Self {
         Self::InstallStructuralChannels(InstallStructuralChannels::new(payload))
     }
     pub fn register_remote_router(payload: RegisterRemoteRouter) -> Self {
@@ -1427,7 +2543,7 @@ impl RouterBootstrapOperation {
 
 #[rustfmt::skip]
 impl Input {
-    pub fn summary(payload: EngineIdentifier) -> Self {
+    pub fn summary(payload: Engine) -> Self {
         Self::Summary(RouterSummaryQuery::new(payload))
     }
     pub fn message_trace(payload: RouterMessageTraceQuery) -> Self {
@@ -1458,7 +2574,7 @@ impl Output {
     pub fn forward_accepted(payload: MessageSlot) -> Self {
         Self::ForwardAccepted(RouterForwardAccepted::new(payload))
     }
-    pub fn forward_refused(payload: RouterForwardRefusalReason) -> Self {
+    pub fn forward_refused(payload: ForwardRefusalReason) -> Self {
         Self::ForwardRefused(RouterForwardRefused::new(payload))
     }
     pub fn unimplemented(payload: RouterObservationUnimplemented) -> Self {

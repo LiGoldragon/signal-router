@@ -11,13 +11,15 @@
 
 use nota_next::{NotaEncode, NotaSource};
 use signal_router::{
-    ForwardMarker, ForwardedMessagePayload, Input, Output, OwnerIdentity, RegisterRemoteRouter,
-    RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery, RouterChannelStatus,
-    RouterDaemonConfiguration, RouterDaemonConfigurationParts, RouterDeliveryStatus,
-    RouterForwardRefusalReason, RouterForwardRequest, RouterMessageTrace,
-    RouterMessageTraceMissing, RouterMessageTraceQuery, RouterObservationScope,
-    RouterObservationUnimplemented, RouterObservationUnimplementedReason, RouterPeerAttestation,
-    RouterSummary, RouterSummaryQuery, SignatureScheme,
+    Channel, ChannelIdentifier, ContentDigest, Engine, EngineIdentifier, ForwardMarker,
+    ForwardedMessagePayload, Input, IssuedAt, Nonce, Output, OwnerIdentity, PublicKey,
+    RegisterRemoteRouter, RemoteRouterIdentity, ReplayNonce, RouterBootstrapOperation,
+    RouterChannelState, RouterChannelStateQuery, RouterChannelStatus, RouterDaemonConfiguration,
+    RouterDaemonConfigurationParts, RouterDeliveryStatus, RouterForwardRefusalReason,
+    RouterForwardRequest, RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
+    RouterObservationScope, RouterObservationUnimplemented, RouterObservationUnimplementedReason,
+    RouterPeerAttestation, RouterSummary, RouterSummaryQuery, Signature, SignatureScheme,
+    TailnetAddress, TimestampNanos,
 };
 
 const CANONICAL: &str = include_str!("../examples/canonical.nota");
@@ -26,8 +28,16 @@ fn engine() -> String {
     String::from("prototype")
 }
 
+fn engine_ref() -> Engine {
+    EngineIdentifier::new(engine()).into()
+}
+
 fn channel() -> String {
     String::from("internal-message-router")
+}
+
+fn channel_ref() -> Channel {
+    ChannelIdentifier::new(channel()).into()
 }
 
 fn forward_request() -> RouterForwardRequest {
@@ -38,19 +48,21 @@ fn forward_request() -> RouterForwardRequest {
             String::from("hello over the tailnet"),
             vec![String::from("digest-001")],
             Vec::new(),
-        ),
+        )
+        .into(),
         attestation: RouterPeerAttestation {
-            signer: String::from("prometheus-router").into(),
-            scheme: SignatureScheme::Bls12_381MinPk,
-            public_key: String::from("bls-pk-abc"),
-            signature: String::from("bls-sig-def"),
-            content_digest: String::from("blake3-0011"),
-            issued_at: 1_726_000_000_000_000_000u64.into(),
-            nonce: String::from("nonce-7f3a").into(),
-        },
-        forwarded: ForwardMarker::Origin,
-        nonce: String::from("nonce-7f3a").into(),
-        issued_at: 1_726_000_000_000_000_000u64.into(),
+            signer: RemoteRouterIdentity::new("prometheus-router").into(),
+            scheme: SignatureScheme::Bls12_381MinPk.into(),
+            public_key: PublicKey::new("bls-pk-abc"),
+            signature: Signature::new("bls-sig-def"),
+            content_digest: ContentDigest::new("blake3-0011"),
+            issued_at: IssuedAt::new(TimestampNanos::new(1_726_000_000_000_000_000)),
+            nonce: Nonce::new(ReplayNonce::new("nonce-7f3a")),
+        }
+        .into(),
+        forwarded: ForwardMarker::Origin.into(),
+        nonce: ReplayNonce::new("nonce-7f3a").into(),
+        issued_at: TimestampNanos::new(1_726_000_000_000_000_000).into(),
     }
 }
 
@@ -58,20 +70,20 @@ fn forward_request() -> RouterForwardRequest {
 fn canonical_request_examples_round_trip() {
     let expected: Vec<(Input, &str)> = vec![
         (
-            Input::Summary(RouterSummaryQuery::new(engine().into())),
+            Input::Summary(RouterSummaryQuery::new(engine_ref())),
             "(Summary prototype)",
         ),
         (
             Input::MessageTrace(RouterMessageTraceQuery {
-                engine: engine().into(),
+                engine: engine_ref(),
                 message_slot: 7.into(),
             }),
             "(MessageTrace (prototype 7))",
         ),
         (
             Input::ChannelState(RouterChannelStateQuery {
-                engine: engine().into(),
-                channel: channel().into(),
+                engine: engine_ref(),
+                channel: channel_ref(),
             }),
             "(ChannelState (prototype internal-message-router))",
         ),
@@ -102,70 +114,71 @@ fn canonical_reply_examples_round_trip() {
     let expected: Vec<(Output, &str)> = vec![
         (
             Output::Summary(RouterSummary {
-                engine: engine().into(),
-                accepted_messages: 1,
-                routed_messages: 1,
-                deferred_messages: 0,
-                failed_messages: 0,
+                engine: engine_ref(),
+                accepted_messages: 1.into(),
+                routed_messages: 1.into(),
+                deferred_messages: 0.into(),
+                failed_messages: 0.into(),
             }),
             "(Summary (prototype 1 1 0 0))",
         ),
         (
             Output::MessageTrace(RouterMessageTrace {
-                engine: engine().into(),
+                engine: engine_ref(),
                 message_slot: 7.into(),
-                status: RouterDeliveryStatus::Routed,
+                delivery_status: RouterDeliveryStatus::Routed.into(),
             }),
             "(MessageTrace (prototype 7 Routed))",
         ),
         (
             Output::MessageTraceMissing(RouterMessageTraceMissing {
-                engine: engine().into(),
+                engine: engine_ref(),
                 message_slot: 99.into(),
             }),
             "(MessageTraceMissing (prototype 99))",
         ),
         (
             Output::ChannelState(RouterChannelState {
-                engine: engine().into(),
-                channel: channel().into(),
-                status: RouterChannelStatus::Installed,
+                engine: engine_ref(),
+                channel: channel_ref(),
+                channel_status: RouterChannelStatus::Installed.into(),
             }),
             "(ChannelState (prototype internal-message-router Installed))",
         ),
         (Output::forward_accepted(7.into()), "(ForwardAccepted 7)"),
         (
-            Output::forward_refused(RouterForwardRefusalReason::UnknownPeer),
+            Output::forward_refused(RouterForwardRefusalReason::UnknownPeer.into()),
             "(ForwardRefused UnknownPeer)",
         ),
         (
-            Output::forward_refused(RouterForwardRefusalReason::AttestationInvalid),
+            Output::forward_refused(RouterForwardRefusalReason::AttestationInvalid.into()),
             "(ForwardRefused AttestationInvalid)",
         ),
         (
-            Output::forward_refused(RouterForwardRefusalReason::ReplayDetected),
+            Output::forward_refused(RouterForwardRefusalReason::ReplayDetected.into()),
             "(ForwardRefused ReplayDetected)",
         ),
         (
-            Output::forward_refused(RouterForwardRefusalReason::ClockSkew),
+            Output::forward_refused(RouterForwardRefusalReason::ClockSkew.into()),
             "(ForwardRefused ClockSkew)",
         ),
         (
-            Output::forward_refused(RouterForwardRefusalReason::RecipientUnknown),
+            Output::forward_refused(RouterForwardRefusalReason::RecipientUnknown.into()),
             "(ForwardRefused RecipientUnknown)",
         ),
         (
-            Output::forward_refused(RouterForwardRefusalReason::ChannelUnauthorized),
+            Output::forward_refused(RouterForwardRefusalReason::ChannelUnauthorized.into()),
             "(ForwardRefused ChannelUnauthorized)",
         ),
         (
-            Output::forward_refused(RouterForwardRefusalReason::AlreadyForwarded),
+            Output::forward_refused(RouterForwardRefusalReason::AlreadyForwarded.into()),
             "(ForwardRefused AlreadyForwarded)",
         ),
         (
             Output::Unimplemented(RouterObservationUnimplemented {
-                scope: RouterObservationScope::Summary,
-                reason: RouterObservationUnimplementedReason::NotInPrototypeScope,
+                observation_scope: RouterObservationScope::Summary.into(),
+                observation_reason: RouterObservationUnimplementedReason::NotInPrototypeScope
+                    .into(),
             }),
             "(Unimplemented (Summary NotInPrototypeScope))",
         ),
@@ -190,8 +203,8 @@ fn canonical_reply_examples_round_trip() {
 #[test]
 fn canonical_register_remote_router_bootstrap_example_round_trips() {
     let operation = RouterBootstrapOperation::RegisterRemoteRouter(RegisterRemoteRouter {
-        identity: String::from("prometheus-router").into(),
-        address: String::from("[201:abcd::2]:9930").into(),
+        identity: RemoteRouterIdentity::new("prometheus-router").into(),
+        address: TailnetAddress::new("[201:abcd::2]:9930").into(),
     });
     let canonical_text = "(RegisterRemoteRouter (prometheus-router [|[201:abcd::2]:9930|]))";
 
