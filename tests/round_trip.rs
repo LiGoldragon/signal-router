@@ -10,6 +10,7 @@ use signal_router::{
     RegisterActor, RegisterRemoteRouter, RouterBootstrapDocument, RouterBootstrapOperation,
     RouterObservationScope, SourceActor, TailnetAddress,
 };
+#[cfg(feature = "nota-text")]
 use signal_router::{
     AttendanceClosed, AttendanceEndpoint, AttendanceOpened, AttendanceRefusalReason,
     AttendanceToken, Attender, AuthorizedObjectInterest, AuthorizedObjectKind,
@@ -618,10 +619,12 @@ fn router_observation_operation_kind_round_trips_through_nota_text() {
 
 // ─── Attend / Withdraw working surface (router-sole subscribe + fan-out) ───
 
+#[cfg(feature = "nota-text")]
 fn component_socket_endpoint(path: &str) -> EndpointTransport {
     EndpointTransport::new(EndpointKind::ComponentSocket, String::from(path), None)
 }
 
+#[cfg(feature = "nota-text")]
 fn open_attendance_for(interest: AuthorizedObjectInterest, attender: &str) -> OpenAttendance {
     OpenAttendance {
         attender: Attender::new(ActorIdentifier::new(String::from(attender))),
@@ -630,6 +633,7 @@ fn open_attendance_for(interest: AuthorizedObjectInterest, attender: &str) -> Op
     }
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn open_attendance_request_round_trips_for_every_interest_rung() {
     for interest in [
@@ -648,6 +652,7 @@ fn open_attendance_request_round_trips_for_every_interest_rung() {
     }
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn close_attendance_request_round_trips_through_length_prefixed_frame() {
     round_trip_request(Input::CloseAttendance(CloseAttendance::new(
@@ -655,6 +660,7 @@ fn close_attendance_request_round_trips_through_length_prefixed_frame() {
     )));
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn attendance_opened_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::AttendanceOpened(AttendanceOpened {
@@ -667,12 +673,14 @@ fn attendance_opened_reply_round_trips_through_length_prefixed_frame() {
     assert_eq!(round_trip_reply(reply.clone()), reply);
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn attendance_closed_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::AttendanceClosed(AttendanceClosed::new(AttendanceToken::new("at-9f3ac1")));
     assert_eq!(round_trip_reply(reply.clone()), reply);
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn attendance_refused_reply_round_trips_for_every_reason() {
     for reason in [
@@ -686,6 +694,7 @@ fn attendance_refused_reply_round_trips_for_every_reason() {
     }
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn object_available_push_carries_reference_not_payload() {
     // m0p2: the push is a REFERENCE (component, digest, kind) only — never the
@@ -740,6 +749,7 @@ fn object_available_push_round_trips_through_nota_text() {
     );
 }
 
+#[cfg(feature = "nota-text")]
 #[test]
 fn attendance_root_verbs_carry_no_sema_classification_word() {
     // The conceptual verb pair is Attend / Withdraw; the descriptive root names
