@@ -10,6 +10,19 @@ pub type Boolean = bool;
 pub type Path = std::string::String;
 
 #[rustfmt::skip]
+pub use signal_standard::schema::lib::AuthorizedObjectInterest as AuthorizedObjectInterest;
+#[rustfmt::skip]
+pub use signal_standard::schema::lib::AuthorizedObjectReference as AuthorizedObjectReference;
+#[rustfmt::skip]
+pub use signal_standard::schema::lib::ComponentObjectInterest as ComponentObjectInterest;
+#[rustfmt::skip]
+pub use signal_standard::schema::lib::ObjectDigest as ObjectDigest;
+#[rustfmt::skip]
+pub use signal_standard::schema::lib::ComponentKind as ComponentKind;
+#[rustfmt::skip]
+pub use signal_standard::schema::lib::AuthorizedObjectKind as AuthorizedObjectKind;
+
+#[rustfmt::skip]
 #[cfg(feature = "nota-text")]
 pub use nota_next::{NotaDecodeError, NotaEncode, NotaSource};
 
@@ -505,11 +518,87 @@ pub struct RouterDaemonConfiguration {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AttendanceEndpoint(EndpointTransport);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Attender(ActorIdentifier);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct OpenAttendance {
+    pub attender: Attender,
+    pub interest: AuthorizedObjectInterest,
+    pub endpoint: AttendanceEndpoint,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AttendanceToken(String);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AttendanceOpened {
+    pub token: AttendanceToken,
+    pub interest: AuthorizedObjectInterest,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CloseAttendance(AttendanceToken);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AttendanceClosed(AttendanceToken);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+pub enum AttendanceRefusalReason {
+    UnknownAttender,
+    EndpointNotComponentSocket,
+    UnknownAttendanceToken,
+    AttendanceStoreUnavailable,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AttendanceRefused(AttendanceRefusalReason);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ObjectAvailable {
+    pub token: AttendanceToken,
+    pub reference: AuthorizedObjectReference,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum Input {
     Summary(RouterSummaryQuery),
     MessageTrace(RouterMessageTraceQuery),
     ChannelState(RouterChannelStateQuery),
     ForwardMessage(RouterForwardRequest),
+    OpenAttendance(OpenAttendance),
+    CloseAttendance(CloseAttendance),
 }
 
 #[rustfmt::skip]
@@ -522,6 +611,10 @@ pub enum Output {
     ChannelState(RouterChannelState),
     ForwardAccepted(RouterForwardAccepted),
     ForwardRefused(RouterForwardRefused),
+    AttendanceOpened(AttendanceOpened),
+    AttendanceClosed(AttendanceClosed),
+    AttendanceRefused(AttendanceRefused),
+    ObjectAvailable(ObjectAvailable),
     Unimplemented(RouterObservationUnimplemented),
 }
 
@@ -1403,6 +1496,138 @@ impl From<Option<WirePath>> for CriomeSocketPath {
 }
 
 #[rustfmt::skip]
+impl AttendanceEndpoint {
+    pub fn new(payload: EndpointTransport) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &EndpointTransport {
+        &self.0
+    }
+    pub fn into_payload(self) -> EndpointTransport {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<EndpointTransport> for AttendanceEndpoint {
+    fn from(payload: EndpointTransport) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Attender {
+    pub fn new(payload: ActorIdentifier) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ActorIdentifier {
+        &self.0
+    }
+    pub fn into_payload(self) -> ActorIdentifier {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ActorIdentifier> for Attender {
+    fn from(payload: ActorIdentifier) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl AttendanceToken {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for AttendanceToken {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+#[rustfmt::skip]
+impl std::fmt::Display for AttendanceToken {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.payload().fmt(formatter)
+    }
+}
+#[rustfmt::skip]
+impl AsRef<str> for AttendanceToken {
+    fn as_ref(&self) -> &str {
+        self.payload().as_str()
+    }
+}
+#[rustfmt::skip]
+impl PartialEq<&str> for AttendanceToken {
+    fn eq(&self, other: &&str) -> bool {
+        self.payload() == other
+    }
+}
+
+#[rustfmt::skip]
+impl CloseAttendance {
+    pub fn new(payload: AttendanceToken) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &AttendanceToken {
+        &self.0
+    }
+    pub fn into_payload(self) -> AttendanceToken {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<AttendanceToken> for CloseAttendance {
+    fn from(payload: AttendanceToken) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl AttendanceClosed {
+    pub fn new(payload: AttendanceToken) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &AttendanceToken {
+        &self.0
+    }
+    pub fn into_payload(self) -> AttendanceToken {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<AttendanceToken> for AttendanceClosed {
+    fn from(payload: AttendanceToken) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl AttendanceRefused {
+    pub fn new(payload: AttendanceRefusalReason) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &AttendanceRefusalReason {
+        &self.0
+    }
+    pub fn into_payload(self) -> AttendanceRefusalReason {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<AttendanceRefusalReason> for AttendanceRefused {
+    fn from(payload: AttendanceRefusalReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl OwnerIdentity {
     pub fn unix_user(payload: Integer) -> Self {
         Self::UnixUser(UnixUserIdentifier::new(payload))
@@ -1439,6 +1664,12 @@ impl Input {
     pub fn forward_message(payload: RouterForwardRequest) -> Self {
         Self::ForwardMessage(payload)
     }
+    pub fn open_attendance(payload: OpenAttendance) -> Self {
+        Self::OpenAttendance(payload)
+    }
+    pub fn close_attendance(payload: AttendanceToken) -> Self {
+        Self::CloseAttendance(CloseAttendance::new(payload))
+    }
 }
 
 #[rustfmt::skip]
@@ -1460,6 +1691,18 @@ impl Output {
     }
     pub fn forward_refused(payload: RouterForwardRefusalReason) -> Self {
         Self::ForwardRefused(RouterForwardRefused::new(payload))
+    }
+    pub fn attendance_opened(payload: AttendanceOpened) -> Self {
+        Self::AttendanceOpened(payload)
+    }
+    pub fn attendance_closed(payload: AttendanceToken) -> Self {
+        Self::AttendanceClosed(AttendanceClosed::new(payload))
+    }
+    pub fn attendance_refused(payload: AttendanceRefusalReason) -> Self {
+        Self::AttendanceRefused(AttendanceRefused::new(payload))
+    }
+    pub fn object_available(payload: ObjectAvailable) -> Self {
+        Self::ObjectAvailable(payload)
     }
     pub fn unimplemented(payload: RouterObservationUnimplemented) -> Self {
         Self::Unimplemented(payload)
@@ -1530,6 +1773,20 @@ impl From<RouterForwardRequest> for Input {
 }
 
 #[rustfmt::skip]
+impl From<OpenAttendance> for Input {
+    fn from(payload: OpenAttendance) -> Self {
+        Self::OpenAttendance(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<CloseAttendance> for Input {
+    fn from(payload: CloseAttendance) -> Self {
+        Self::CloseAttendance(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl From<RouterSummary> for Output {
     fn from(payload: RouterSummary) -> Self {
         Self::Summary(payload)
@@ -1568,6 +1825,34 @@ impl From<RouterForwardAccepted> for Output {
 impl From<RouterForwardRefused> for Output {
     fn from(payload: RouterForwardRefused) -> Self {
         Self::ForwardRefused(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<AttendanceOpened> for Output {
+    fn from(payload: AttendanceOpened) -> Self {
+        Self::AttendanceOpened(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<AttendanceClosed> for Output {
+    fn from(payload: AttendanceClosed) -> Self {
+        Self::AttendanceClosed(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<AttendanceRefused> for Output {
+    fn from(payload: AttendanceRefused) -> Self {
+        Self::AttendanceRefused(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<ObjectAvailable> for Output {
+    fn from(payload: ObjectAvailable) -> Self {
+        Self::ObjectAvailable(payload)
     }
 }
 
@@ -1616,13 +1901,19 @@ pub mod short_header {
     pub const INPUT_MESSAGE_TRACE: u64 = 0x0001000000000000;
     pub const INPUT_CHANNEL_STATE: u64 = 0x0002000000000000;
     pub const INPUT_FORWARD_MESSAGE: u64 = 0x0003000000000000;
+    pub const INPUT_OPEN_ATTENDANCE: u64 = 0x0004000000000000;
+    pub const INPUT_CLOSE_ATTENDANCE: u64 = 0x0005000000000000;
     pub const OUTPUT_SUMMARY: u64 = 0x0100000000000000;
     pub const OUTPUT_MESSAGE_TRACE: u64 = 0x0101000000000000;
     pub const OUTPUT_MESSAGE_TRACE_MISSING: u64 = 0x0102000000000000;
     pub const OUTPUT_CHANNEL_STATE: u64 = 0x0103000000000000;
     pub const OUTPUT_FORWARD_ACCEPTED: u64 = 0x0104000000000000;
     pub const OUTPUT_FORWARD_REFUSED: u64 = 0x0105000000000000;
-    pub const OUTPUT_UNIMPLEMENTED: u64 = 0x0106000000000000;
+    pub const OUTPUT_ATTENDANCE_OPENED: u64 = 0x0106000000000000;
+    pub const OUTPUT_ATTENDANCE_CLOSED: u64 = 0x0107000000000000;
+    pub const OUTPUT_ATTENDANCE_REFUSED: u64 = 0x0108000000000000;
+    pub const OUTPUT_OBJECT_AVAILABLE: u64 = 0x0109000000000000;
+    pub const OUTPUT_UNIMPLEMENTED: u64 = 0x010A000000000000;
 }
 
 #[rustfmt::skip]
@@ -1677,6 +1968,8 @@ pub enum InputRoute {
     MessageTrace,
     ChannelState,
     ForwardMessage,
+    OpenAttendance,
+    CloseAttendance,
 }
 
 #[rustfmt::skip]
@@ -1698,6 +1991,10 @@ pub enum OutputRoute {
     ChannelState,
     ForwardAccepted,
     ForwardRefused,
+    AttendanceOpened,
+    AttendanceClosed,
+    AttendanceRefused,
+    ObjectAvailable,
     Unimplemented,
 }
 
@@ -1709,6 +2006,8 @@ impl Input {
             Self::MessageTrace(_) => InputRoute::MessageTrace,
             Self::ChannelState(_) => InputRoute::ChannelState,
             Self::ForwardMessage(_) => InputRoute::ForwardMessage,
+            Self::OpenAttendance(_) => InputRoute::OpenAttendance,
+            Self::CloseAttendance(_) => InputRoute::CloseAttendance,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -1717,6 +2016,8 @@ impl Input {
             Self::MessageTrace(_) => short_header::INPUT_MESSAGE_TRACE,
             Self::ChannelState(_) => short_header::INPUT_CHANNEL_STATE,
             Self::ForwardMessage(_) => short_header::INPUT_FORWARD_MESSAGE,
+            Self::OpenAttendance(_) => short_header::INPUT_OPEN_ATTENDANCE,
+            Self::CloseAttendance(_) => short_header::INPUT_CLOSE_ATTENDANCE,
         }
     }
     pub fn route_from_short_header(header: u64) -> Result<InputRoute, SignalFrameError> {
@@ -1725,6 +2026,8 @@ impl Input {
             short_header::INPUT_MESSAGE_TRACE => Ok(InputRoute::MessageTrace),
             short_header::INPUT_CHANNEL_STATE => Ok(InputRoute::ChannelState),
             short_header::INPUT_FORWARD_MESSAGE => Ok(InputRoute::ForwardMessage),
+            short_header::INPUT_OPEN_ATTENDANCE => Ok(InputRoute::OpenAttendance),
+            short_header::INPUT_CLOSE_ATTENDANCE => Ok(InputRoute::CloseAttendance),
             _ => {
                 Err(SignalFrameError::UnknownHeader {
                     root_enum: "Input",
@@ -1781,6 +2084,10 @@ impl Output {
             Self::ChannelState(_) => OutputRoute::ChannelState,
             Self::ForwardAccepted(_) => OutputRoute::ForwardAccepted,
             Self::ForwardRefused(_) => OutputRoute::ForwardRefused,
+            Self::AttendanceOpened(_) => OutputRoute::AttendanceOpened,
+            Self::AttendanceClosed(_) => OutputRoute::AttendanceClosed,
+            Self::AttendanceRefused(_) => OutputRoute::AttendanceRefused,
+            Self::ObjectAvailable(_) => OutputRoute::ObjectAvailable,
             Self::Unimplemented(_) => OutputRoute::Unimplemented,
         }
     }
@@ -1792,6 +2099,10 @@ impl Output {
             Self::ChannelState(_) => short_header::OUTPUT_CHANNEL_STATE,
             Self::ForwardAccepted(_) => short_header::OUTPUT_FORWARD_ACCEPTED,
             Self::ForwardRefused(_) => short_header::OUTPUT_FORWARD_REFUSED,
+            Self::AttendanceOpened(_) => short_header::OUTPUT_ATTENDANCE_OPENED,
+            Self::AttendanceClosed(_) => short_header::OUTPUT_ATTENDANCE_CLOSED,
+            Self::AttendanceRefused(_) => short_header::OUTPUT_ATTENDANCE_REFUSED,
+            Self::ObjectAvailable(_) => short_header::OUTPUT_OBJECT_AVAILABLE,
             Self::Unimplemented(_) => short_header::OUTPUT_UNIMPLEMENTED,
         }
     }
@@ -1807,6 +2118,10 @@ impl Output {
             short_header::OUTPUT_CHANNEL_STATE => Ok(OutputRoute::ChannelState),
             short_header::OUTPUT_FORWARD_ACCEPTED => Ok(OutputRoute::ForwardAccepted),
             short_header::OUTPUT_FORWARD_REFUSED => Ok(OutputRoute::ForwardRefused),
+            short_header::OUTPUT_ATTENDANCE_OPENED => Ok(OutputRoute::AttendanceOpened),
+            short_header::OUTPUT_ATTENDANCE_CLOSED => Ok(OutputRoute::AttendanceClosed),
+            short_header::OUTPUT_ATTENDANCE_REFUSED => Ok(OutputRoute::AttendanceRefused),
+            short_header::OUTPUT_OBJECT_AVAILABLE => Ok(OutputRoute::ObjectAvailable),
             short_header::OUTPUT_UNIMPLEMENTED => Ok(OutputRoute::Unimplemented),
             _ => {
                 Err(SignalFrameError::UnknownHeader {
@@ -1863,6 +2178,8 @@ impl signal_frame::SignalOperationHeads for Input {
         "MessageTrace",
         "ChannelState",
         "ForwardMessage",
+        "OpenAttendance",
+        "CloseAttendance",
     ];
 }
 #[rustfmt::skip]

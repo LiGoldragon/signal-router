@@ -10,16 +10,37 @@
 ;; schema defines the small router-facing vocabulary it needs locally. Daemon
 ;; and client crates project these local wire nouns into their internal types.
 
+;; Imports brace — cross-component vocabulary owned by signal-standard (Spirit
+;; eeeo). COMPAT NOTE: this branch is based on the field-labeled schema commit
+;; the router daemon currently consumes (e36e773), not signal-router/main —
+;; it carries ONLY the additive Attend/Withdraw surface so the router builds
+;; without absorbing the unrelated field-label migration. The
+;; attendance-fanout-139 branch (on signal-router/main) is the canonical home;
+;; operator folds this in when router/main integrates the latest contract.
+{
+  AuthorizedObjectInterest    signal-standard:lib:AuthorizedObjectInterest
+  AuthorizedObjectReference   signal-standard:lib:AuthorizedObjectReference
+  ComponentObjectInterest     signal-standard:lib:ComponentObjectInterest
+  ObjectDigest                signal-standard:lib:ObjectDigest
+  ComponentKind               signal-standard:lib:ComponentKind
+  AuthorizedObjectKind        signal-standard:lib:AuthorizedObjectKind
+}
 [(Summary RouterSummaryQuery)
  (MessageTrace RouterMessageTraceQuery)
  (ChannelState RouterChannelStateQuery)
- (ForwardMessage RouterForwardRequest)]
+ (ForwardMessage RouterForwardRequest)
+ (OpenAttendance OpenAttendance)
+ (CloseAttendance CloseAttendance)]
 [(Summary RouterSummary)
  (MessageTrace RouterMessageTrace)
  (MessageTraceMissing RouterMessageTraceMissing)
  (ChannelState RouterChannelState)
  (ForwardAccepted RouterForwardAccepted)
  (ForwardRefused RouterForwardRefused)
+ (AttendanceOpened AttendanceOpened)
+ (AttendanceClosed AttendanceClosed)
+ (AttendanceRefused AttendanceRefused)
+ (ObjectAvailable ObjectAvailable)
  (Unimplemented RouterObservationUnimplemented)]
 {
   ObservationIdentifier String
@@ -164,5 +185,33 @@
     (TailnetListenAddress (Optional TailnetAddress))
     router_identity.RemoteRouterIdentity
     (CriomeSocketPath (Optional WirePath))
+  }
+
+  ;; ── Attend / Withdraw working surface (router-sole subscribe + fan-out) ──
+  ;; Resolution ROUTER-SOLE (Spirit m0p2). SEMA-free root verbs: the pair is
+  ;; Attend / Withdraw, surfaced as OpenAttendance / CloseAttendance.
+  AttendanceEndpoint EndpointTransport
+  Attender ActorIdentifier
+  OpenAttendance {
+    Attender
+    interest.AuthorizedObjectInterest
+    endpoint.AttendanceEndpoint
+  }
+  AttendanceToken String
+  AttendanceOpened { token.AttendanceToken interest.AuthorizedObjectInterest }
+  CloseAttendance { token.AttendanceToken }
+  AttendanceClosed { token.AttendanceToken }
+  AttendanceRefusalReason [
+    UnknownAttender
+    EndpointNotComponentSocket
+    UnknownAttendanceToken
+    AttendanceStoreUnavailable
+  ]
+  AttendanceRefused { reason.AttendanceRefusalReason }
+  ;; m0p2: a REFERENCE, never the payload. Reuses AuthorizedObjectReference
+  ;; imported from signal-standard verbatim.
+  ObjectAvailable {
+    token.AttendanceToken
+    reference.AuthorizedObjectReference
   }
 }
