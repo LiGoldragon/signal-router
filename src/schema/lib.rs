@@ -123,11 +123,21 @@ pub enum EndpointKind {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Auxiliary(Option<String>);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EndpointTransport {
     pub kind: EndpointKind,
     pub target: String,
-    pub auxiliary: Option<String>,
+    pub(crate) auxiliary: Auxiliary,
 }
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Endpoint(Option<EndpointTransport>);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -135,15 +145,20 @@ pub struct EndpointTransport {
 pub struct Actor {
     pub name: ActorIdentifier,
     pub process: Integer,
-    pub endpoint: Option<EndpointTransport>,
+    pub(crate) endpoint: Endpoint,
 }
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Home(Option<RemoteRouterIdentity>);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RegisterActor {
     pub actor: Actor,
-    pub home: Option<RemoteRouterIdentity>,
+    pub(crate) home: Home,
 }
 
 #[rustfmt::skip]
@@ -180,7 +195,12 @@ pub enum RouterBootstrapOperation {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RouterBootstrapDocument(Vec<RouterBootstrapOperation>);
+pub(crate) struct Operations(Vec<RouterBootstrapOperation>);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterBootstrapDocument(Operations);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -356,12 +376,27 @@ pub struct RouterPeerAttestation {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct PayloadOctets(Vec<Integer>);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RoutedContractObject {
-    pub contract: ContractName,
-    pub operation: ContractOperation,
-    pub payload_size: ContractPayloadSize,
-    pub payload_octets: Vec<Integer>,
+    pub contract_name: ContractName,
+    pub contract_operation: ContractOperation,
+    pub contract_payload_size: ContractPayloadSize,
+    pub(crate) payload_octets: PayloadOctets,
 }
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Attachments(Vec<String>);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct RoutedObjects(Vec<RoutedContractObject>);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -370,8 +405,8 @@ pub struct ForwardedMessagePayload {
     pub from: ActorIdentifier,
     pub to: ActorIdentifier,
     pub body: String,
-    pub attachments: Vec<String>,
-    pub routed_objects: Vec<RoutedContractObject>,
+    pub(crate) attachments: Attachments,
+    pub(crate) routed_objects: RoutedObjects,
 }
 
 #[rustfmt::skip]
@@ -437,6 +472,21 @@ pub struct RouterForwardRefused(RouterForwardRefusalReason);
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct BootstrapPath(Option<WirePath>);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct TailnetListenAddress(Option<TailnetAddress>);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct CriomeSocketPath(Option<WirePath>);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterDaemonConfiguration {
     pub router_socket_path: WirePath,
     pub router_socket_mode: SocketMode,
@@ -445,11 +495,11 @@ pub struct RouterDaemonConfiguration {
     pub supervision_socket_path: WirePath,
     pub supervision_socket_mode: SocketMode,
     pub store_path: WirePath,
-    pub bootstrap_path: Option<WirePath>,
+    pub(crate) bootstrap_path: BootstrapPath,
     pub owner_identity: OwnerIdentity,
-    pub tailnet_listen_address: Option<TailnetAddress>,
+    pub(crate) tailnet_listen_address: TailnetListenAddress,
     pub router_identity: RemoteRouterIdentity,
-    pub criome_socket_path: Option<WirePath>,
+    pub(crate) criome_socket_path: CriomeSocketPath,
 }
 
 #[rustfmt::skip]
@@ -1068,6 +1118,63 @@ impl PartialOrd<u64> for ContractPayloadSize {
 }
 
 #[rustfmt::skip]
+impl Auxiliary {
+    pub fn new(payload: Option<String>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Option<String> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Option<String> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Option<String>> for Auxiliary {
+    fn from(payload: Option<String>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Endpoint {
+    pub fn new(payload: Option<EndpointTransport>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Option<EndpointTransport> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Option<EndpointTransport> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Option<EndpointTransport>> for Endpoint {
+    fn from(payload: Option<EndpointTransport>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Home {
+    pub fn new(payload: Option<RemoteRouterIdentity>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Option<RemoteRouterIdentity> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Option<RemoteRouterIdentity> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Option<RemoteRouterIdentity>> for Home {
+    fn from(payload: Option<RemoteRouterIdentity>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl InstallStructuralChannels {
     pub fn new(payload: ActorIdentifier) -> Self {
         Self(payload)
@@ -1087,7 +1194,7 @@ impl From<ActorIdentifier> for InstallStructuralChannels {
 }
 
 #[rustfmt::skip]
-impl RouterBootstrapDocument {
+impl Operations {
     pub fn new(payload: Vec<RouterBootstrapOperation>) -> Self {
         Self(payload)
     }
@@ -1099,8 +1206,27 @@ impl RouterBootstrapDocument {
     }
 }
 #[rustfmt::skip]
-impl From<Vec<RouterBootstrapOperation>> for RouterBootstrapDocument {
+impl From<Vec<RouterBootstrapOperation>> for Operations {
     fn from(payload: Vec<RouterBootstrapOperation>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterBootstrapDocument {
+    pub fn new(payload: Operations) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Operations {
+        &self.0
+    }
+    pub fn into_payload(self) -> Operations {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Operations> for RouterBootstrapDocument {
+    fn from(payload: Operations) -> Self {
         Self::new(payload)
     }
 }
@@ -1120,6 +1246,63 @@ impl RouterSummaryQuery {
 #[rustfmt::skip]
 impl From<EngineIdentifier> for RouterSummaryQuery {
     fn from(payload: EngineIdentifier) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl PayloadOctets {
+    pub fn new(payload: Vec<Integer>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Vec<Integer> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Vec<Integer> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Vec<Integer>> for PayloadOctets {
+    fn from(payload: Vec<Integer>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Attachments {
+    pub fn new(payload: Vec<String>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Vec<String> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Vec<String> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Vec<String>> for Attachments {
+    fn from(payload: Vec<String>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RoutedObjects {
+    pub fn new(payload: Vec<RoutedContractObject>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Vec<RoutedContractObject> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Vec<RoutedContractObject> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Vec<RoutedContractObject>> for RoutedObjects {
+    fn from(payload: Vec<RoutedContractObject>) -> Self {
         Self::new(payload)
     }
 }
@@ -1158,6 +1341,63 @@ impl RouterForwardRefused {
 #[rustfmt::skip]
 impl From<RouterForwardRefusalReason> for RouterForwardRefused {
     fn from(payload: RouterForwardRefusalReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl BootstrapPath {
+    pub fn new(payload: Option<WirePath>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Option<WirePath> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Option<WirePath> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Option<WirePath>> for BootstrapPath {
+    fn from(payload: Option<WirePath>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl TailnetListenAddress {
+    pub fn new(payload: Option<TailnetAddress>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Option<TailnetAddress> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Option<TailnetAddress> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Option<TailnetAddress>> for TailnetListenAddress {
+    fn from(payload: Option<TailnetAddress>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl CriomeSocketPath {
+    pub fn new(payload: Option<WirePath>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Option<WirePath> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Option<WirePath> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Option<WirePath>> for CriomeSocketPath {
+    fn from(payload: Option<WirePath>) -> Self {
         Self::new(payload)
     }
 }

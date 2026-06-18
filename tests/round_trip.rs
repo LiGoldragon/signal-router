@@ -13,9 +13,10 @@ use signal_router::{
 use signal_router::{
     ForwardMarker, ForwardedMessagePayload, Frame, FrameBody, Input, Output, OwnerIdentity,
     RoutedContractObject, RouterChannelState, RouterChannelStateQuery, RouterChannelStatus,
-    RouterDaemonConfiguration, RouterDeliveryStatus, RouterForwardRefusalReason,
-    RouterForwardRequest, RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
-    RouterPeerAttestation, RouterSummary, RouterSummaryQuery, SignatureScheme,
+    RouterDaemonConfiguration, RouterDaemonConfigurationParts, RouterDeliveryStatus,
+    RouterForwardRefusalReason, RouterForwardRequest, RouterMessageTrace,
+    RouterMessageTraceMissing, RouterMessageTraceQuery, RouterPeerAttestation, RouterSummary,
+    RouterSummaryQuery, SignatureScheme,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -41,13 +42,13 @@ fn actor(name: &str) -> String {
 
 fn forward_request() -> RouterForwardRequest {
     RouterForwardRequest {
-        submission: ForwardedMessagePayload {
-            from: String::from("ouranos-mind").into(),
-            to: String::from("prometheus-responder").into(),
-            body: String::from("hello over the tailnet"),
-            attachments: vec![String::from("digest-001")],
-            routed_objects: Vec::new(),
-        },
+        submission: ForwardedMessagePayload::new(
+            String::from("ouranos-mind").into(),
+            String::from("prometheus-responder").into(),
+            String::from("hello over the tailnet"),
+            vec![String::from("digest-001")],
+            Vec::new(),
+        ),
         attestation: RouterPeerAttestation {
             signer: String::from("prometheus-router").into(),
             scheme: SignatureScheme::Bls12_381MinPk,
@@ -65,7 +66,7 @@ fn forward_request() -> RouterForwardRequest {
 
 fn mirror_forward_request() -> RouterForwardRequest {
     let mut request = forward_request();
-    request.submission.routed_objects.push(mirror_object());
+    request.submission.push_routed_object(mirror_object());
     request
 }
 
@@ -74,14 +75,14 @@ fn mirror_object() -> RoutedContractObject {
         0x91, 0x26, 0xec, 0xcb, 0xb5, 0x00, 0x00, 0x00, b's', b'p', b'i', b'r', b'i', b't', 0x00,
         0x00, 0x07, 0x42,
     ];
-    RoutedContractObject {
-        contract: String::from("signal-mirror").into(),
-        operation: String::from("NotifyObject").into(),
-        payload_size: u64::try_from(payload.len())
+    RoutedContractObject::new(
+        String::from("signal-mirror").into(),
+        String::from("NotifyObject").into(),
+        u64::try_from(payload.len())
             .expect("payload size fits")
             .into(),
-        payload_octets: payload.into_iter().map(u64::from).collect(),
-    }
+        payload.into_iter().map(u64::from).collect(),
+    )
 }
 
 fn round_trip_request(request: Input) {
@@ -180,18 +181,18 @@ fn router_forward_request_carries_contract_object_octets_without_decoding_them()
     };
     let object = forward
         .submission
-        .routed_objects
+        .routed_objects()
         .first()
         .expect("forward carries routed object");
 
-    assert_eq!(object.contract.payload().as_str(), "signal-mirror");
-    assert_eq!(object.operation.payload().as_str(), "NotifyObject");
+    assert_eq!(object.contract_name.payload().as_str(), "signal-mirror");
+    assert_eq!(object.contract_operation.payload().as_str(), "NotifyObject");
     assert_eq!(
-        usize::try_from(*object.payload_size.payload()).expect("payload size fits"),
-        object.payload_octets.len()
+        usize::try_from(*object.contract_payload_size.payload()).expect("payload size fits"),
+        object.payload_octets().len()
     );
     assert_eq!(
-        object.payload_octets,
+        object.payload_octets(),
         vec![
             0x91, 0x26, 0xec, 0xcb, 0xb5, 0, 0, 0, b's', b'p', b'i', b'r', b'i', b't', 0, 0, 7,
             0x42,
@@ -199,6 +200,7 @@ fn router_forward_request_carries_contract_object_octets_without_decoding_them()
         .into_iter()
         .map(u64::from)
         .collect::<Vec<_>>()
+        .as_slice()
     );
 }
 
@@ -384,7 +386,7 @@ fn router_status_enums_are_closed_no_unknown_variants() {
 #[cfg(feature = "nota-text")]
 #[test]
 fn router_daemon_configuration_round_trips_through_nota_text() {
-    let configuration = RouterDaemonConfiguration {
+    let configuration = RouterDaemonConfiguration::from(RouterDaemonConfigurationParts {
         router_socket_path: String::from("/run/persona/X/router.sock").into(),
         router_socket_mode: 0o600.into(),
         meta_router_socket_path: String::from("/run/persona/X/router-meta.sock").into(),
@@ -397,7 +399,7 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
         tailnet_listen_address: Some(String::from("[200:1234::1]:9930").into()),
         router_identity: String::from("ouranos-router").into(),
         criome_socket_path: Some(String::from("/run/persona/X/criome.sock").into()),
-    };
+    });
 
     let text = configuration.to_nota();
     let recovered = NotaSource::new(&text)
@@ -411,7 +413,7 @@ fn router_daemon_configuration_round_trips_through_nota_text() {
 
 #[test]
 fn router_daemon_configuration_round_trips_through_rkyv() {
-    let configuration = RouterDaemonConfiguration {
+    let configuration = RouterDaemonConfiguration::from(RouterDaemonConfigurationParts {
         router_socket_path: String::from("/run/persona/X/router.sock").into(),
         router_socket_mode: 0o600.into(),
         meta_router_socket_path: String::from("/run/persona/X/router-meta.sock").into(),
@@ -424,7 +426,7 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
         tailnet_listen_address: None,
         router_identity: String::from("ouranos-router").into(),
         criome_socket_path: None,
-    };
+    });
 
     let bytes = configuration.to_rkyv_bytes().expect("archive");
     let recovered = RouterDaemonConfiguration::from_rkyv_bytes(&bytes).expect("decode rkyv");
@@ -433,7 +435,7 @@ fn router_daemon_configuration_round_trips_through_rkyv() {
 
 #[test]
 fn single_host_router_configuration_has_no_tailnet_listen_address() {
-    let configuration = RouterDaemonConfiguration {
+    let configuration = RouterDaemonConfiguration::from(RouterDaemonConfigurationParts {
         router_socket_path: String::from("/run/persona/X/router.sock").into(),
         router_socket_mode: 0o600.into(),
         meta_router_socket_path: String::from("/run/persona/X/router-meta.sock").into(),
@@ -446,10 +448,10 @@ fn single_host_router_configuration_has_no_tailnet_listen_address() {
         tailnet_listen_address: None,
         router_identity: String::from("solo-router").into(),
         criome_socket_path: None,
-    };
+    });
 
     assert!(
-        configuration.tailnet_listen_address.is_none(),
+        configuration.tailnet_listen_address().is_none(),
         "an absent tailnet listen address keeps the router local-only with no TCP forwarding tier"
     );
 
@@ -460,24 +462,20 @@ fn single_host_router_configuration_has_no_tailnet_listen_address() {
 
 #[cfg(feature = "nota-text")]
 fn endpoint_transport(path: &str) -> EndpointTransport {
-    EndpointTransport {
-        kind: EndpointKind::HarnessSocket,
-        target: String::from(path),
-        auxiliary: None,
-    }
+    EndpointTransport::new(EndpointKind::HarnessSocket, String::from(path), None)
 }
 
 #[cfg(feature = "nota-text")]
 #[test]
 fn bootstrap_register_actor_operation_round_trips_through_nota_line() {
-    let operation = RouterBootstrapOperation::RegisterActor(RegisterActor {
-        actor: Actor {
-            name: actor("responder").into(),
-            process: 42,
-            endpoint: Some(endpoint_transport("/tmp/responder.harness.sock")),
-        },
-        home: None,
-    });
+    let operation = RouterBootstrapOperation::RegisterActor(RegisterActor::new(
+        Actor::new(
+            actor("responder").into(),
+            42,
+            Some(endpoint_transport("/tmp/responder.harness.sock")),
+        ),
+        None,
+    ));
 
     let text = operation.to_nota();
     assert_eq!(
@@ -496,14 +494,14 @@ fn bootstrap_register_actor_with_remote_home_round_trips_through_nota_line() {
     // A remotely-homed actor: home names the peer router it lives behind, so
     // the local router records it in the remote-route table rather than the
     // harness registry. This is how a router learns the recipient's host.
-    let operation = RouterBootstrapOperation::RegisterActor(RegisterActor {
-        actor: Actor {
-            name: actor("responder").into(),
-            process: 42,
-            endpoint: Some(endpoint_transport("/tmp/responder.harness.sock")),
-        },
-        home: Some(String::from("prometheus-router").into()),
-    });
+    let operation = RouterBootstrapOperation::RegisterActor(RegisterActor::new(
+        Actor::new(
+            actor("responder").into(),
+            42,
+            Some(endpoint_transport("/tmp/responder.harness.sock")),
+        ),
+        Some(String::from("prometheus-router").into()),
+    ));
 
     let text = operation.to_nota();
     assert_eq!(
@@ -554,17 +552,17 @@ fn bootstrap_register_remote_router_operation_round_trips_through_nota_line() {
 #[cfg(feature = "nota-text")]
 #[test]
 fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
-    let document = RouterBootstrapDocument::new(vec![
-        RouterBootstrapOperation::RegisterActor(RegisterActor {
-            actor: Actor {
-                name: actor("initiator").into(),
-                process: 0,
-                endpoint: Some(endpoint_transport(
+    let document = RouterBootstrapDocument::from_operations(vec![
+        RouterBootstrapOperation::RegisterActor(RegisterActor::new(
+            Actor::new(
+                actor("initiator").into(),
+                0,
+                Some(endpoint_transport(
                     "/run/persona/engine/harness/initiator.sock",
                 )),
-            },
-            home: None,
-        }),
+            ),
+            None,
+        )),
         RouterBootstrapOperation::GrantDirectMessage(GrantDirectMessage {
             from: actor("initiator").into(),
             to: actor("responder").into(),

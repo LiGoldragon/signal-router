@@ -13,10 +13,11 @@ use nota_next::{NotaEncode, NotaSource};
 use signal_router::{
     ForwardMarker, ForwardedMessagePayload, Input, Output, OwnerIdentity, RegisterRemoteRouter,
     RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery, RouterChannelStatus,
-    RouterDaemonConfiguration, RouterDeliveryStatus, RouterForwardRefusalReason,
-    RouterForwardRequest, RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
-    RouterObservationScope, RouterObservationUnimplemented, RouterObservationUnimplementedReason,
-    RouterPeerAttestation, RouterSummary, RouterSummaryQuery, SignatureScheme,
+    RouterDaemonConfiguration, RouterDaemonConfigurationParts, RouterDeliveryStatus,
+    RouterForwardRefusalReason, RouterForwardRequest, RouterMessageTrace,
+    RouterMessageTraceMissing, RouterMessageTraceQuery, RouterObservationScope,
+    RouterObservationUnimplemented, RouterObservationUnimplementedReason, RouterPeerAttestation,
+    RouterSummary, RouterSummaryQuery, SignatureScheme,
 };
 
 const CANONICAL: &str = include_str!("../examples/canonical.nota");
@@ -31,13 +32,13 @@ fn channel() -> String {
 
 fn forward_request() -> RouterForwardRequest {
     RouterForwardRequest {
-        submission: ForwardedMessagePayload {
-            from: String::from("ouranos-mind").into(),
-            to: String::from("prometheus-responder").into(),
-            body: String::from("hello over the tailnet"),
-            attachments: vec![String::from("digest-001")],
-            routed_objects: Vec::new(),
-        },
+        submission: ForwardedMessagePayload::new(
+            String::from("ouranos-mind").into(),
+            String::from("prometheus-responder").into(),
+            String::from("hello over the tailnet"),
+            vec![String::from("digest-001")],
+            Vec::new(),
+        ),
         attestation: RouterPeerAttestation {
             signer: String::from("prometheus-router").into(),
             scheme: SignatureScheme::Bls12_381MinPk,
@@ -210,7 +211,7 @@ fn canonical_register_remote_router_bootstrap_example_round_trips() {
 
 #[test]
 fn canonical_extended_daemon_configuration_example_round_trips() {
-    let configuration = RouterDaemonConfiguration {
+    let configuration = RouterDaemonConfiguration::from(RouterDaemonConfigurationParts {
         router_socket_path: String::from("/run/persona/X/router.sock").into(),
         router_socket_mode: 0o600.into(),
         meta_router_socket_path: String::from("/run/persona/X/router-meta.sock").into(),
@@ -223,7 +224,7 @@ fn canonical_extended_daemon_configuration_example_round_trips() {
         tailnet_listen_address: Some(String::from("[200:1234::1]:9930").into()),
         router_identity: String::from("ouranos-router").into(),
         criome_socket_path: Some(String::from("/run/persona/X/criome.sock").into()),
-    };
+    });
     let canonical_text = "(/run/persona/X/router.sock 384 /run/persona/X/router-meta.sock 384 /run/persona/X/router-supervision.sock 384 /var/lib/persona/X/router.sema (Some /var/lib/persona/X/router-bootstrap.nota) (UnixUser 1000) (Some [|[200:1234::1]:9930|]) ouranos-router (Some /run/persona/X/criome.sock))";
 
     let text = configuration.to_nota();

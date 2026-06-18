@@ -35,53 +35,53 @@
   ;; Self-contained addressing vocabulary for router-to-router transport.
   ;; Addresses re-home; identity does not — a peer is dialed by its
   ;; TailnetAddress but routed by its stable RemoteRouterIdentity.
-  TailnetAddress { value String }
-  RemoteRouterIdentity { value String }
-  HostName { value String }
-  TimestampNanos { value Integer }
-  ReplayNonce { value String }
-  ContractName { value String }
-  ContractOperation { value String }
-  ContractPayloadSize { value Integer }
+  TailnetAddress String
+  RemoteRouterIdentity String
+  HostName String
+  TimestampNanos Integer
+  ReplayNonce String
+  ContractName String
+  ContractOperation String
+  ContractPayloadSize Integer
 
   EndpointKind [Human HarnessSocket PtySocket RemoteRouter ComponentSocket]
-  EndpointTransport { kind EndpointKind target String auxiliary (Optional String) }
-  Actor { name ActorIdentifier process Integer endpoint (Optional EndpointTransport) }
+  EndpointTransport { kind.EndpointKind target.String (Auxiliary (Optional String)) }
+  Actor { name.ActorIdentifier process.Integer (Endpoint (Optional EndpointTransport)) }
   ;; A registered actor's home router. None ⇒ local (delivered via the
   ;; harness registry); Some(peer) ⇒ the actor lives behind that remote
   ;; router, so the local router records it in the remote-route table and
   ;; forwards to the peer. This is how a router learns which host a
   ;; recipient lives on (the production source for remote-route resolution).
-  RegisterActor { actor Actor home (Optional RemoteRouterIdentity) }
-  GrantDirectMessage { from ActorIdentifier to ActorIdentifier }
-  InstallStructuralChannels { requester ActorIdentifier }
-  RegisterRemoteRouter { identity RemoteRouterIdentity address TailnetAddress }
+  RegisterActor { Actor (Home (Optional RemoteRouterIdentity)) }
+  GrantDirectMessage { from.ActorIdentifier to.ActorIdentifier }
+  InstallStructuralChannels { requester.ActorIdentifier }
+  RegisterRemoteRouter { identity.RemoteRouterIdentity address.TailnetAddress }
   RouterBootstrapOperation [
     (RegisterActor RegisterActor)
     (GrantDirectMessage GrantDirectMessage)
     (InstallStructuralChannels InstallStructuralChannels)
     (RegisterRemoteRouter RegisterRemoteRouter)
   ]
-  RouterBootstrapDocument { operations (Vec RouterBootstrapOperation) }
+  RouterBootstrapDocument { (Operations (Vector RouterBootstrapOperation)) }
 
   RouterObservationScope [Summary MessageTrace ChannelState]
-  RouterSummaryQuery { engine EngineIdentifier }
-  RouterMessageTraceQuery { engine EngineIdentifier message_slot MessageSlot }
-  RouterChannelStateQuery { engine EngineIdentifier channel ChannelIdentifier }
+  RouterSummaryQuery { engine.EngineIdentifier }
+  RouterMessageTraceQuery { engine.EngineIdentifier MessageSlot }
+  RouterChannelStateQuery { engine.EngineIdentifier channel.ChannelIdentifier }
   RouterSummary {
-    engine EngineIdentifier
-    accepted_messages Integer
-    routed_messages Integer
-    deferred_messages Integer
-    failed_messages Integer
+    engine.EngineIdentifier
+    accepted_messages.Integer
+    routed_messages.Integer
+    deferred_messages.Integer
+    failed_messages.Integer
   }
   RouterDeliveryStatus [Accepted Routed Delivered Deferred Failed ForwardedRemote]
-  RouterMessageTrace { engine EngineIdentifier message_slot MessageSlot status RouterDeliveryStatus }
-  RouterMessageTraceMissing { engine EngineIdentifier message_slot MessageSlot }
+  RouterMessageTrace { engine.EngineIdentifier MessageSlot status.RouterDeliveryStatus }
+  RouterMessageTraceMissing { engine.EngineIdentifier MessageSlot }
   RouterChannelStatus [Installed Missing Disabled]
-  RouterChannelState { engine EngineIdentifier channel ChannelIdentifier status RouterChannelStatus }
+  RouterChannelState { engine.EngineIdentifier channel.ChannelIdentifier status.RouterChannelStatus }
   RouterObservationUnimplementedReason [NotInPrototypeScope RouterStoreUnavailable MessageTraceUnavailable]
-  RouterObservationUnimplemented { scope RouterObservationScope reason RouterObservationUnimplementedReason }
+  RouterObservationUnimplemented { scope.RouterObservationScope reason.RouterObservationUnimplementedReason }
 
   ;; ─── Router-to-router forwarding ──────────────────────────────────
   ;;
@@ -95,23 +95,23 @@
   ;; into criome's Attestation for VerifyAttestation. The router never
   ;; holds keys or verifies signatures itself.
   RouterPeerAttestation {
-    signer RemoteRouterIdentity
-    scheme SignatureScheme
-    public_key String
-    signature String
-    content_digest String
-    issued_at TimestampNanos
-    nonce ReplayNonce
+    signer.RemoteRouterIdentity
+    scheme.SignatureScheme
+    public_key.String
+    signature.String
+    content_digest.String
+    issued_at.TimestampNanos
+    nonce.ReplayNonce
   }
 
   ;; Opaque contract-owned object carried by the router protocol. Router
   ;; reads the metadata for routing/audit/authentication and hashes the raw
   ;; octets; it does not decode the inner contract payload.
   RoutedContractObject {
-    contract ContractName
-    operation ContractOperation
-    payload_size ContractPayloadSize
-    payload_octets (Vec Integer)
+    ContractName
+    ContractOperation
+    ContractPayloadSize
+    (PayloadOctets (Vector Integer))
   }
 
   ;; Self-contained forwarding payload. signal-router holds the
@@ -120,11 +120,11 @@
   ;; contract-owned rkyv octets that Router forwards and authenticates
   ;; without decoding.
   ForwardedMessagePayload {
-    from ActorIdentifier
-    to ActorIdentifier
-    body String
-    attachments (Vec String)
-    routed_objects (Vec RoutedContractObject)
+    from.ActorIdentifier
+    to.ActorIdentifier
+    body.String
+    (Attachments (Vector String))
+    (RoutedObjects (Vector RoutedContractObject))
   }
 
   ;; First-class loop guard. The inbound handler sets this deterministically:
@@ -133,13 +133,13 @@
   ForwardMarker [Origin Forwarded]
 
   RouterForwardRequest {
-    submission ForwardedMessagePayload
-    attestation RouterPeerAttestation
-    forwarded ForwardMarker
-    nonce ReplayNonce
-    issued_at TimestampNanos
+    submission.ForwardedMessagePayload
+    attestation.RouterPeerAttestation
+    forwarded.ForwardMarker
+    nonce.ReplayNonce
+    issued_at.TimestampNanos
   }
-  RouterForwardAccepted { message_slot MessageSlot }
+  RouterForwardAccepted { MessageSlot }
   RouterForwardRefusalReason [
     UnknownPeer
     AttestationInvalid
@@ -149,20 +149,20 @@
     ChannelUnauthorized
     AlreadyForwarded
   ]
-  RouterForwardRefused { reason RouterForwardRefusalReason }
+  RouterForwardRefused { reason.RouterForwardRefusalReason }
 
   RouterDaemonConfiguration {
-    router_socket_path WirePath
-    router_socket_mode SocketMode
-    meta_router_socket_path WirePath
-    meta_router_socket_mode SocketMode
-    supervision_socket_path WirePath
-    supervision_socket_mode SocketMode
-    store_path WirePath
-    bootstrap_path (Optional WirePath)
-    owner_identity OwnerIdentity
-    tailnet_listen_address (Optional TailnetAddress)
-    router_identity RemoteRouterIdentity
-    criome_socket_path (Optional WirePath)
+    router_socket_path.WirePath
+    router_socket_mode.SocketMode
+    meta_router_socket_path.WirePath
+    meta_router_socket_mode.SocketMode
+    supervision_socket_path.WirePath
+    supervision_socket_mode.SocketMode
+    store_path.WirePath
+    (BootstrapPath (Optional WirePath))
+    OwnerIdentity
+    (TailnetListenAddress (Optional TailnetAddress))
+    router_identity.RemoteRouterIdentity
+    (CriomeSocketPath (Optional WirePath))
   }
 }
