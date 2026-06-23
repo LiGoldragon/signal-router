@@ -1,4 +1,4 @@
-use schema_rust_next::build::ContractCrateBuild;
+use schema_rust::build::ContractCrateBuild;
 
 fn main() {
     ContractCrateBuild::from_environment(

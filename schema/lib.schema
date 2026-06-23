@@ -47,16 +47,16 @@
   EndpointKind [Human HarnessSocket PtySocket RemoteRouter ComponentSocket]
   Kind EndpointKind
   Target String
-  EndpointTransport { Kind Target (Auxiliary (Optional String)) }
+  EndpointTransport { Kind Target Auxiliary.(Optional String) }
   Name ActorIdentifier
   Process Integer
-  Actor { Name Process (Endpoint (Optional EndpointTransport)) }
+  Actor { Name Process Endpoint.(Optional EndpointTransport) }
   ;; A registered actor's home router. None ⇒ local (delivered via the
   ;; harness registry); Some(peer) ⇒ the actor lives behind that remote
   ;; router, so the local router records it in the remote-route table and
   ;; forwards to the peer. This is how a router learns which host a
   ;; recipient lives on (the production source for remote-route resolution).
-  RegisterActor { Actor (Home (Optional RemoteRouterIdentity)) }
+  RegisterActor { Actor Home.(Optional RemoteRouterIdentity) }
   SourceActor ActorIdentifier
   DestinationActor ActorIdentifier
   Requester ActorIdentifier
@@ -71,7 +71,7 @@
     (InstallStructuralChannels InstallStructuralChannels)
     (RegisterRemoteRouter RegisterRemoteRouter)
   ]
-  RouterBootstrapDocument { (Operations (Vector RouterBootstrapOperation)) }
+  RouterBootstrapDocument { Operations.(Vector RouterBootstrapOperation) }
 
   RouterObservationScope [Summary MessageTrace ChannelState]
   Engine EngineIdentifier
@@ -137,7 +137,7 @@
     ContractName
     ContractOperation
     ContractPayloadSize
-    (PayloadOctets (Vector Integer))
+    PayloadOctets.(Vector Integer)
   }
 
   ;; Self-contained forwarding payload. signal-router holds the
@@ -150,8 +150,8 @@
     SourceActor
     DestinationActor
     Body
-    (Attachments (Vector String))
-    (RoutedObjects (Vector RoutedContractObject))
+    Attachments.(Vector String)
+    RoutedObjects.(Vector RoutedContractObject)
   }
 
   ;; First-class loop guard. The inbound handler sets this deterministically:
@@ -198,10 +198,10 @@
     SupervisionSocketPath
     SupervisionSocketMode
     StorePath
-    (BootstrapPath (Optional WirePath))
+    BootstrapPath.(Optional WirePath)
     OwnerIdentity
-    (TailnetListenAddress (Optional TailnetAddress))
+    TailnetListenAddress.(Optional TailnetAddress)
     RouterIdentity
-    (CriomeSocketPath (Optional WirePath))
+    CriomeSocketPath.(Optional WirePath)
   }
 }

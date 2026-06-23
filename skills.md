@@ -70,7 +70,7 @@ and downstream code breaks silently.
   round trips in `tests/round_trip.rs`; canonical NOTA examples in
   `examples/canonical.nota` with a parser test.
 - **Pin upstream contracts via a named API reference.** Cargo deps
-  to `signal-frame` and `schema-rust-next` use `git = "..."`
+  to `signal-frame` and `schema-rust` use `git = "..."`
   with a named branch/bookmark, never raw
   `rev = "..."`.
 
