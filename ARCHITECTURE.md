@@ -193,9 +193,11 @@ milestones in `router`.
 **Self-contained attestation (the decision).** A networked router cannot
 rely on the kernel's `SO_PEERCRED` local vouching, which dies at the TCP
 hop. Instead `RouterForwardRequest` carries a `RouterPeerAttestation` —
-signer, scheme, public key, signature, content digest, issue time, replay
-nonce — that **mirrors what criome produces without depending on
-`signal-criome`.** The crate holds a self-contained-vocabulary policy and
+signer, scheme, public key, signature, content digest, the router's own
+forward issue time, replay nonce, and the criome attestation issue time
+(the timestamp criome server-stamped into the BLS-signed attestation, so
+the receiver can reconstruct criome's exact signed preimage) — that
+**mirrors what criome produces without depending on `signal-criome`.** The crate holds a self-contained-vocabulary policy and
 carries no contract→contract dependency; the daemon projects this record
 to/from criome's `Attestation` at the boundary and delegates all signing
 and verification to its local criome daemon. The router never holds keys

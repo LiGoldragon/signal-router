@@ -703,6 +703,14 @@ pub struct Nonce(ReplayNonce);
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AttestationIssuedAt(TimestampNanos);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterPeerAttestation {
     pub signer: Signer,
     pub scheme: Scheme,
@@ -711,6 +719,7 @@ pub struct RouterPeerAttestation {
     pub content_digest: ContentDigest,
     pub issued_at: IssuedAt,
     pub nonce: Nonce,
+    pub attestation_issued_at: AttestationIssuedAt,
 }
 
 #[rustfmt::skip]
@@ -1944,6 +1953,25 @@ impl Nonce {
 #[rustfmt::skip]
 impl From<ReplayNonce> for Nonce {
     fn from(payload: ReplayNonce) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl AttestationIssuedAt {
+    pub fn new(payload: TimestampNanos) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &TimestampNanos {
+        &self.0
+    }
+    pub fn into_payload(self) -> TimestampNanos {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<TimestampNanos> for AttestationIssuedAt {
+    fn from(payload: TimestampNanos) -> Self {
         Self::new(payload)
     }
 }

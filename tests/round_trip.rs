@@ -12,7 +12,8 @@ use signal_router::{
 };
 use signal_router::{
     Channel, ChannelIdentifier, ContentDigest, Engine, EngineIdentifier, ForwardMarker,
-    ForwardedMessagePayload, Frame, FrameBody, Input, IssuedAt, Nonce, Output, OwnerIdentity,
+    AttestationIssuedAt, ForwardedMessagePayload, Frame, FrameBody, Input, IssuedAt, Nonce, Output,
+    OwnerIdentity,
     PublicKey, RemoteRouterIdentity, ReplayNonce, RoutedContractObject, RouterChannelState,
     RouterChannelStateQuery, RouterChannelStatus, RouterDaemonConfiguration,
     RouterDaemonConfigurationParts, RouterDeliveryStatus, RouterForwardRefusalReason,
@@ -73,6 +74,9 @@ fn forward_request() -> RouterForwardRequest {
             content_digest: ContentDigest::new("blake3-0011"),
             issued_at: IssuedAt::new(TimestampNanos::new(1_726_000_000_000_000_000)),
             nonce: Nonce::new(ReplayNonce::new("nonce-7f3a")),
+            attestation_issued_at: AttestationIssuedAt::new(TimestampNanos::new(
+                1_726_000_000_000_000_500,
+            )),
         }
         .into(),
         forwarded: ForwardMarker::Origin.into(),
@@ -229,7 +233,7 @@ fn router_forward_request_carries_contract_object_octets_without_decoding_them()
 fn router_forward_request_round_trips_through_nota_text() {
     round_trip_nota(
         Input::ForwardMessage(forward_request()),
-        "(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001] []) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a) Origin nonce-7f3a 1726000000000000000))",
+        "(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001] []) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a 1726000000000000500) Origin nonce-7f3a 1726000000000000000))",
     );
 }
 

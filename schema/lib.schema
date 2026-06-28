@@ -113,6 +113,14 @@
   ;; mirrors what criome produces; the receiving router projects it back
   ;; into criome's Attestation for VerifyAttestation. The router never
   ;; holds keys or verifies signatures itself.
+  ;; IssuedAt is the router's own forward timestamp, cross-checked against
+  ;; RouterForwardRequest.IssuedAt by the freshness/replay admission window.
+  ;; AttestationIssuedAt is the timestamp the criome daemon server-stamped
+  ;; into the BLS-signed attestation; the receiving router needs it to
+  ;; reconstruct criome's exact signed preimage when projecting this back
+  ;; into criome's Attestation for VerifyAttestation. The two differ because
+  ;; criome stamps its own clock at sign time; the offline verifier sets both
+  ;; to the same value.
   Signer RemoteRouterIdentity
   Scheme SignatureScheme
   PublicKey String
@@ -120,6 +128,7 @@
   ContentDigest String
   IssuedAt TimestampNanos
   Nonce ReplayNonce
+  AttestationIssuedAt TimestampNanos
   RouterPeerAttestation {
     Signer
     Scheme
@@ -128,6 +137,7 @@
     ContentDigest
     IssuedAt
     Nonce
+    AttestationIssuedAt
   }
 
   ;; Opaque contract-owned object carried by the router protocol. Router
