@@ -373,6 +373,7 @@ fn router_forward_refused_reply_round_trips_through_length_prefixed_frame_for_ev
         RouterForwardRefusalReason::ChannelUnauthorized,
         RouterForwardRefusalReason::AlreadyForwarded,
         RouterForwardRefusalReason::MirrorDisabled,
+        RouterForwardRefusalReason::SessionRequired,
     ] {
         let reply = Output::forward_refused(reason.into());
         assert_eq!(round_trip_reply(reply.clone()), reply);
@@ -390,6 +391,7 @@ fn router_forward_refusal_reason_is_closed_and_exhaustive() {
         RouterForwardRefusalReason::ChannelUnauthorized,
         RouterForwardRefusalReason::AlreadyForwarded,
         RouterForwardRefusalReason::MirrorDisabled,
+        RouterForwardRefusalReason::SessionRequired,
     ] {
         let observed = match reason {
             RouterForwardRefusalReason::UnknownPeer => "unknown-peer",
@@ -400,6 +402,7 @@ fn router_forward_refusal_reason_is_closed_and_exhaustive() {
             RouterForwardRefusalReason::ChannelUnauthorized => "channel-unauthorized",
             RouterForwardRefusalReason::AlreadyForwarded => "already-forwarded",
             RouterForwardRefusalReason::MirrorDisabled => "mirror-disabled",
+            RouterForwardRefusalReason::SessionRequired => "session-required",
         };
         assert!(!observed.is_empty());
     }

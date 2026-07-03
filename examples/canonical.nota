@@ -61,6 +61,11 @@
 ;; SetMirrorEnabled, default OFF, persisted; primary-nbmq.7) is off, so an
 ;; inbound routed-object forward is refused.
 (ForwardRefused MirrorDisabled)
+;; SessionRequired — a bare plaintext ForwardMessage was refused because this
+;; ingress is session-capable and requires the encrypted authenticated peer
+;; session (primary-nbmq.9): real mirror content crosses only the encrypted
+;; channel, never the cleartext path.
+(ForwardRefused SessionRequired)
 
 ;; Output::Unimplemented
 (Unimplemented (Summary NotInPrototypeScope))

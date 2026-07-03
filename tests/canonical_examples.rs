@@ -201,6 +201,10 @@ fn canonical_reply_examples_round_trip() {
             "(ForwardRefused MirrorDisabled)",
         ),
         (
+            Output::forward_refused(RouterForwardRefusalReason::SessionRequired.into()),
+            "(ForwardRefused SessionRequired)",
+        ),
+        (
             Output::Unimplemented(RouterObservationUnimplemented {
                 observation_scope: RouterObservationScope::Summary.into(),
                 observation_reason: RouterObservationUnimplementedReason::NotInPrototypeScope

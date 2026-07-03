@@ -203,6 +203,12 @@
     ;; inbound routed-object forward nor a local routed-object
     ;; origination is admitted while the switch is off.
     MirrorDisabled
+    ;; A bare plaintext ForwardMessage was refused because this ingress is
+    ;; session-capable and requires an encrypted authenticated peer session
+    ;; (SessionClientHello) for peer forwards. Emitted once the standing
+    ;; daemon runs the criome-rooted session (primary-nbmq.9): real mirror
+    ;; content may only cross the encrypted channel, never the cleartext path.
+    SessionRequired
   ]
   ForwardRefusalReason RouterForwardRefusalReason
   RouterForwardRefused ForwardRefusalReason

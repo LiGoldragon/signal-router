@@ -871,6 +871,7 @@ pub enum RouterForwardRefusalReason {
     ChannelUnauthorized,
     AlreadyForwarded,
     MirrorDisabled,
+    SessionRequired,
 }
 
 #[rustfmt::skip]
