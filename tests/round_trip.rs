@@ -20,6 +20,11 @@ use signal_router::{
     RouterPeerAttestation, RouterSummary, RouterSummaryQuery, Signature, SignatureScheme,
     TimestampNanos,
 };
+use signal_router::{
+    EphemeralPublicKey, RouterIdentityProof, RouterSessionAccepted, RouterSessionClientHello,
+    RouterSessionClientProof, RouterSessionData, RouterSessionRefused, RouterSessionServerHello,
+    SessionChallenge, SessionRefusalReason,
+};
 
 fn exchange() -> ExchangeIdentifier {
     ExchangeIdentifier::new(
@@ -255,7 +260,10 @@ fn router_request_heads_are_contract_local_operations() {
             "MessageTrace",
             "ChannelState",
             "ForwardMessage",
-            "SubmitRoutedObjects"
+            "SubmitRoutedObjects",
+            "SessionClientHello",
+            "SessionClientProof",
+            "SessionData"
         ]
     );
 }
@@ -640,4 +648,98 @@ fn bootstrap_document_owns_line_vocabulary_for_manager_and_router() {
 #[test]
 fn router_observation_operation_kind_round_trips_through_nota_text() {
     round_trip_nota(RouterObservationScope::MessageTrace, "MessageTrace");
+}
+
+// ─── Encrypted authenticated peer session (primary-nbmq.6) ──────────────
+
+fn identity_proof(signer: &str, challenge: &str) -> RouterIdentityProof {
+    RouterIdentityProof::new(
+        RemoteRouterIdentity::new(signer),
+        SignatureScheme::Bls12_381MinPk,
+        format!("public-key-{signer}"),
+        format!("signature-{signer}"),
+        format!("digest-{signer}-{challenge}"),
+        ReplayNonce::new(challenge),
+        TimestampNanos::new(4242),
+    )
+}
+
+#[test]
+fn session_client_hello_round_trips_through_length_prefixed_frame() {
+    let hello = RouterSessionClientHello::new(
+        SessionChallenge::new("challenge-initiator"),
+        EphemeralPublicKey::new("ephemeral-initiator"),
+    );
+    round_trip_request(Input::session_client_hello(hello));
+}
+
+#[test]
+fn session_server_hello_round_trips_carrying_the_responder_proof() {
+    let hello = RouterSessionServerHello::new(
+        SessionChallenge::new("challenge-responder"),
+        EphemeralPublicKey::new("ephemeral-responder"),
+        identity_proof("router-b", "challenge-initiator"),
+    );
+    let recovered = round_trip_reply(Output::session_server_hello(hello.clone()));
+    assert_eq!(recovered, Output::SessionServerHello(hello));
+}
+
+#[test]
+fn session_client_proof_round_trips_carrying_the_initiator_proof() {
+    let proof = identity_proof("router-a", "challenge-responder");
+    let payload = RouterSessionClientProof::new(proof.clone().into());
+    round_trip_request(Input::SessionClientProof(payload.clone()));
+    assert_eq!(payload.identity_proof(), &proof);
+}
+
+#[test]
+fn session_data_carries_opaque_sealed_octets_without_decoding_them() {
+    let sealed = vec![9_u64, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+    let data = RouterSessionData::from_octets(sealed.clone());
+    round_trip_request(Input::SessionData(RouterSessionData::from_octets(
+        sealed.clone(),
+    )));
+    assert_eq!(data.sealed_octets(), sealed.as_slice());
+}
+
+#[test]
+fn session_accepted_carries_the_key_confirmation_octets() {
+    let confirmation = vec![1_u64, 2, 3, 4];
+    let accepted = RouterSessionAccepted::from_confirmation(confirmation.clone());
+    let recovered = round_trip_reply(Output::SessionAccepted(accepted.clone()));
+    assert_eq!(recovered, Output::SessionAccepted(accepted.clone()));
+    assert_eq!(accepted.key_confirmation(), confirmation.as_slice());
+}
+
+#[test]
+fn session_refused_round_trips_for_every_reason() {
+    for reason in [
+        SessionRefusalReason::IdentityProofInvalid,
+        SessionRefusalReason::ChallengeMismatch,
+        SessionRefusalReason::HandshakeMalformed,
+        SessionRefusalReason::SessionCipherFailure,
+    ] {
+        let refused = RouterSessionRefused::new(reason.into());
+        let recovered = round_trip_reply(Output::SessionRefused(refused.clone()));
+        assert_eq!(recovered, Output::SessionRefused(refused.clone()));
+        assert_eq!(refused.reason(), reason);
+    }
+}
+
+#[test]
+fn session_refusal_reason_is_closed_and_exhaustive() {
+    for reason in [
+        SessionRefusalReason::IdentityProofInvalid,
+        SessionRefusalReason::ChallengeMismatch,
+        SessionRefusalReason::HandshakeMalformed,
+        SessionRefusalReason::SessionCipherFailure,
+    ] {
+        let observed = match reason {
+            SessionRefusalReason::IdentityProofInvalid => "identity-proof-invalid",
+            SessionRefusalReason::ChallengeMismatch => "challenge-mismatch",
+            SessionRefusalReason::HandshakeMalformed => "handshake-malformed",
+            SessionRefusalReason::SessionCipherFailure => "session-cipher-failure",
+        };
+        assert!(!observed.is_empty());
+    }
 }

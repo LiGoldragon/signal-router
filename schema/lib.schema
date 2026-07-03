@@ -14,7 +14,10 @@
  (MessageTrace RouterMessageTraceQuery)
  (ChannelState RouterChannelStateQuery)
  (ForwardMessage RouterForwardRequest)
- (SubmitRoutedObjects ForwardedMessagePayload)]
+ (SubmitRoutedObjects ForwardedMessagePayload)
+ (SessionClientHello RouterSessionClientHello)
+ (SessionClientProof RouterSessionClientProof)
+ (SessionData RouterSessionData)]
 [(Summary RouterSummary)
  (MessageTrace RouterMessageTrace)
  (MessageTraceMissing RouterMessageTraceMissing)
@@ -23,7 +26,11 @@
  (ForwardRefused RouterForwardRefused)
  (Unimplemented RouterObservationUnimplemented)
  (RoutedObjectsAccepted RouterRoutedObjectsAccepted)
- (RoutedObjectsRefused RouterRoutedObjectsRefused)]
+ (RoutedObjectsRefused RouterRoutedObjectsRefused)
+ (SessionServerHello RouterSessionServerHello)
+ (SessionAccepted RouterSessionAccepted)
+ (SessionRefused RouterSessionRefused)
+ (SessionData RouterSessionData)]
 {
   ObservationIdentifier String
   ActorIdentifier String
@@ -218,6 +225,120 @@
   ;; call synchronously drives that delivery (push, not poll). The reply
   ;; names the accepted origination slot.
   RouterRoutedObjectsAccepted { MessageSlot }
+
+  ;; ─── Encrypted authenticated peer session (primary-nbmq.6) ─────────
+  ;;
+  ;; A persistent, mutually-authenticated, encrypted session between peer
+  ;; routers replaces plaintext connect-per-forward. Establishment is a
+  ;; three-message handshake: each side issues the other a fresh random
+  ;; challenge and a per-session ephemeral X25519 public key, then proves
+  ;; its node identity with a criome-signed attestation binding {node
+  ;; identity, ephemeral key} under the PEER's challenge as the audit
+  ;; nonce. Each verifies the peer's proof against its OWN criome registry
+  ;; (a stranger fails UnknownSigner) and checks the proof nonce equals the
+  ;; challenge it issued (replay freshness, checked in the router, not
+  ;; criome). On mutual success both derive a shared secret by X25519 ECDH
+  ;; and key ChaCha20-Poly1305 for all session traffic; the ephemeral keys
+  ;; are per-session and discarded on close (forward secrecy). The BLS
+  ;; master key never leaves criome; the symmetric key never leaves the
+  ;; router process and is never persisted.
+  ;;
+  ;; 32 fresh random bytes, hex-encoded — the freshness anchor of one
+  ;; handshake. It is a peer's challenge; the proof answering it carries
+  ;; the same value as its audit Nonce.
+  SessionChallenge String
+  ;; A per-session X25519 public key, 32 bytes hex. Signature keys
+  ;; (BLS12-381) are NOT key-agreement keys, so a distinct ephemeral key
+  ;; is minted per session and vouched by the criome identity proof.
+  EphemeralPublicKey String
+
+  ;; The node identity proof presented at handshake. Structurally close to
+  ;; RouterPeerAttestation but a DISTINCT concept: it authenticates a node
+  ;; AND its per-session ephemeral key, not a forwarded object. ProofDigest
+  ;; is criome's signed digest over {node identity, ephemeral key, the
+  ;; peer's challenge}; ProofChallengeNonce is the peer's challenge (the
+  ;; audit nonce); ProofAttestationIssuedAt is criome's server stamp, which
+  ;; the verifier needs to reconstruct criome's exact signed preimage for
+  ;; VerifyAttestation. The router holds no keys and verifies no signatures
+  ;; itself.
+  ProofSigner RemoteRouterIdentity
+  ProofScheme SignatureScheme
+  ProofPublicKey String
+  ProofSignature String
+  ProofDigest String
+  ProofChallengeNonce ReplayNonce
+  ProofAttestationIssuedAt TimestampNanos
+  RouterIdentityProof {
+    ProofSigner
+    ProofScheme
+    ProofPublicKey
+    ProofSignature
+    ProofDigest
+    ProofChallengeNonce
+    ProofAttestationIssuedAt
+  }
+
+  ;; Handshake message 1 (initiator → responder): the initiator's fresh
+  ;; challenge and ephemeral public key. Unauthenticated on its own — the
+  ;; ephemeral key is bound into the initiator's later proof, so a
+  ;; man-in-the-middle key swap changes the signed digest and is rejected.
+  InitiatorChallenge SessionChallenge
+  InitiatorEphemeralKey EphemeralPublicKey
+  RouterSessionClientHello {
+    InitiatorChallenge
+    InitiatorEphemeralKey
+  }
+
+  ;; Handshake message 2 (responder → initiator): the responder's own fresh
+  ;; challenge and ephemeral key, plus its identity proof binding
+  ;; {responder identity, responder ephemeral key} under the initiator's
+  ;; challenge.
+  ResponderChallenge SessionChallenge
+  ResponderEphemeralKey EphemeralPublicKey
+  ResponderProof RouterIdentityProof
+  RouterSessionServerHello {
+    ResponderChallenge
+    ResponderEphemeralKey
+    ResponderProof
+  }
+
+  ;; Handshake message 3 (initiator → responder): the initiator's identity
+  ;; proof binding {initiator identity, initiator ephemeral key} under the
+  ;; responder's challenge.
+  InitiatorProof RouterIdentityProof
+  RouterSessionClientProof {
+    InitiatorProof
+  }
+
+  ;; Handshake message 4 (responder → initiator): both proofs verified and
+  ;; keys derived. The KeyConfirmation is an AEAD frame the initiator opens
+  ;; to confirm the shared key; its presence (versus SessionRefused) is the
+  ;; signal the session is up.
+  RouterSessionAccepted {
+    KeyConfirmation.(Vector Integer)
+  }
+
+  ;; A handshake refusal, fail-closed. IdentityProofInvalid covers every
+  ;; non-Valid criome decision (including UnknownSigner for a peer whose
+  ;; key this node does not hold); ChallengeMismatch is a proof whose nonce
+  ;; is not the challenge this node issued (a replayed proof).
+  SessionRefusalReason [
+    IdentityProofInvalid
+    ChallengeMismatch
+    HandshakeMalformed
+    SessionCipherFailure
+  ]
+  RefusalReason SessionRefusalReason
+  RouterSessionRefused { RefusalReason }
+
+  ;; An encrypted application frame carrying one AEAD-sealed signal-router
+  ;; forward exchange (a ForwardMessage request or its reply). The router
+  ;; seals the exact plaintext forward frame; SealedOctets is opaque
+  ;; ciphertext on the wire — the plaintext forward never travels in the
+  ;; clear once a session is up.
+  RouterSessionData {
+    SealedOctets.(Vector Integer)
+  }
 
   RouterSocketPath WirePath
   RouterSocketMode SocketMode

@@ -148,6 +148,140 @@ impl ForwardedMessagePayload {
     }
 }
 
+// ─── Encrypted authenticated peer session (primary-nbmq.6) ──────────────
+//
+// Ergonomic public constructors/accessors over the schema-generated session
+// vocabulary. The generated octet wrappers (`SealedOctets`, `KeyConfirmation`)
+// are crate-private, so — exactly as `RoutedContractObject` does for its
+// `PayloadOctets` — the public surface is hand-written here over primitives.
+// The runtime (`router`) projects these wire nouns into its transport types.
+
+impl RouterIdentityProof {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        signer: RemoteRouterIdentity,
+        scheme: SignatureScheme,
+        public_key: String,
+        signature: String,
+        digest: String,
+        challenge_nonce: ReplayNonce,
+        attestation_issued_at: TimestampNanos,
+    ) -> Self {
+        Self {
+            proof_signer: ProofSigner::new(signer),
+            proof_scheme: ProofScheme::new(scheme),
+            proof_public_key: ProofPublicKey::new(public_key),
+            proof_signature: ProofSignature::new(signature),
+            proof_digest: ProofDigest::new(digest),
+            proof_challenge_nonce: ProofChallengeNonce::new(challenge_nonce),
+            proof_attestation_issued_at: ProofAttestationIssuedAt::new(attestation_issued_at),
+        }
+    }
+
+    pub fn signer(&self) -> &RemoteRouterIdentity {
+        self.proof_signer.payload()
+    }
+
+    pub fn scheme(&self) -> &SignatureScheme {
+        self.proof_scheme.payload()
+    }
+
+    pub fn public_key(&self) -> &str {
+        self.proof_public_key.payload().as_str()
+    }
+
+    pub fn signature(&self) -> &str {
+        self.proof_signature.payload().as_str()
+    }
+
+    pub fn digest(&self) -> &str {
+        self.proof_digest.payload().as_str()
+    }
+
+    pub fn challenge_nonce(&self) -> &ReplayNonce {
+        self.proof_challenge_nonce.payload()
+    }
+
+    pub fn attestation_issued_at(&self) -> &TimestampNanos {
+        self.proof_attestation_issued_at.payload()
+    }
+}
+
+impl RouterSessionClientHello {
+    pub fn new(challenge: SessionChallenge, ephemeral_key: EphemeralPublicKey) -> Self {
+        Self {
+            initiator_challenge: InitiatorChallenge::new(challenge),
+            initiator_ephemeral_key: InitiatorEphemeralKey::new(ephemeral_key),
+        }
+    }
+
+    pub fn challenge(&self) -> &SessionChallenge {
+        self.initiator_challenge.payload()
+    }
+
+    pub fn ephemeral_key(&self) -> &EphemeralPublicKey {
+        self.initiator_ephemeral_key.payload()
+    }
+}
+
+impl RouterSessionServerHello {
+    pub fn new(
+        challenge: SessionChallenge,
+        ephemeral_key: EphemeralPublicKey,
+        proof: RouterIdentityProof,
+    ) -> Self {
+        Self {
+            responder_challenge: ResponderChallenge::new(challenge),
+            responder_ephemeral_key: ResponderEphemeralKey::new(ephemeral_key),
+            responder_proof: ResponderProof::new(proof),
+        }
+    }
+
+    pub fn challenge(&self) -> &SessionChallenge {
+        self.responder_challenge.payload()
+    }
+
+    pub fn ephemeral_key(&self) -> &EphemeralPublicKey {
+        self.responder_ephemeral_key.payload()
+    }
+
+    pub fn proof(&self) -> &RouterIdentityProof {
+        self.responder_proof.payload()
+    }
+}
+
+impl RouterSessionClientProof {
+    pub fn identity_proof(&self) -> &RouterIdentityProof {
+        self.payload().payload()
+    }
+}
+
+impl RouterSessionData {
+    pub fn from_octets(octets: Vec<Integer>) -> Self {
+        Self::new(SealedOctets::new(octets))
+    }
+
+    pub fn sealed_octets(&self) -> &[Integer] {
+        self.payload().payload().as_slice()
+    }
+}
+
+impl RouterSessionAccepted {
+    pub fn from_confirmation(octets: Vec<Integer>) -> Self {
+        Self::new(KeyConfirmation::new(octets))
+    }
+
+    pub fn key_confirmation(&self) -> &[Integer] {
+        self.payload().payload().as_slice()
+    }
+}
+
+impl RouterSessionRefused {
+    pub fn reason(&self) -> SessionRefusalReason {
+        *self.payload().payload()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RouterDaemonConfigurationParts {
     pub router_socket_path: WirePath,

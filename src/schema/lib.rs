@@ -911,6 +911,243 @@ pub struct RouterRoutedObjectsAccepted(MessageSlot);
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SessionChallenge(String);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct EphemeralPublicKey(String);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProofSigner(RemoteRouterIdentity);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProofScheme(SignatureScheme);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProofPublicKey(String);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProofSignature(String);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProofDigest(String);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProofChallengeNonce(ReplayNonce);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProofAttestationIssuedAt(TimestampNanos);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterIdentityProof {
+    pub proof_signer: ProofSigner,
+    pub proof_scheme: ProofScheme,
+    pub proof_public_key: ProofPublicKey,
+    pub proof_signature: ProofSignature,
+    pub proof_digest: ProofDigest,
+    pub proof_challenge_nonce: ProofChallengeNonce,
+    pub proof_attestation_issued_at: ProofAttestationIssuedAt,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct InitiatorChallenge(SessionChallenge);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct InitiatorEphemeralKey(EphemeralPublicKey);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterSessionClientHello {
+    pub initiator_challenge: InitiatorChallenge,
+    pub initiator_ephemeral_key: InitiatorEphemeralKey,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ResponderChallenge(SessionChallenge);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ResponderEphemeralKey(EphemeralPublicKey);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ResponderProof(RouterIdentityProof);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterSessionServerHello {
+    pub responder_challenge: ResponderChallenge,
+    pub responder_ephemeral_key: ResponderEphemeralKey,
+    pub responder_proof: ResponderProof,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct InitiatorProof(RouterIdentityProof);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterSessionClientProof(InitiatorProof);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct KeyConfirmation(Vec<Integer>);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterSessionAccepted(KeyConfirmation);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+pub enum SessionRefusalReason {
+    IdentityProofInvalid,
+    ChallengeMismatch,
+    HandshakeMalformed,
+    SessionCipherFailure,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RefusalReason(SessionRefusalReason);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterSessionRefused(RefusalReason);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct SealedOctets(Vec<Integer>);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterSessionData(SealedOctets);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterSocketPath(WirePath);
 
 #[rustfmt::skip]
@@ -1026,6 +1263,9 @@ pub enum Input {
     ChannelState(RouterChannelStateQuery),
     ForwardMessage(RouterForwardRequest),
     SubmitRoutedObjects(ForwardedMessagePayload),
+    SessionClientHello(RouterSessionClientHello),
+    SessionClientProof(RouterSessionClientProof),
+    SessionData(RouterSessionData),
 }
 
 #[rustfmt::skip]
@@ -1044,6 +1284,10 @@ pub enum Output {
     Unimplemented(RouterObservationUnimplemented),
     RoutedObjectsAccepted(RouterRoutedObjectsAccepted),
     RoutedObjectsRefused(RouterRoutedObjectsRefused),
+    SessionServerHello(RouterSessionServerHello),
+    SessionAccepted(RouterSessionAccepted),
+    SessionRefused(RouterSessionRefused),
+    SessionData(RouterSessionData),
 }
 
 #[rustfmt::skip]
@@ -2225,6 +2469,424 @@ impl From<MessageSlot> for RouterRoutedObjectsAccepted {
 }
 
 #[rustfmt::skip]
+impl SessionChallenge {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for SessionChallenge {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl EphemeralPublicKey {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for EphemeralPublicKey {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ProofSigner {
+    pub fn new(payload: RemoteRouterIdentity) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RemoteRouterIdentity {
+        &self.0
+    }
+    pub fn into_payload(self) -> RemoteRouterIdentity {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RemoteRouterIdentity> for ProofSigner {
+    fn from(payload: RemoteRouterIdentity) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ProofScheme {
+    pub fn new(payload: SignatureScheme) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SignatureScheme {
+        &self.0
+    }
+    pub fn into_payload(self) -> SignatureScheme {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SignatureScheme> for ProofScheme {
+    fn from(payload: SignatureScheme) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ProofPublicKey {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ProofPublicKey {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ProofSignature {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ProofSignature {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ProofDigest {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ProofDigest {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ProofChallengeNonce {
+    pub fn new(payload: ReplayNonce) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ReplayNonce {
+        &self.0
+    }
+    pub fn into_payload(self) -> ReplayNonce {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ReplayNonce> for ProofChallengeNonce {
+    fn from(payload: ReplayNonce) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ProofAttestationIssuedAt {
+    pub fn new(payload: TimestampNanos) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &TimestampNanos {
+        &self.0
+    }
+    pub fn into_payload(self) -> TimestampNanos {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<TimestampNanos> for ProofAttestationIssuedAt {
+    fn from(payload: TimestampNanos) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl InitiatorChallenge {
+    pub fn new(payload: SessionChallenge) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SessionChallenge {
+        &self.0
+    }
+    pub fn into_payload(self) -> SessionChallenge {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SessionChallenge> for InitiatorChallenge {
+    fn from(payload: SessionChallenge) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl InitiatorEphemeralKey {
+    pub fn new(payload: EphemeralPublicKey) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &EphemeralPublicKey {
+        &self.0
+    }
+    pub fn into_payload(self) -> EphemeralPublicKey {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<EphemeralPublicKey> for InitiatorEphemeralKey {
+    fn from(payload: EphemeralPublicKey) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ResponderChallenge {
+    pub fn new(payload: SessionChallenge) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SessionChallenge {
+        &self.0
+    }
+    pub fn into_payload(self) -> SessionChallenge {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SessionChallenge> for ResponderChallenge {
+    fn from(payload: SessionChallenge) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ResponderEphemeralKey {
+    pub fn new(payload: EphemeralPublicKey) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &EphemeralPublicKey {
+        &self.0
+    }
+    pub fn into_payload(self) -> EphemeralPublicKey {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<EphemeralPublicKey> for ResponderEphemeralKey {
+    fn from(payload: EphemeralPublicKey) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ResponderProof {
+    pub fn new(payload: RouterIdentityProof) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RouterIdentityProof {
+        &self.0
+    }
+    pub fn into_payload(self) -> RouterIdentityProof {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RouterIdentityProof> for ResponderProof {
+    fn from(payload: RouterIdentityProof) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl InitiatorProof {
+    pub fn new(payload: RouterIdentityProof) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RouterIdentityProof {
+        &self.0
+    }
+    pub fn into_payload(self) -> RouterIdentityProof {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RouterIdentityProof> for InitiatorProof {
+    fn from(payload: RouterIdentityProof) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterSessionClientProof {
+    pub fn new(payload: InitiatorProof) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &InitiatorProof {
+        &self.0
+    }
+    pub fn into_payload(self) -> InitiatorProof {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<InitiatorProof> for RouterSessionClientProof {
+    fn from(payload: InitiatorProof) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl KeyConfirmation {
+    pub fn new(payload: Vec<Integer>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Vec<Integer> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Vec<Integer> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Vec<Integer>> for KeyConfirmation {
+    fn from(payload: Vec<Integer>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterSessionAccepted {
+    pub fn new(payload: KeyConfirmation) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &KeyConfirmation {
+        &self.0
+    }
+    pub fn into_payload(self) -> KeyConfirmation {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<KeyConfirmation> for RouterSessionAccepted {
+    fn from(payload: KeyConfirmation) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RefusalReason {
+    pub fn new(payload: SessionRefusalReason) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SessionRefusalReason {
+        &self.0
+    }
+    pub fn into_payload(self) -> SessionRefusalReason {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SessionRefusalReason> for RefusalReason {
+    fn from(payload: SessionRefusalReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterSessionRefused {
+    pub fn new(payload: RefusalReason) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &RefusalReason {
+        &self.0
+    }
+    pub fn into_payload(self) -> RefusalReason {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<RefusalReason> for RouterSessionRefused {
+    fn from(payload: RefusalReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl SealedOctets {
+    pub fn new(payload: Vec<Integer>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Vec<Integer> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Vec<Integer> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Vec<Integer>> for SealedOctets {
+    fn from(payload: Vec<Integer>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterSessionData {
+    pub fn new(payload: SealedOctets) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SealedOctets {
+        &self.0
+    }
+    pub fn into_payload(self) -> SealedOctets {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SealedOctets> for RouterSessionData {
+    fn from(payload: SealedOctets) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl RouterSocketPath {
     pub fn new(payload: WirePath) -> Self {
         Self(payload)
@@ -2473,6 +3135,15 @@ impl Input {
     pub fn submit_routed_objects(payload: ForwardedMessagePayload) -> Self {
         Self::SubmitRoutedObjects(payload)
     }
+    pub fn session_client_hello(payload: RouterSessionClientHello) -> Self {
+        Self::SessionClientHello(payload)
+    }
+    pub fn session_client_proof(payload: InitiatorProof) -> Self {
+        Self::SessionClientProof(RouterSessionClientProof::new(payload))
+    }
+    pub fn session_data(payload: SealedOctets) -> Self {
+        Self::SessionData(RouterSessionData::new(payload))
+    }
 }
 
 #[rustfmt::skip]
@@ -2503,6 +3174,18 @@ impl Output {
     }
     pub fn routed_objects_refused(payload: ForwardRefusalReason) -> Self {
         Self::RoutedObjectsRefused(RouterRoutedObjectsRefused::new(payload))
+    }
+    pub fn session_server_hello(payload: RouterSessionServerHello) -> Self {
+        Self::SessionServerHello(payload)
+    }
+    pub fn session_accepted(payload: KeyConfirmation) -> Self {
+        Self::SessionAccepted(RouterSessionAccepted::new(payload))
+    }
+    pub fn session_refused(payload: RefusalReason) -> Self {
+        Self::SessionRefused(RouterSessionRefused::new(payload))
+    }
+    pub fn session_data(payload: SealedOctets) -> Self {
+        Self::SessionData(RouterSessionData::new(payload))
     }
 }
 
@@ -2577,6 +3260,27 @@ impl From<ForwardedMessagePayload> for Input {
 }
 
 #[rustfmt::skip]
+impl From<RouterSessionClientHello> for Input {
+    fn from(payload: RouterSessionClientHello) -> Self {
+        Self::SessionClientHello(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<RouterSessionClientProof> for Input {
+    fn from(payload: RouterSessionClientProof) -> Self {
+        Self::SessionClientProof(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<RouterSessionData> for Input {
+    fn from(payload: RouterSessionData) -> Self {
+        Self::SessionData(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl From<RouterSummary> for Output {
     fn from(payload: RouterSummary) -> Self {
         Self::Summary(payload)
@@ -2640,6 +3344,34 @@ impl From<RouterRoutedObjectsRefused> for Output {
 }
 
 #[rustfmt::skip]
+impl From<RouterSessionServerHello> for Output {
+    fn from(payload: RouterSessionServerHello) -> Self {
+        Self::SessionServerHello(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<RouterSessionAccepted> for Output {
+    fn from(payload: RouterSessionAccepted) -> Self {
+        Self::SessionAccepted(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<RouterSessionRefused> for Output {
+    fn from(payload: RouterSessionRefused) -> Self {
+        Self::SessionRefused(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<RouterSessionData> for Output {
+    fn from(payload: RouterSessionData) -> Self {
+        Self::SessionData(payload)
+    }
+}
+
+#[rustfmt::skip]
 #[cfg(feature = "nota-text")]
 impl std::str::FromStr for Input {
     type Err = NotaDecodeError;
@@ -2678,6 +3410,9 @@ pub mod short_header {
     pub const INPUT_CHANNEL_STATE: u64 = 0x0002000000000000;
     pub const INPUT_FORWARD_MESSAGE: u64 = 0x0003000000000000;
     pub const INPUT_SUBMIT_ROUTED_OBJECTS: u64 = 0x0004000000000000;
+    pub const INPUT_SESSION_CLIENT_HELLO: u64 = 0x0005000000000000;
+    pub const INPUT_SESSION_CLIENT_PROOF: u64 = 0x0006000000000000;
+    pub const INPUT_SESSION_DATA: u64 = 0x0007000000000000;
     pub const OUTPUT_SUMMARY: u64 = 0x0100000000000000;
     pub const OUTPUT_MESSAGE_TRACE: u64 = 0x0101000000000000;
     pub const OUTPUT_MESSAGE_TRACE_MISSING: u64 = 0x0102000000000000;
@@ -2687,6 +3422,10 @@ pub mod short_header {
     pub const OUTPUT_UNIMPLEMENTED: u64 = 0x0106000000000000;
     pub const OUTPUT_ROUTED_OBJECTS_ACCEPTED: u64 = 0x0107000000000000;
     pub const OUTPUT_ROUTED_OBJECTS_REFUSED: u64 = 0x0108000000000000;
+    pub const OUTPUT_SESSION_SERVER_HELLO: u64 = 0x0109000000000000;
+    pub const OUTPUT_SESSION_ACCEPTED: u64 = 0x010A000000000000;
+    pub const OUTPUT_SESSION_REFUSED: u64 = 0x010B000000000000;
+    pub const OUTPUT_SESSION_DATA: u64 = 0x010C000000000000;
 }
 
 #[rustfmt::skip]
@@ -2745,6 +3484,9 @@ pub enum InputRoute {
     ChannelState,
     ForwardMessage,
     SubmitRoutedObjects,
+    SessionClientHello,
+    SessionClientProof,
+    SessionData,
 }
 
 #[rustfmt::skip]
@@ -2772,6 +3514,10 @@ pub enum OutputRoute {
     Unimplemented,
     RoutedObjectsAccepted,
     RoutedObjectsRefused,
+    SessionServerHello,
+    SessionAccepted,
+    SessionRefused,
+    SessionData,
 }
 
 #[rustfmt::skip]
@@ -2783,6 +3529,9 @@ impl Input {
             Self::ChannelState(_) => InputRoute::ChannelState,
             Self::ForwardMessage(_) => InputRoute::ForwardMessage,
             Self::SubmitRoutedObjects(_) => InputRoute::SubmitRoutedObjects,
+            Self::SessionClientHello(_) => InputRoute::SessionClientHello,
+            Self::SessionClientProof(_) => InputRoute::SessionClientProof,
+            Self::SessionData(_) => InputRoute::SessionData,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -2792,6 +3541,9 @@ impl Input {
             Self::ChannelState(_) => short_header::INPUT_CHANNEL_STATE,
             Self::ForwardMessage(_) => short_header::INPUT_FORWARD_MESSAGE,
             Self::SubmitRoutedObjects(_) => short_header::INPUT_SUBMIT_ROUTED_OBJECTS,
+            Self::SessionClientHello(_) => short_header::INPUT_SESSION_CLIENT_HELLO,
+            Self::SessionClientProof(_) => short_header::INPUT_SESSION_CLIENT_PROOF,
+            Self::SessionData(_) => short_header::INPUT_SESSION_DATA,
         }
     }
     pub fn route_from_short_header(header: u64) -> Result<InputRoute, SignalFrameError> {
@@ -2803,6 +3555,13 @@ impl Input {
             short_header::INPUT_SUBMIT_ROUTED_OBJECTS => {
                 Ok(InputRoute::SubmitRoutedObjects)
             }
+            short_header::INPUT_SESSION_CLIENT_HELLO => {
+                Ok(InputRoute::SessionClientHello)
+            }
+            short_header::INPUT_SESSION_CLIENT_PROOF => {
+                Ok(InputRoute::SessionClientProof)
+            }
+            short_header::INPUT_SESSION_DATA => Ok(InputRoute::SessionData),
             _ => {
                 Err(SignalFrameError::UnknownHeader {
                     root_enum: "Input",
@@ -2862,6 +3621,10 @@ impl Output {
             Self::Unimplemented(_) => OutputRoute::Unimplemented,
             Self::RoutedObjectsAccepted(_) => OutputRoute::RoutedObjectsAccepted,
             Self::RoutedObjectsRefused(_) => OutputRoute::RoutedObjectsRefused,
+            Self::SessionServerHello(_) => OutputRoute::SessionServerHello,
+            Self::SessionAccepted(_) => OutputRoute::SessionAccepted,
+            Self::SessionRefused(_) => OutputRoute::SessionRefused,
+            Self::SessionData(_) => OutputRoute::SessionData,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -2877,6 +3640,10 @@ impl Output {
                 short_header::OUTPUT_ROUTED_OBJECTS_ACCEPTED
             }
             Self::RoutedObjectsRefused(_) => short_header::OUTPUT_ROUTED_OBJECTS_REFUSED,
+            Self::SessionServerHello(_) => short_header::OUTPUT_SESSION_SERVER_HELLO,
+            Self::SessionAccepted(_) => short_header::OUTPUT_SESSION_ACCEPTED,
+            Self::SessionRefused(_) => short_header::OUTPUT_SESSION_REFUSED,
+            Self::SessionData(_) => short_header::OUTPUT_SESSION_DATA,
         }
     }
     pub fn route_from_short_header(
@@ -2898,6 +3665,12 @@ impl Output {
             short_header::OUTPUT_ROUTED_OBJECTS_REFUSED => {
                 Ok(OutputRoute::RoutedObjectsRefused)
             }
+            short_header::OUTPUT_SESSION_SERVER_HELLO => {
+                Ok(OutputRoute::SessionServerHello)
+            }
+            short_header::OUTPUT_SESSION_ACCEPTED => Ok(OutputRoute::SessionAccepted),
+            short_header::OUTPUT_SESSION_REFUSED => Ok(OutputRoute::SessionRefused),
+            short_header::OUTPUT_SESSION_DATA => Ok(OutputRoute::SessionData),
             _ => {
                 Err(SignalFrameError::UnknownHeader {
                     root_enum: "Output",
@@ -2954,6 +3727,9 @@ impl signal_frame::SignalOperationHeads for Input {
         "ChannelState",
         "ForwardMessage",
         "SubmitRoutedObjects",
+        "SessionClientHello",
+        "SessionClientProof",
+        "SessionData",
     ];
 }
 #[rustfmt::skip]
