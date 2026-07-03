@@ -894,6 +894,14 @@ pub struct RouterForwardRefused(ForwardRefusalReason);
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterRoutedObjectsAccepted(MessageSlot);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterSocketPath(WirePath);
 
 #[rustfmt::skip]
@@ -1008,6 +1016,7 @@ pub enum Input {
     MessageTrace(RouterMessageTraceQuery),
     ChannelState(RouterChannelStateQuery),
     ForwardMessage(RouterForwardRequest),
+    SubmitRoutedObjects(ForwardedMessagePayload),
 }
 
 #[rustfmt::skip]
@@ -1024,6 +1033,7 @@ pub enum Output {
     ForwardAccepted(RouterForwardAccepted),
     ForwardRefused(RouterForwardRefused),
     Unimplemented(RouterObservationUnimplemented),
+    RoutedObjectsAccepted(RouterRoutedObjectsAccepted),
 }
 
 #[rustfmt::skip]
@@ -2167,6 +2177,25 @@ impl From<ForwardRefusalReason> for RouterForwardRefused {
 }
 
 #[rustfmt::skip]
+impl RouterRoutedObjectsAccepted {
+    pub fn new(payload: MessageSlot) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &MessageSlot {
+        &self.0
+    }
+    pub fn into_payload(self) -> MessageSlot {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<MessageSlot> for RouterRoutedObjectsAccepted {
+    fn from(payload: MessageSlot) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl RouterSocketPath {
     pub fn new(payload: WirePath) -> Self {
         Self(payload)
@@ -2412,6 +2441,9 @@ impl Input {
     pub fn forward_message(payload: RouterForwardRequest) -> Self {
         Self::ForwardMessage(payload)
     }
+    pub fn submit_routed_objects(payload: ForwardedMessagePayload) -> Self {
+        Self::SubmitRoutedObjects(payload)
+    }
 }
 
 #[rustfmt::skip]
@@ -2436,6 +2468,9 @@ impl Output {
     }
     pub fn unimplemented(payload: RouterObservationUnimplemented) -> Self {
         Self::Unimplemented(payload)
+    }
+    pub fn routed_objects_accepted(payload: MessageSlot) -> Self {
+        Self::RoutedObjectsAccepted(RouterRoutedObjectsAccepted::new(payload))
     }
 }
 
@@ -2503,6 +2538,13 @@ impl From<RouterForwardRequest> for Input {
 }
 
 #[rustfmt::skip]
+impl From<ForwardedMessagePayload> for Input {
+    fn from(payload: ForwardedMessagePayload) -> Self {
+        Self::SubmitRoutedObjects(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl From<RouterSummary> for Output {
     fn from(payload: RouterSummary) -> Self {
         Self::Summary(payload)
@@ -2552,6 +2594,13 @@ impl From<RouterObservationUnimplemented> for Output {
 }
 
 #[rustfmt::skip]
+impl From<RouterRoutedObjectsAccepted> for Output {
+    fn from(payload: RouterRoutedObjectsAccepted) -> Self {
+        Self::RoutedObjectsAccepted(payload)
+    }
+}
+
+#[rustfmt::skip]
 #[cfg(feature = "nota-text")]
 impl std::str::FromStr for Input {
     type Err = NotaDecodeError;
@@ -2589,6 +2638,7 @@ pub mod short_header {
     pub const INPUT_MESSAGE_TRACE: u64 = 0x0001000000000000;
     pub const INPUT_CHANNEL_STATE: u64 = 0x0002000000000000;
     pub const INPUT_FORWARD_MESSAGE: u64 = 0x0003000000000000;
+    pub const INPUT_SUBMIT_ROUTED_OBJECTS: u64 = 0x0004000000000000;
     pub const OUTPUT_SUMMARY: u64 = 0x0100000000000000;
     pub const OUTPUT_MESSAGE_TRACE: u64 = 0x0101000000000000;
     pub const OUTPUT_MESSAGE_TRACE_MISSING: u64 = 0x0102000000000000;
@@ -2596,6 +2646,7 @@ pub mod short_header {
     pub const OUTPUT_FORWARD_ACCEPTED: u64 = 0x0104000000000000;
     pub const OUTPUT_FORWARD_REFUSED: u64 = 0x0105000000000000;
     pub const OUTPUT_UNIMPLEMENTED: u64 = 0x0106000000000000;
+    pub const OUTPUT_ROUTED_OBJECTS_ACCEPTED: u64 = 0x0107000000000000;
 }
 
 #[rustfmt::skip]
@@ -2653,6 +2704,7 @@ pub enum InputRoute {
     MessageTrace,
     ChannelState,
     ForwardMessage,
+    SubmitRoutedObjects,
 }
 
 #[rustfmt::skip]
@@ -2678,6 +2730,7 @@ pub enum OutputRoute {
     ForwardAccepted,
     ForwardRefused,
     Unimplemented,
+    RoutedObjectsAccepted,
 }
 
 #[rustfmt::skip]
@@ -2688,6 +2741,7 @@ impl Input {
             Self::MessageTrace(_) => InputRoute::MessageTrace,
             Self::ChannelState(_) => InputRoute::ChannelState,
             Self::ForwardMessage(_) => InputRoute::ForwardMessage,
+            Self::SubmitRoutedObjects(_) => InputRoute::SubmitRoutedObjects,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -2696,6 +2750,7 @@ impl Input {
             Self::MessageTrace(_) => short_header::INPUT_MESSAGE_TRACE,
             Self::ChannelState(_) => short_header::INPUT_CHANNEL_STATE,
             Self::ForwardMessage(_) => short_header::INPUT_FORWARD_MESSAGE,
+            Self::SubmitRoutedObjects(_) => short_header::INPUT_SUBMIT_ROUTED_OBJECTS,
         }
     }
     pub fn route_from_short_header(header: u64) -> Result<InputRoute, SignalFrameError> {
@@ -2704,6 +2759,9 @@ impl Input {
             short_header::INPUT_MESSAGE_TRACE => Ok(InputRoute::MessageTrace),
             short_header::INPUT_CHANNEL_STATE => Ok(InputRoute::ChannelState),
             short_header::INPUT_FORWARD_MESSAGE => Ok(InputRoute::ForwardMessage),
+            short_header::INPUT_SUBMIT_ROUTED_OBJECTS => {
+                Ok(InputRoute::SubmitRoutedObjects)
+            }
             _ => {
                 Err(SignalFrameError::UnknownHeader {
                     root_enum: "Input",
@@ -2761,6 +2819,7 @@ impl Output {
             Self::ForwardAccepted(_) => OutputRoute::ForwardAccepted,
             Self::ForwardRefused(_) => OutputRoute::ForwardRefused,
             Self::Unimplemented(_) => OutputRoute::Unimplemented,
+            Self::RoutedObjectsAccepted(_) => OutputRoute::RoutedObjectsAccepted,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -2772,6 +2831,9 @@ impl Output {
             Self::ForwardAccepted(_) => short_header::OUTPUT_FORWARD_ACCEPTED,
             Self::ForwardRefused(_) => short_header::OUTPUT_FORWARD_REFUSED,
             Self::Unimplemented(_) => short_header::OUTPUT_UNIMPLEMENTED,
+            Self::RoutedObjectsAccepted(_) => {
+                short_header::OUTPUT_ROUTED_OBJECTS_ACCEPTED
+            }
         }
     }
     pub fn route_from_short_header(
@@ -2787,6 +2849,9 @@ impl Output {
             short_header::OUTPUT_FORWARD_ACCEPTED => Ok(OutputRoute::ForwardAccepted),
             short_header::OUTPUT_FORWARD_REFUSED => Ok(OutputRoute::ForwardRefused),
             short_header::OUTPUT_UNIMPLEMENTED => Ok(OutputRoute::Unimplemented),
+            short_header::OUTPUT_ROUTED_OBJECTS_ACCEPTED => {
+                Ok(OutputRoute::RoutedObjectsAccepted)
+            }
             _ => {
                 Err(SignalFrameError::UnknownHeader {
                     root_enum: "Output",
@@ -2842,6 +2907,7 @@ impl signal_frame::SignalOperationHeads for Input {
         "MessageTrace",
         "ChannelState",
         "ForwardMessage",
+        "SubmitRoutedObjects",
     ];
 }
 #[rustfmt::skip]

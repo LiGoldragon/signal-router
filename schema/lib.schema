@@ -13,14 +13,16 @@
 [(Summary RouterSummaryQuery)
  (MessageTrace RouterMessageTraceQuery)
  (ChannelState RouterChannelStateQuery)
- (ForwardMessage RouterForwardRequest)]
+ (ForwardMessage RouterForwardRequest)
+ (SubmitRoutedObjects ForwardedMessagePayload)]
 [(Summary RouterSummary)
  (MessageTrace RouterMessageTrace)
  (MessageTraceMissing RouterMessageTraceMissing)
  (ChannelState RouterChannelState)
  (ForwardAccepted RouterForwardAccepted)
  (ForwardRefused RouterForwardRefused)
- (Unimplemented RouterObservationUnimplemented)]
+ (Unimplemented RouterObservationUnimplemented)
+ (RoutedObjectsAccepted RouterRoutedObjectsAccepted)]
 {
   ObservationIdentifier String
   ActorIdentifier String
@@ -191,6 +193,19 @@
   ]
   ForwardRefusalReason RouterForwardRefusalReason
   RouterForwardRefused ForwardRefusalReason
+
+  ;; ─── Local origination hand-off ───────────────────────────────────
+  ;;
+  ;; The push seam by which a co-resident component (Spirit, Criome) hands
+  ;; the standing router daemon a sealed contract object to originate a
+  ;; cross-node forward on its own — replacing the hand-run witness sender.
+  ;; The component connects to its own working socket and submits a
+  ;; ForwardedMessagePayload (source/destination actors, an optional body,
+  ;; and the RoutedObjects to carry). The daemon marks it Origin, resolves
+  ;; the destination to a peer route, attests, and forwards — the submit
+  ;; call synchronously drives that delivery (push, not poll). The reply
+  ;; names the accepted origination slot.
+  RouterRoutedObjectsAccepted { MessageSlot }
 
   RouterSocketPath WirePath
   RouterSocketMode SocketMode

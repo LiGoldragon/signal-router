@@ -107,6 +107,16 @@ fn mirror_object() -> RoutedContractObject {
     )
 }
 
+fn routed_object_submission() -> ForwardedMessagePayload {
+    ForwardedMessagePayload::new(
+        String::from("spirit").into(),
+        String::from("spirit-peer").into(),
+        String::from("mirror-append"),
+        Vec::new(),
+        vec![mirror_object()],
+    )
+}
+
 fn round_trip_request(request: Input) {
     let frame = Frame::new(FrameBody::Request {
         exchange: exchange(),
@@ -240,7 +250,13 @@ fn router_forward_request_round_trips_through_nota_text() {
 fn router_request_heads_are_contract_local_operations() {
     assert_eq!(
         <Input as SignalOperationHeads>::HEADS,
-        &["Summary", "MessageTrace", "ChannelState", "ForwardMessage"]
+        &[
+            "Summary",
+            "MessageTrace",
+            "ChannelState",
+            "ForwardMessage",
+            "SubmitRoutedObjects"
+        ]
     );
 }
 
@@ -312,6 +328,17 @@ fn router_message_trace_missing_reply_round_trips_through_length_prefixed_frame(
 #[test]
 fn router_forward_accepted_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::forward_accepted(7.into());
+    assert_eq!(round_trip_reply(reply.clone()), reply);
+}
+
+#[test]
+fn router_origin_submission_round_trips_through_length_prefixed_frame() {
+    round_trip_request(Input::SubmitRoutedObjects(routed_object_submission()));
+}
+
+#[test]
+fn routed_objects_accepted_reply_round_trips_through_length_prefixed_frame() {
+    let reply = Output::routed_objects_accepted(11.into());
     assert_eq!(round_trip_reply(reply.clone()), reply);
 }
 

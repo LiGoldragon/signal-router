@@ -18,8 +18,8 @@ use signal_router::{
     RouterDaemonConfigurationParts, RouterDeliveryStatus, RouterForwardRefusalReason,
     RouterForwardRequest, RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
     RouterObservationScope, RouterObservationUnimplemented, RouterObservationUnimplementedReason,
-    RouterPeerAttestation, RouterSummary, RouterSummaryQuery, Signature, SignatureScheme,
-    TailnetAddress, TimestampNanos,
+    RouterPeerAttestation, RoutedContractObject, RouterSummary, RouterSummaryQuery, Signature,
+    SignatureScheme, TailnetAddress, TimestampNanos,
 };
 
 const CANONICAL: &str = include_str!("../examples/canonical.nota");
@@ -69,6 +69,21 @@ fn forward_request() -> RouterForwardRequest {
     }
 }
 
+fn routed_object_submission() -> ForwardedMessagePayload {
+    ForwardedMessagePayload::new(
+        String::from("spirit").into(),
+        String::from("spirit-peer").into(),
+        String::from("mirror-append"),
+        Vec::new(),
+        vec![RoutedContractObject::new(
+            String::from("signal-mirror").into(),
+            String::from("NotifyObject").into(),
+            3.into(),
+            vec![1, 2, 3],
+        )],
+    )
+}
+
 #[test]
 fn canonical_request_examples_round_trip() {
     let expected: Vec<(Input, &str)> = vec![
@@ -93,6 +108,10 @@ fn canonical_request_examples_round_trip() {
         (
             Input::ForwardMessage(forward_request()),
             "(ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001] []) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a 1726000000000000500) Origin nonce-7f3a 1726000000000000000))",
+        ),
+        (
+            Input::SubmitRoutedObjects(routed_object_submission()),
+            "(SubmitRoutedObjects (spirit spirit-peer mirror-append [] [(signal-mirror NotifyObject 3 [1 2 3])]))",
         ),
     ];
 
@@ -184,6 +203,10 @@ fn canonical_reply_examples_round_trip() {
                     .into(),
             }),
             "(Unimplemented (Summary NotInPrototypeScope))",
+        ),
+        (
+            Output::routed_objects_accepted(11.into()),
+            "(RoutedObjectsAccepted 11)",
         ),
     ];
 

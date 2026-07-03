@@ -25,6 +25,12 @@
 ;; (Origin = not yet forwarded), a replay nonce, and the issue timestamp.
 (ForwardMessage ((ouranos-mind prometheus-responder [hello over the tailnet] [digest-001] []) (prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a 1726000000000000500) Origin nonce-7f3a 1726000000000000000))
 
+;; Input::SubmitRoutedObjects — the local origination hand-off: a co-resident
+;; component hands its own router a payload (source/destination actors, a
+;; body, empty attachments, and the routed contract objects to carry) for the
+;; daemon to originate as a cross-node forward on its own.
+(SubmitRoutedObjects (spirit spirit-peer mirror-append [] [(signal-mirror NotifyObject 3 [1 2 3])]))
+
 ;; ─── Replies ──────────────────────────────────────────────────────
 
 ;; Output::Summary
@@ -54,6 +60,10 @@
 
 ;; Output::Unimplemented
 (Unimplemented (Summary NotInPrototypeScope))
+
+;; Output::RoutedObjectsAccepted — the router accepted a local origination
+;; submission and minted this durable slot for the outbound forward.
+(RoutedObjectsAccepted 11)
 
 ;; ─── Bootstrap operations ─────────────────────────────────────────
 
