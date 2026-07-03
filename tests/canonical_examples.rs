@@ -197,6 +197,10 @@ fn canonical_reply_examples_round_trip() {
             "(ForwardRefused AlreadyForwarded)",
         ),
         (
+            Output::forward_refused(RouterForwardRefusalReason::MirrorDisabled.into()),
+            "(ForwardRefused MirrorDisabled)",
+        ),
+        (
             Output::Unimplemented(RouterObservationUnimplemented {
                 observation_scope: RouterObservationScope::Summary.into(),
                 observation_reason: RouterObservationUnimplementedReason::NotInPrototypeScope
@@ -207,6 +211,10 @@ fn canonical_reply_examples_round_trip() {
         (
             Output::routed_objects_accepted(11.into()),
             "(RoutedObjectsAccepted 11)",
+        ),
+        (
+            Output::routed_objects_refused(RouterForwardRefusalReason::MirrorDisabled.into()),
+            "(RoutedObjectsRefused MirrorDisabled)",
         ),
     ];
 

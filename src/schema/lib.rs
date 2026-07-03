@@ -870,6 +870,7 @@ pub enum RouterForwardRefusalReason {
     RecipientUnknown,
     ChannelUnauthorized,
     AlreadyForwarded,
+    MirrorDisabled,
 }
 
 #[rustfmt::skip]
@@ -887,6 +888,14 @@ pub struct ForwardRefusalReason(RouterForwardRefusalReason);
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RouterForwardRefused(ForwardRefusalReason);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterRoutedObjectsRefused(ForwardRefusalReason);
 
 #[rustfmt::skip]
 #[cfg_attr(
@@ -1034,6 +1043,7 @@ pub enum Output {
     ForwardRefused(RouterForwardRefused),
     Unimplemented(RouterObservationUnimplemented),
     RoutedObjectsAccepted(RouterRoutedObjectsAccepted),
+    RoutedObjectsRefused(RouterRoutedObjectsRefused),
 }
 
 #[rustfmt::skip]
@@ -2177,6 +2187,25 @@ impl From<ForwardRefusalReason> for RouterForwardRefused {
 }
 
 #[rustfmt::skip]
+impl RouterRoutedObjectsRefused {
+    pub fn new(payload: ForwardRefusalReason) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ForwardRefusalReason {
+        &self.0
+    }
+    pub fn into_payload(self) -> ForwardRefusalReason {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ForwardRefusalReason> for RouterRoutedObjectsRefused {
+    fn from(payload: ForwardRefusalReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl RouterRoutedObjectsAccepted {
     pub fn new(payload: MessageSlot) -> Self {
         Self(payload)
@@ -2472,6 +2501,9 @@ impl Output {
     pub fn routed_objects_accepted(payload: MessageSlot) -> Self {
         Self::RoutedObjectsAccepted(RouterRoutedObjectsAccepted::new(payload))
     }
+    pub fn routed_objects_refused(payload: ForwardRefusalReason) -> Self {
+        Self::RoutedObjectsRefused(RouterRoutedObjectsRefused::new(payload))
+    }
 }
 
 #[rustfmt::skip]
@@ -2601,6 +2633,13 @@ impl From<RouterRoutedObjectsAccepted> for Output {
 }
 
 #[rustfmt::skip]
+impl From<RouterRoutedObjectsRefused> for Output {
+    fn from(payload: RouterRoutedObjectsRefused) -> Self {
+        Self::RoutedObjectsRefused(payload)
+    }
+}
+
+#[rustfmt::skip]
 #[cfg(feature = "nota-text")]
 impl std::str::FromStr for Input {
     type Err = NotaDecodeError;
@@ -2647,6 +2686,7 @@ pub mod short_header {
     pub const OUTPUT_FORWARD_REFUSED: u64 = 0x0105000000000000;
     pub const OUTPUT_UNIMPLEMENTED: u64 = 0x0106000000000000;
     pub const OUTPUT_ROUTED_OBJECTS_ACCEPTED: u64 = 0x0107000000000000;
+    pub const OUTPUT_ROUTED_OBJECTS_REFUSED: u64 = 0x0108000000000000;
 }
 
 #[rustfmt::skip]
@@ -2731,6 +2771,7 @@ pub enum OutputRoute {
     ForwardRefused,
     Unimplemented,
     RoutedObjectsAccepted,
+    RoutedObjectsRefused,
 }
 
 #[rustfmt::skip]
@@ -2820,6 +2861,7 @@ impl Output {
             Self::ForwardRefused(_) => OutputRoute::ForwardRefused,
             Self::Unimplemented(_) => OutputRoute::Unimplemented,
             Self::RoutedObjectsAccepted(_) => OutputRoute::RoutedObjectsAccepted,
+            Self::RoutedObjectsRefused(_) => OutputRoute::RoutedObjectsRefused,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -2834,6 +2876,7 @@ impl Output {
             Self::RoutedObjectsAccepted(_) => {
                 short_header::OUTPUT_ROUTED_OBJECTS_ACCEPTED
             }
+            Self::RoutedObjectsRefused(_) => short_header::OUTPUT_ROUTED_OBJECTS_REFUSED,
         }
     }
     pub fn route_from_short_header(
@@ -2851,6 +2894,9 @@ impl Output {
             short_header::OUTPUT_UNIMPLEMENTED => Ok(OutputRoute::Unimplemented),
             short_header::OUTPUT_ROUTED_OBJECTS_ACCEPTED => {
                 Ok(OutputRoute::RoutedObjectsAccepted)
+            }
+            short_header::OUTPUT_ROUTED_OBJECTS_REFUSED => {
+                Ok(OutputRoute::RoutedObjectsRefused)
             }
             _ => {
                 Err(SignalFrameError::UnknownHeader {

@@ -22,7 +22,8 @@
  (ForwardAccepted RouterForwardAccepted)
  (ForwardRefused RouterForwardRefused)
  (Unimplemented RouterObservationUnimplemented)
- (RoutedObjectsAccepted RouterRoutedObjectsAccepted)]
+ (RoutedObjectsAccepted RouterRoutedObjectsAccepted)
+ (RoutedObjectsRefused RouterRoutedObjectsRefused)]
 {
   ObservationIdentifier String
   ActorIdentifier String
@@ -190,9 +191,20 @@
     RecipientUnknown
     ChannelUnauthorized
     AlreadyForwarded
+    ;; The router's owner-controlled mirror switch (meta-signal-router
+    ;; SetMirrorEnabled, default OFF, persisted) is off: neither an
+    ;; inbound routed-object forward nor a local routed-object
+    ;; origination is admitted while the switch is off.
+    MirrorDisabled
   ]
   ForwardRefusalReason RouterForwardRefusalReason
   RouterForwardRefused ForwardRefusalReason
+
+  ;; The reply to a refused local origination hand-off (SubmitRoutedObjects),
+  ;; the origination twin of RouterForwardRefused. Shares the same closed
+  ;; reason vocabulary — refusing to originate and refusing to accept are the
+  ;; same underlying "this router will not carry this routed object" fact.
+  RouterRoutedObjectsRefused ForwardRefusalReason
 
   ;; ─── Local origination hand-off ───────────────────────────────────
   ;;

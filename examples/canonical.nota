@@ -57,6 +57,10 @@
 (ForwardRefused RecipientUnknown)
 (ForwardRefused ChannelUnauthorized)
 (ForwardRefused AlreadyForwarded)
+;; MirrorDisabled — the owner-controlled mirror switch (meta-signal-router
+;; SetMirrorEnabled, default OFF, persisted; primary-nbmq.7) is off, so an
+;; inbound routed-object forward is refused.
+(ForwardRefused MirrorDisabled)
 
 ;; Output::Unimplemented
 (Unimplemented (Summary NotInPrototypeScope))
@@ -64,6 +68,11 @@
 ;; Output::RoutedObjectsAccepted — the router accepted a local origination
 ;; submission and minted this durable slot for the outbound forward.
 (RoutedObjectsAccepted 11)
+
+;; Output::RoutedObjectsRefused — the origination twin of ForwardRefused:
+;; the local SubmitRoutedObjects hand-off is refused because the mirror
+;; switch is off.
+(RoutedObjectsRefused MirrorDisabled)
 
 ;; ─── Bootstrap operations ─────────────────────────────────────────
 
