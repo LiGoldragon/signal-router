@@ -13,13 +13,13 @@ use nota::{NotaEncode, NotaSource};
 use signal_router::{
     AttestationIssuedAt, Channel, ChannelIdentifier, ContentDigest, Engine, EngineIdentifier,
     ForwardMarker, ForwardedMessagePayload, Input, IssuedAt, Nonce, Output, OwnerIdentity,
-    PublicKey, RegisterRemoteRouter, RemoteRouterIdentity, ReplayNonce, RouterBootstrapOperation,
-    RouterChannelState, RouterChannelStateQuery, RouterChannelStatus, RouterDaemonConfiguration,
-    RouterDaemonConfigurationParts, RouterDeliveryStatus, RouterForwardRefusalReason,
-    RouterForwardRequest, RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
-    RouterObservationScope, RouterObservationUnimplemented, RouterObservationUnimplementedReason,
-    RouterPeerAttestation, RoutedContractObject, RouterSummary, RouterSummaryQuery, Signature,
-    SignatureScheme, TailnetAddress, TimestampNanos,
+    PublicKey, RegisterRemoteRouter, RemoteRouterIdentity, ReplayNonce, RoutedContractObject,
+    RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery, RouterChannelStatus,
+    RouterDaemonConfiguration, RouterDaemonConfigurationParts, RouterDeliveryStatus,
+    RouterForwardRefusalReason, RouterForwardRequest, RouterMessageTrace,
+    RouterMessageTraceMissing, RouterMessageTraceQuery, RouterObservationScope,
+    RouterObservationUnimplemented, RouterObservationUnimplementedReason, RouterPeerAttestation,
+    RouterSummary, RouterSummaryQuery, Signature, SignatureScheme, TailnetAddress, TimestampNanos,
 };
 
 const CANONICAL: &str = include_str!("../examples/canonical.nota");
