@@ -43,10 +43,15 @@
   OwnerIdentity [(UnixUser UnixUserIdentifier)]
 
   ;; Self-contained addressing vocabulary for router-to-router transport.
-  ;; Addresses re-home; identity does not — a peer is dialed by its
-  ;; TailnetAddress but routed by its stable RemoteRouterIdentity.
+  ;; Addresses re-home; the Criome host ID does not — a peer is dialed by its
+  ;; TailnetAddress but routed by its stable CriomeHostId.
   TailnetAddress String
-  RemoteRouterIdentity String
+  ;; The Criome host ID: the host's Criome master public key, the fabric's
+  ;; primary identity. It is the route-table key, the session-handshake signer,
+  ;; and the forward-attestation signer; criome verifies a peer by this key
+  ;; directly. A Criome host (pubkey-defined) is distinct from the OS host it
+  ;; runs on (name-defined) — this value is the Criome host ID, never a host name.
+  CriomeHostId String
   HostName String
   TimestampNanos Integer
   ReplayNonce String
@@ -66,11 +71,11 @@
   ;; router, so the local router records it in the remote-route table and
   ;; forwards to the peer. This is how a router learns which host a
   ;; recipient lives on (the production source for remote-route resolution).
-  RegisterActor { Actor Home.(Optional RemoteRouterIdentity) }
+  RegisterActor { Actor Home.(Optional CriomeHostId) }
   SourceActor ActorIdentifier
   DestinationActor ActorIdentifier
   Requester ActorIdentifier
-  Identity RemoteRouterIdentity
+  Identity CriomeHostId
   Address TailnetAddress
   GrantDirectMessage { SourceActor DestinationActor }
   InstallStructuralChannels { Requester }
@@ -131,7 +136,7 @@
   ;; into criome's Attestation for VerifyAttestation. The two differ because
   ;; criome stamps its own clock at sign time; the offline verifier sets both
   ;; to the same value.
-  Signer RemoteRouterIdentity
+  Signer CriomeHostId
   Scheme SignatureScheme
   PublicKey String
   Signature String
@@ -267,7 +272,7 @@
   ;; the verifier needs to reconstruct criome's exact signed preimage for
   ;; VerifyAttestation. The router holds no keys and verifies no signatures
   ;; itself.
-  ProofSigner RemoteRouterIdentity
+  ProofSigner CriomeHostId
   ProofScheme SignatureScheme
   ProofPublicKey String
   ProofSignature String
@@ -353,7 +358,7 @@
   SupervisionSocketPath WirePath
   SupervisionSocketMode SocketMode
   StorePath WirePath
-  RouterIdentity RemoteRouterIdentity
+  RouterIdentity CriomeHostId
   RouterDaemonConfiguration {
     RouterSocketPath
     RouterSocketMode

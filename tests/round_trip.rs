@@ -11,10 +11,10 @@ use signal_router::{
     RouterObservationScope, SourceActor, TailnetAddress,
 };
 use signal_router::{
-    AttestationIssuedAt, Channel, ChannelIdentifier, ContentDigest, Engine, EngineIdentifier,
-    ForwardMarker, ForwardedMessagePayload, Frame, FrameBody, Input, IssuedAt, Nonce, Output,
-    OwnerIdentity, PublicKey, RemoteRouterIdentity, ReplayNonce, RoutedContractObject,
-    RouterChannelState, RouterChannelStateQuery, RouterChannelStatus, RouterDaemonConfiguration,
+    AttestationIssuedAt, Channel, ChannelIdentifier, ContentDigest, CriomeHostId, Engine,
+    EngineIdentifier, ForwardMarker, ForwardedMessagePayload, Frame, FrameBody, Input, IssuedAt,
+    Nonce, Output, OwnerIdentity, PublicKey, ReplayNonce, RoutedContractObject, RouterChannelState,
+    RouterChannelStateQuery, RouterChannelStatus, RouterDaemonConfiguration,
     RouterDaemonConfigurationParts, RouterDeliveryStatus, RouterForwardRefusalReason,
     RouterForwardRequest, RouterMessageTrace, RouterMessageTraceMissing, RouterMessageTraceQuery,
     RouterPeerAttestation, RouterSummary, RouterSummaryQuery, Signature, SignatureScheme,
@@ -71,7 +71,7 @@ fn forward_request() -> RouterForwardRequest {
         )
         .into(),
         attestation: RouterPeerAttestation {
-            signer: RemoteRouterIdentity::new("prometheus-router").into(),
+            signer: CriomeHostId::new("prometheus-router").into(),
             scheme: SignatureScheme::Bls12_381MinPk.into(),
             public_key: PublicKey::new("bls-pk-abc"),
             signature: Signature::new("bls-sig-def"),
@@ -604,7 +604,7 @@ fn bootstrap_direct_message_grant_operation_round_trips_through_nota_line() {
 #[test]
 fn bootstrap_register_remote_router_operation_round_trips_through_nota_line() {
     let operation = RouterBootstrapOperation::RegisterRemoteRouter(RegisterRemoteRouter {
-        identity: RemoteRouterIdentity::new("prometheus-router").into(),
+        identity: CriomeHostId::new("prometheus-router").into(),
         address: TailnetAddress::new("[201:abcd::2]:9930").into(),
     });
 
@@ -657,7 +657,7 @@ fn router_observation_operation_kind_round_trips_through_nota_text() {
 
 fn identity_proof(signer: &str, challenge: &str) -> RouterIdentityProof {
     RouterIdentityProof::new(
-        RemoteRouterIdentity::new(signer),
+        CriomeHostId::new(signer),
         SignatureScheme::Bls12_381MinPk,
         format!("public-key-{signer}"),
         format!("signature-{signer}"),

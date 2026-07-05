@@ -11,9 +11,9 @@
 
 use nota::{NotaEncode, NotaSource};
 use signal_router::{
-    AttestationIssuedAt, Channel, ChannelIdentifier, ContentDigest, Engine, EngineIdentifier,
-    ForwardMarker, ForwardedMessagePayload, Input, IssuedAt, Nonce, Output, OwnerIdentity,
-    PublicKey, RegisterRemoteRouter, RemoteRouterIdentity, ReplayNonce, RoutedContractObject,
+    AttestationIssuedAt, Channel, ChannelIdentifier, ContentDigest, CriomeHostId, Engine,
+    EngineIdentifier, ForwardMarker, ForwardedMessagePayload, Input, IssuedAt, Nonce, Output,
+    OwnerIdentity, PublicKey, RegisterRemoteRouter, ReplayNonce, RoutedContractObject,
     RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery, RouterChannelStatus,
     RouterDaemonConfiguration, RouterDaemonConfigurationParts, RouterDeliveryStatus,
     RouterForwardRefusalReason, RouterForwardRequest, RouterMessageTrace,
@@ -51,7 +51,7 @@ fn forward_request() -> RouterForwardRequest {
         )
         .into(),
         attestation: RouterPeerAttestation {
-            signer: RemoteRouterIdentity::new("prometheus-router").into(),
+            signer: CriomeHostId::new("prometheus-router").into(),
             scheme: SignatureScheme::Bls12_381MinPk.into(),
             public_key: PublicKey::new("bls-pk-abc"),
             signature: Signature::new("bls-sig-def"),
@@ -241,7 +241,7 @@ fn canonical_reply_examples_round_trip() {
 #[test]
 fn canonical_register_remote_router_bootstrap_example_round_trips() {
     let operation = RouterBootstrapOperation::RegisterRemoteRouter(RegisterRemoteRouter {
-        identity: RemoteRouterIdentity::new("prometheus-router").into(),
+        identity: CriomeHostId::new("prometheus-router").into(),
         address: TailnetAddress::new("[201:abcd::2]:9930").into(),
     });
     let canonical_text = "(RegisterRemoteRouter (prometheus-router [|[201:abcd::2]:9930|]))";

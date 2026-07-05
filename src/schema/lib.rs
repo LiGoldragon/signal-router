@@ -101,7 +101,7 @@ pub struct TailnetAddress(String);
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RemoteRouterIdentity(String);
+pub struct CriomeHostId(String);
 
 #[rustfmt::skip]
 #[cfg_attr(
@@ -252,7 +252,7 @@ pub struct Actor {
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub(crate) struct Home(Option<RemoteRouterIdentity>);
+pub(crate) struct Home(Option<CriomeHostId>);
 
 #[rustfmt::skip]
 #[cfg_attr(
@@ -295,7 +295,7 @@ pub struct Requester(ActorIdentifier);
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct Identity(RemoteRouterIdentity);
+pub struct Identity(CriomeHostId);
 
 #[rustfmt::skip]
 #[cfg_attr(
@@ -647,7 +647,7 @@ pub enum SignatureScheme {
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct Signer(RemoteRouterIdentity);
+pub struct Signer(CriomeHostId);
 
 #[rustfmt::skip]
 #[cfg_attr(
@@ -928,7 +928,7 @@ pub struct EphemeralPublicKey(String);
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct ProofSigner(RemoteRouterIdentity);
+pub struct ProofSigner(CriomeHostId);
 
 #[rustfmt::skip]
 #[cfg_attr(
@@ -1205,7 +1205,7 @@ pub struct StorePath(WirePath);
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RouterIdentity(RemoteRouterIdentity);
+pub struct RouterIdentity(CriomeHostId);
 
 #[rustfmt::skip]
 #[cfg_attr(
@@ -1463,7 +1463,7 @@ impl From<String> for TailnetAddress {
 }
 
 #[rustfmt::skip]
-impl RemoteRouterIdentity {
+impl CriomeHostId {
     pub fn new(payload: impl Into<String>) -> Self {
         Self(payload.into())
     }
@@ -1475,7 +1475,7 @@ impl RemoteRouterIdentity {
     }
 }
 #[rustfmt::skip]
-impl From<String> for RemoteRouterIdentity {
+impl From<String> for CriomeHostId {
     fn from(payload: String) -> Self {
         Self::new(payload)
     }
@@ -1711,19 +1711,19 @@ impl From<Option<EndpointTransport>> for Endpoint {
 
 #[rustfmt::skip]
 impl Home {
-    pub fn new(payload: Option<RemoteRouterIdentity>) -> Self {
+    pub fn new(payload: Option<CriomeHostId>) -> Self {
         Self(payload)
     }
-    pub fn payload(&self) -> &Option<RemoteRouterIdentity> {
+    pub fn payload(&self) -> &Option<CriomeHostId> {
         &self.0
     }
-    pub fn into_payload(self) -> Option<RemoteRouterIdentity> {
+    pub fn into_payload(self) -> Option<CriomeHostId> {
         self.0
     }
 }
 #[rustfmt::skip]
-impl From<Option<RemoteRouterIdentity>> for Home {
-    fn from(payload: Option<RemoteRouterIdentity>) -> Self {
+impl From<Option<CriomeHostId>> for Home {
+    fn from(payload: Option<CriomeHostId>) -> Self {
         Self::new(payload)
     }
 }
@@ -1787,19 +1787,19 @@ impl From<ActorIdentifier> for Requester {
 
 #[rustfmt::skip]
 impl Identity {
-    pub fn new(payload: RemoteRouterIdentity) -> Self {
+    pub fn new(payload: CriomeHostId) -> Self {
         Self(payload)
     }
-    pub fn payload(&self) -> &RemoteRouterIdentity {
+    pub fn payload(&self) -> &CriomeHostId {
         &self.0
     }
-    pub fn into_payload(self) -> RemoteRouterIdentity {
+    pub fn into_payload(self) -> CriomeHostId {
         self.0
     }
 }
 #[rustfmt::skip]
-impl From<RemoteRouterIdentity> for Identity {
-    fn from(payload: RemoteRouterIdentity) -> Self {
+impl From<CriomeHostId> for Identity {
+    fn from(payload: CriomeHostId) -> Self {
         Self::new(payload)
     }
 }
@@ -2091,19 +2091,19 @@ impl From<RouterObservationUnimplementedReason> for ObservationReason {
 
 #[rustfmt::skip]
 impl Signer {
-    pub fn new(payload: RemoteRouterIdentity) -> Self {
+    pub fn new(payload: CriomeHostId) -> Self {
         Self(payload)
     }
-    pub fn payload(&self) -> &RemoteRouterIdentity {
+    pub fn payload(&self) -> &CriomeHostId {
         &self.0
     }
-    pub fn into_payload(self) -> RemoteRouterIdentity {
+    pub fn into_payload(self) -> CriomeHostId {
         self.0
     }
 }
 #[rustfmt::skip]
-impl From<RemoteRouterIdentity> for Signer {
-    fn from(payload: RemoteRouterIdentity) -> Self {
+impl From<CriomeHostId> for Signer {
+    fn from(payload: CriomeHostId) -> Self {
         Self::new(payload)
     }
 }
@@ -2509,19 +2509,19 @@ impl From<String> for EphemeralPublicKey {
 
 #[rustfmt::skip]
 impl ProofSigner {
-    pub fn new(payload: RemoteRouterIdentity) -> Self {
+    pub fn new(payload: CriomeHostId) -> Self {
         Self(payload)
     }
-    pub fn payload(&self) -> &RemoteRouterIdentity {
+    pub fn payload(&self) -> &CriomeHostId {
         &self.0
     }
-    pub fn into_payload(self) -> RemoteRouterIdentity {
+    pub fn into_payload(self) -> CriomeHostId {
         self.0
     }
 }
 #[rustfmt::skip]
-impl From<RemoteRouterIdentity> for ProofSigner {
-    fn from(payload: RemoteRouterIdentity) -> Self {
+impl From<CriomeHostId> for ProofSigner {
+    fn from(payload: CriomeHostId) -> Self {
         Self::new(payload)
     }
 }
@@ -3022,19 +3022,19 @@ impl From<WirePath> for StorePath {
 
 #[rustfmt::skip]
 impl RouterIdentity {
-    pub fn new(payload: RemoteRouterIdentity) -> Self {
+    pub fn new(payload: CriomeHostId) -> Self {
         Self(payload)
     }
-    pub fn payload(&self) -> &RemoteRouterIdentity {
+    pub fn payload(&self) -> &CriomeHostId {
         &self.0
     }
-    pub fn into_payload(self) -> RemoteRouterIdentity {
+    pub fn into_payload(self) -> CriomeHostId {
         self.0
     }
 }
 #[rustfmt::skip]
-impl From<RemoteRouterIdentity> for RouterIdentity {
-    fn from(payload: RemoteRouterIdentity) -> Self {
+impl From<CriomeHostId> for RouterIdentity {
+    fn from(payload: CriomeHostId) -> Self {
         Self::new(payload)
     }
 }

@@ -84,14 +84,14 @@ impl Actor {
 }
 
 impl RegisterActor {
-    pub fn new(actor: Actor, home: Option<RemoteRouterIdentity>) -> Self {
+    pub fn new(actor: Actor, home: Option<CriomeHostId>) -> Self {
         Self {
             actor,
             home: Home::new(home),
         }
     }
 
-    pub fn home(&self) -> Option<&RemoteRouterIdentity> {
+    pub fn home(&self) -> Option<&CriomeHostId> {
         self.home.payload().as_ref()
     }
 }
@@ -159,7 +159,7 @@ impl ForwardedMessagePayload {
 impl RouterIdentityProof {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        signer: RemoteRouterIdentity,
+        signer: CriomeHostId,
         scheme: SignatureScheme,
         public_key: String,
         signature: String,
@@ -178,7 +178,7 @@ impl RouterIdentityProof {
         }
     }
 
-    pub fn signer(&self) -> &RemoteRouterIdentity {
+    pub fn signer(&self) -> &CriomeHostId {
         self.proof_signer.payload()
     }
 
@@ -294,7 +294,7 @@ pub struct RouterDaemonConfigurationParts {
     pub bootstrap_path: Option<WirePath>,
     pub owner_identity: OwnerIdentity,
     pub tailnet_listen_address: Option<TailnetAddress>,
-    pub router_identity: RemoteRouterIdentity,
+    pub router_identity: CriomeHostId,
     pub criome_socket_path: Option<WirePath>,
 }
 
