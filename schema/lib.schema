@@ -367,10 +367,10 @@
     SupervisionSocketPath
     SupervisionSocketMode
     StorePath
-    BootstrapPath.(Optional WirePath)
+    bootstrap_path.(Optional WirePath)
     OwnerIdentity
     TailnetListenAddress.(Optional TailnetAddress)
     RouterIdentity
-    CriomeSocketPath.(Optional WirePath)
+    criome_socket_path.(Optional WirePath)
   }
 }

@@ -308,18 +308,18 @@ impl From<RouterDaemonConfigurationParts> for RouterDaemonConfiguration {
             supervision_socket_path: SupervisionSocketPath::new(parts.supervision_socket_path),
             supervision_socket_mode: SupervisionSocketMode::new(parts.supervision_socket_mode),
             store_path: StorePath::new(parts.store_path),
-            bootstrap_path: BootstrapPath::new(parts.bootstrap_path),
+            bootstrap_path: parts.bootstrap_path,
             owner_identity: parts.owner_identity,
             tailnet_listen_address: TailnetListenAddress::new(parts.tailnet_listen_address),
             router_identity: RouterIdentity::new(parts.router_identity),
-            criome_socket_path: CriomeSocketPath::new(parts.criome_socket_path),
+            criome_socket_path: parts.criome_socket_path,
         }
     }
 }
 
 impl RouterDaemonConfiguration {
     pub fn bootstrap_path(&self) -> Option<&WirePath> {
-        self.bootstrap_path.payload().as_ref()
+        self.bootstrap_path.as_ref()
     }
 
     pub fn tailnet_listen_address(&self) -> Option<&TailnetAddress> {
@@ -327,7 +327,7 @@ impl RouterDaemonConfiguration {
     }
 
     pub fn criome_socket_path(&self) -> Option<&WirePath> {
-        self.criome_socket_path.payload().as_ref()
+        self.criome_socket_path.as_ref()
     }
 
     pub fn from_rkyv_bytes(bytes: &[u8]) -> Result<Self, RouterDaemonConfigurationArchiveError> {

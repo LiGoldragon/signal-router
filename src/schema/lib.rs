@@ -1213,23 +1213,7 @@ pub struct RouterIdentity(CriomeHostId);
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub(crate) struct BootstrapPath(Option<WirePath>);
-
-#[rustfmt::skip]
-#[cfg_attr(
-    feature = "nota-text",
-    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
-)]
-#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub(crate) struct TailnetListenAddress(Option<TailnetAddress>);
-
-#[rustfmt::skip]
-#[cfg_attr(
-    feature = "nota-text",
-    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
-)]
-#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub(crate) struct CriomeSocketPath(Option<WirePath>);
 
 #[rustfmt::skip]
 #[cfg_attr(
@@ -1245,11 +1229,11 @@ pub struct RouterDaemonConfiguration {
     pub supervision_socket_path: SupervisionSocketPath,
     pub supervision_socket_mode: SupervisionSocketMode,
     pub store_path: StorePath,
-    pub(crate) bootstrap_path: BootstrapPath,
+    pub bootstrap_path: Option<WirePath>,
     pub owner_identity: OwnerIdentity,
     pub(crate) tailnet_listen_address: TailnetListenAddress,
     pub router_identity: RouterIdentity,
-    pub(crate) criome_socket_path: CriomeSocketPath,
+    pub criome_socket_path: Option<WirePath>,
 }
 
 #[rustfmt::skip]
@@ -3040,25 +3024,6 @@ impl From<CriomeHostId> for RouterIdentity {
 }
 
 #[rustfmt::skip]
-impl BootstrapPath {
-    pub fn new(payload: Option<WirePath>) -> Self {
-        Self(payload)
-    }
-    pub fn payload(&self) -> &Option<WirePath> {
-        &self.0
-    }
-    pub fn into_payload(self) -> Option<WirePath> {
-        self.0
-    }
-}
-#[rustfmt::skip]
-impl From<Option<WirePath>> for BootstrapPath {
-    fn from(payload: Option<WirePath>) -> Self {
-        Self::new(payload)
-    }
-}
-
-#[rustfmt::skip]
 impl TailnetListenAddress {
     pub fn new(payload: Option<TailnetAddress>) -> Self {
         Self(payload)
@@ -3073,25 +3038,6 @@ impl TailnetListenAddress {
 #[rustfmt::skip]
 impl From<Option<TailnetAddress>> for TailnetListenAddress {
     fn from(payload: Option<TailnetAddress>) -> Self {
-        Self::new(payload)
-    }
-}
-
-#[rustfmt::skip]
-impl CriomeSocketPath {
-    pub fn new(payload: Option<WirePath>) -> Self {
-        Self(payload)
-    }
-    pub fn payload(&self) -> &Option<WirePath> {
-        &self.0
-    }
-    pub fn into_payload(self) -> Option<WirePath> {
-        self.0
-    }
-}
-#[rustfmt::skip]
-impl From<Option<WirePath>> for CriomeSocketPath {
-    fn from(payload: Option<WirePath>) -> Self {
         Self::new(payload)
     }
 }
