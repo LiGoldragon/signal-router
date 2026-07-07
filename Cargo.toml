@@ -25,7 +25,8 @@ signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", branch
 thiserror   = "2"
 
 [build-dependencies]
-schema-rust = { package = "schema-rust", git = "https://github.com/LiGoldragon/schema-rust.git", branch = "main" }
+schema = { git = "https://github.com/LiGoldragon/schema.git", branch = "trueschema" }
+schema-rust = { git = "https://github.com/LiGoldragon/schema-rust.git", branch = "trueschema" }
 
 [dev-dependencies]
 nota = { package = "nota", git = "https://github.com/LiGoldragon/nota.git", branch = "main" }

@@ -358,7 +358,10 @@
   SupervisionSocketPath WirePath
   SupervisionSocketMode SocketMode
   StorePath WirePath
+  BootstrapPath (Optional WirePath)
+  TailnetListenAddress (Optional TailnetAddress)
   RouterIdentity CriomeHostId
+  CriomeSocketPath (Optional WirePath)
   RouterDaemonConfiguration {
     RouterSocketPath
     RouterSocketMode
@@ -367,10 +370,10 @@
     SupervisionSocketPath
     SupervisionSocketMode
     StorePath
-    BootstrapPath.(Optional WirePath)
+    BootstrapPath
     OwnerIdentity
-    TailnetListenAddress.(Optional TailnetAddress)
+    TailnetListenAddress
     RouterIdentity
-    CriomeSocketPath.(Optional WirePath)
+    CriomeSocketPath
   }
 }
