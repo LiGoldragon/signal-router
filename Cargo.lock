@@ -509,7 +509,7 @@ dependencies = [
 [[package]]
 name = "schema-rust"
 version = "0.7.0"
-source = "git+https://github.com/LiGoldragon/schema-rust.git?branch=main#255823ab3d0d6c5cab26e26a8b1d60c63c52c7b4"
+source = "git+https://github.com/LiGoldragon/schema-rust.git?rev=255823ab3d0d6c5cab26e26a8b1d60c63c52c7b4#255823ab3d0d6c5cab26e26a8b1d60c63c52c7b4"
 dependencies = [
  "nota",
  "prettyplease",
@@ -560,7 +560,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 [[package]]
 name = "signal-frame"
 version = "0.3.0"
-source = "git+https://github.com/LiGoldragon/signal-frame.git?branch=main#44d22a07e75e6d2ff13581a5bb84d47c6ef35e97"
+source = "git+https://github.com/LiGoldragon/signal-frame.git?branch=main#fd7909d1497b7bb18751521387a1087cd9e7c91c"
 dependencies = [
  "nota",
  "paste",
@@ -572,7 +572,7 @@ dependencies = [
 [[package]]
 name = "signal-frame-macros"
 version = "0.1.1"
-source = "git+https://github.com/LiGoldragon/signal-frame.git?branch=main#44d22a07e75e6d2ff13581a5bb84d47c6ef35e97"
+source = "git+https://github.com/LiGoldragon/signal-frame.git?branch=main#fd7909d1497b7bb18751521387a1087cd9e7c91c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -719,7 +719,7 @@ dependencies = [
 [[package]]
 name = "triad-runtime"
 version = "0.6.1"
-source = "git+https://github.com/LiGoldragon/triad-runtime.git?branch=main#b34df30c56fcbc88266210167d2520d0996feca3"
+source = "git+https://github.com/LiGoldragon/triad-runtime.git?branch=main#895d2e6b9023b2d901fe1ab20e6f8f431c6113b7"
 dependencies = [
  "kameo",
  "rkyv",
