@@ -11,7 +11,9 @@
 
 use nota::{NotaEncode, NotaSource};
 use signal_router::{
-    AttestationIssuedAt, Channel, ChannelIdentifier, ContentDigest, CriomeHostId, Engine,
+    Actor, ActorIdentifier, ActorRegistered, ActorRegistrationDisposition,
+    ActorRegistrationRefusalReason, ActorRegistrationRefused, AttestationIssuedAt, Channel,
+    ChannelIdentifier, ContentDigest, CriomeHostId, EndpointKind, EndpointTransport, Engine,
     EngineIdentifier, ForwardMarker, ForwardedMessagePayload, Input, IssuedAt, Nonce, Output,
     OwnerIdentity, PublicKey, RegisterRemoteRouter, ReplayNonce, RoutedContractObject,
     RouterBootstrapOperation, RouterChannelState, RouterChannelStateQuery, RouterChannelStatus,
@@ -21,6 +23,21 @@ use signal_router::{
     RouterObservationUnimplemented, RouterObservationUnimplementedReason, RouterPeerAttestation,
     RouterSummary, RouterSummaryQuery, Signature, SignatureScheme, TailnetAddress, TimestampNanos,
 };
+
+/// The Actor a runtime `RegisterActor` operation carries: the orchestrate seat
+/// reached over its co-resident component socket, mirroring the endpoint the
+/// orchestrate registration seam hands the router.
+fn runtime_register_actor() -> Actor {
+    Actor::new(
+        ActorIdentifier::new("orchestrate"),
+        4242,
+        Some(EndpointTransport::new(
+            EndpointKind::ComponentSocket,
+            String::from("/run/persona/X/orchestrate.sock"),
+            None,
+        )),
+    )
+}
 
 const CANONICAL: &str = include_str!("../examples/canonical.nota");
 
@@ -112,6 +129,10 @@ fn canonical_request_examples_round_trip() {
         (
             Input::SubmitRoutedObjects(routed_object_submission()),
             "(SubmitRoutedObjects (spirit spirit-peer mirror-append [] [(signal-mirror NotifyObject 3 [1 2 3])]))",
+        ),
+        (
+            Input::RegisterActor(runtime_register_actor()),
+            "(RegisterActor (orchestrate 4242 (Some (ComponentSocket /run/persona/X/orchestrate.sock None))))",
         ),
     ];
 
@@ -219,6 +240,34 @@ fn canonical_reply_examples_round_trip() {
         (
             Output::routed_objects_refused(RouterForwardRefusalReason::MirrorDisabled.into()),
             "(RoutedObjectsRefused MirrorDisabled)",
+        ),
+        (
+            Output::actor_registered(ActorRegistered::new(
+                ActorIdentifier::new("orchestrate"),
+                ActorRegistrationDisposition::Registered,
+            )),
+            "(ActorRegistered (orchestrate Registered))",
+        ),
+        (
+            Output::actor_registered(ActorRegistered::new(
+                ActorIdentifier::new("orchestrate"),
+                ActorRegistrationDisposition::EndpointUpdated,
+            )),
+            "(ActorRegistered (orchestrate EndpointUpdated))",
+        ),
+        (
+            Output::actor_registration_refused(ActorRegistrationRefused::new(
+                ActorIdentifier::new("orchestrate"),
+                ActorRegistrationRefusalReason::ProcessIdentifierOutOfRange,
+            )),
+            "(ActorRegistrationRefused (orchestrate ProcessIdentifierOutOfRange))",
+        ),
+        (
+            Output::actor_registration_refused(ActorRegistrationRefused::new(
+                ActorIdentifier::new("orchestrate"),
+                ActorRegistrationRefusalReason::RemoteRouterEndpointNotLocal,
+            )),
+            "(ActorRegistrationRefused (orchestrate RemoteRouterEndpointNotLocal))",
         ),
     ];
 

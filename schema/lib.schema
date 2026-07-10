@@ -17,7 +17,8 @@
  (SubmitRoutedObjects ForwardedMessagePayload)
  (SessionClientHello RouterSessionClientHello)
  (SessionClientProof RouterSessionClientProof)
- (SessionData RouterSessionData)]
+ (SessionData RouterSessionData)
+ (RegisterActor Actor)]
 [(Summary RouterSummary)
  (MessageTrace RouterMessageTrace)
  (MessageTraceMissing RouterMessageTraceMissing)
@@ -30,7 +31,9 @@
  (SessionServerHello RouterSessionServerHello)
  (SessionAccepted RouterSessionAccepted)
  (SessionRefused RouterSessionRefused)
- (SessionData RouterSessionData)]
+ (SessionData RouterSessionData)
+ (ActorRegistered ActorRegistered)
+ (ActorRegistrationRefused ActorRegistrationRefused)]
 {
   ObservationIdentifier String
   ActorIdentifier String
@@ -72,6 +75,30 @@
   ;; forwards to the peer. This is how a router learns which host a
   ;; recipient lives on (the production source for remote-route resolution).
   RegisterActor { Actor Home.(Optional CriomeHostId) }
+
+  ;; ─── Runtime actor registration (working tier) ─────────────────────
+  ;;
+  ;; The runtime twin of the boot-time `RegisterActor` bootstrap operation:
+  ;; a co-resident owner component (orchestrate) hands the standing router
+  ;; daemon one `Actor` to register over the working socket, exactly as
+  ;; `SubmitRoutedObjects` is a co-resident origination push. It carries
+  ;; only the `Actor` (identifier, process, optional endpoint) the in-process
+  ;; `RegisterActor` ask needs — never a `Home`, because a runtime registrant
+  ;; is a LOCAL actor (remote homes are a bootstrap-only, remote-route concern).
+  ;; Registering an actor name that already exists REPLACES its registration
+  ;; (last-wins endpoint), matching the harness registry's insert convention;
+  ;; the accepted reply names which of the two happened.
+  RegisteredActor ActorIdentifier
+  ActorRegistrationDisposition [Registered EndpointUpdated]
+  ActorRegistered { RegisteredActor ActorRegistrationDisposition }
+  ;; A registration the router will not carry, mirroring the two admission
+  ;; checks the bootstrap actor lowering enforces: a process identifier that
+  ;; does not fit the registry's 32-bit process slot, and a `RemoteRouter`
+  ;; endpoint kind, which is never a local delivery target (remote reachability
+  ;; is carried through a bootstrap `RegisterActor.home`, not an endpoint).
+  ActorRegistrationRefusalReason [ProcessIdentifierOutOfRange RemoteRouterEndpointNotLocal]
+  ActorRegistrationRefused { RegisteredActor ActorRegistrationRefusalReason }
+
   SourceActor ActorIdentifier
   DestinationActor ActorIdentifier
   Requester ActorIdentifier

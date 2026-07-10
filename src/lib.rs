@@ -96,6 +96,40 @@ impl RegisterActor {
     }
 }
 
+impl ActorRegistered {
+    pub fn new(actor: ActorIdentifier, disposition: ActorRegistrationDisposition) -> Self {
+        Self {
+            registered_actor: RegisteredActor::new(actor),
+            actor_registration_disposition: disposition,
+        }
+    }
+
+    pub fn actor(&self) -> &ActorIdentifier {
+        self.registered_actor.payload()
+    }
+
+    pub fn disposition(&self) -> ActorRegistrationDisposition {
+        self.actor_registration_disposition
+    }
+}
+
+impl ActorRegistrationRefused {
+    pub fn new(actor: ActorIdentifier, reason: ActorRegistrationRefusalReason) -> Self {
+        Self {
+            registered_actor: RegisteredActor::new(actor),
+            actor_registration_refusal_reason: reason,
+        }
+    }
+
+    pub fn actor(&self) -> &ActorIdentifier {
+        self.registered_actor.payload()
+    }
+
+    pub fn reason(&self) -> ActorRegistrationRefusalReason {
+        self.actor_registration_refusal_reason
+    }
+}
+
 impl RoutedContractObject {
     pub fn new(
         contract_name: ContractName,

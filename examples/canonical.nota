@@ -79,6 +79,27 @@
 ;; switch is off.
 (RoutedObjectsRefused MirrorDisabled)
 
+;; ─── Runtime actor registration (working tier) ────────────────────
+
+;; Input::RegisterActor — the runtime twin of the bootstrap RegisterActor
+;; operation: a co-resident owner component (orchestrate) hands the standing
+;; router daemon one Actor to register over the working socket, exactly as
+;; SubmitRoutedObjects is a co-resident origination push. It carries only the
+;; Actor (no bootstrap Home) because a runtime registrant is a local actor.
+(RegisterActor (orchestrate 4242 (Some (ComponentSocket /run/persona/X/orchestrate.sock None))))
+
+;; Output::ActorRegistered — the accepted reply. The disposition names whether
+;; a fresh actor row was created or an existing registration's endpoint was
+;; replaced (last-wins), matching the harness registry's insert convention.
+(ActorRegistered (orchestrate Registered))
+(ActorRegistered (orchestrate EndpointUpdated))
+
+;; Output::ActorRegistrationRefused — the router will not carry the
+;; registration: the process identifier does not fit the registry's 32-bit
+;; slot, or the endpoint is a RemoteRouter kind (never a local delivery target).
+(ActorRegistrationRefused (orchestrate ProcessIdentifierOutOfRange))
+(ActorRegistrationRefused (orchestrate RemoteRouterEndpointNotLocal))
+
 ;; ─── Bootstrap operations ─────────────────────────────────────────
 
 ;; RouterBootstrapOperation::RegisterRemoteRouter — deploy-time peer

@@ -4,6 +4,11 @@ use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalOperationHeads, SubReply,
 };
+use signal_router::{
+    Actor as RuntimeActor, ActorIdentifier as RuntimeActorIdentifier, ActorRegistered,
+    ActorRegistrationDisposition, ActorRegistrationRefusalReason, ActorRegistrationRefused,
+    EndpointKind as RuntimeEndpointKind, EndpointTransport as RuntimeEndpointTransport,
+};
 #[cfg(feature = "nota-text")]
 use signal_router::{
     Actor, ActorIdentifier, DestinationActor, EndpointKind, EndpointTransport, GrantDirectMessage,
@@ -263,7 +268,8 @@ fn router_request_heads_are_contract_local_operations() {
             "SubmitRoutedObjects",
             "SessionClientHello",
             "SessionClientProof",
-            "SessionData"
+            "SessionData",
+            "RegisterActor"
         ]
     );
 }
@@ -289,6 +295,51 @@ fn router_contract_has_no_sema_classification_dependency_or_roots() {
             !heads.contains(&forbidden),
             "Sema classification root {forbidden} must not appear on the public router wire"
         );
+    }
+}
+
+fn runtime_register_actor_input() -> Input {
+    Input::RegisterActor(RuntimeActor::new(
+        RuntimeActorIdentifier::new("orchestrate"),
+        4242,
+        Some(RuntimeEndpointTransport::new(
+            RuntimeEndpointKind::ComponentSocket,
+            String::from("/run/persona/X/orchestrate.sock"),
+            None,
+        )),
+    ))
+}
+
+#[test]
+fn runtime_register_actor_request_round_trips_through_length_prefixed_frame() {
+    round_trip_request(runtime_register_actor_input());
+}
+
+#[test]
+fn runtime_actor_registered_reply_round_trips_through_length_prefixed_frame() {
+    for disposition in [
+        ActorRegistrationDisposition::Registered,
+        ActorRegistrationDisposition::EndpointUpdated,
+    ] {
+        let reply = Output::ActorRegistered(ActorRegistered::new(
+            RuntimeActorIdentifier::new("orchestrate"),
+            disposition,
+        ));
+        assert_eq!(round_trip_reply(reply.clone()), reply);
+    }
+}
+
+#[test]
+fn runtime_actor_registration_refused_reply_round_trips_through_length_prefixed_frame() {
+    for reason in [
+        ActorRegistrationRefusalReason::ProcessIdentifierOutOfRange,
+        ActorRegistrationRefusalReason::RemoteRouterEndpointNotLocal,
+    ] {
+        let reply = Output::ActorRegistrationRefused(ActorRegistrationRefused::new(
+            RuntimeActorIdentifier::new("orchestrate"),
+            reason,
+        ));
+        assert_eq!(round_trip_reply(reply.clone()), reply);
     }
 }
 

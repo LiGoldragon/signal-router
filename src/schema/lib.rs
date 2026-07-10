@@ -271,6 +271,76 @@ pub struct RegisterActor {
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RegisteredActor(ActorIdentifier);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+pub enum ActorRegistrationDisposition {
+    Registered,
+    EndpointUpdated,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ActorRegistered {
+    pub registered_actor: RegisteredActor,
+    pub actor_registration_disposition: ActorRegistrationDisposition,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+pub enum ActorRegistrationRefusalReason {
+    ProcessIdentifierOutOfRange,
+    RemoteRouterEndpointNotLocal,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ActorRegistrationRefused {
+    pub registered_actor: RegisteredActor,
+    pub actor_registration_refusal_reason: ActorRegistrationRefusalReason,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SourceActor(ActorIdentifier);
 
 #[rustfmt::skip]
@@ -1251,6 +1321,7 @@ pub enum Input {
     SessionClientHello(RouterSessionClientHello),
     SessionClientProof(RouterSessionClientProof),
     SessionData(RouterSessionData),
+    RegisterActor(Actor),
 }
 
 #[rustfmt::skip]
@@ -1273,6 +1344,8 @@ pub enum Output {
     SessionAccepted(RouterSessionAccepted),
     SessionRefused(RouterSessionRefused),
     SessionData(RouterSessionData),
+    ActorRegistered(ActorRegistered),
+    ActorRegistrationRefused(ActorRegistrationRefused),
 }
 
 #[rustfmt::skip]
@@ -1708,6 +1781,25 @@ impl Home {
 #[rustfmt::skip]
 impl From<Option<CriomeHostId>> for Home {
     fn from(payload: Option<CriomeHostId>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RegisteredActor {
+    pub fn new(payload: ActorIdentifier) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ActorIdentifier {
+        &self.0
+    }
+    pub fn into_payload(self) -> ActorIdentifier {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ActorIdentifier> for RegisteredActor {
+    fn from(payload: ActorIdentifier) -> Self {
         Self::new(payload)
     }
 }
@@ -3091,6 +3183,9 @@ impl Input {
     pub fn session_data(payload: SealedOctets) -> Self {
         Self::SessionData(RouterSessionData::new(payload))
     }
+    pub fn register_actor(payload: Actor) -> Self {
+        Self::RegisterActor(payload)
+    }
 }
 
 #[rustfmt::skip]
@@ -3133,6 +3228,12 @@ impl Output {
     }
     pub fn session_data(payload: SealedOctets) -> Self {
         Self::SessionData(RouterSessionData::new(payload))
+    }
+    pub fn actor_registered(payload: ActorRegistered) -> Self {
+        Self::ActorRegistered(payload)
+    }
+    pub fn actor_registration_refused(payload: ActorRegistrationRefused) -> Self {
+        Self::ActorRegistrationRefused(payload)
     }
 }
 
@@ -3228,6 +3329,13 @@ impl From<RouterSessionData> for Input {
 }
 
 #[rustfmt::skip]
+impl From<Actor> for Input {
+    fn from(payload: Actor) -> Self {
+        Self::RegisterActor(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl From<RouterSummary> for Output {
     fn from(payload: RouterSummary) -> Self {
         Self::Summary(payload)
@@ -3319,6 +3427,20 @@ impl From<RouterSessionData> for Output {
 }
 
 #[rustfmt::skip]
+impl From<ActorRegistered> for Output {
+    fn from(payload: ActorRegistered) -> Self {
+        Self::ActorRegistered(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<ActorRegistrationRefused> for Output {
+    fn from(payload: ActorRegistrationRefused) -> Self {
+        Self::ActorRegistrationRefused(payload)
+    }
+}
+
+#[rustfmt::skip]
 #[cfg(feature = "nota-text")]
 impl std::str::FromStr for Input {
     type Err = NotaDecodeError;
@@ -3360,6 +3482,7 @@ pub mod short_header {
     pub const INPUT_SESSION_CLIENT_HELLO: u64 = 0x0005000000000000;
     pub const INPUT_SESSION_CLIENT_PROOF: u64 = 0x0006000000000000;
     pub const INPUT_SESSION_DATA: u64 = 0x0007000000000000;
+    pub const INPUT_REGISTER_ACTOR: u64 = 0x0008000000000000;
     pub const OUTPUT_SUMMARY: u64 = 0x0100000000000000;
     pub const OUTPUT_MESSAGE_TRACE: u64 = 0x0101000000000000;
     pub const OUTPUT_MESSAGE_TRACE_MISSING: u64 = 0x0102000000000000;
@@ -3373,6 +3496,8 @@ pub mod short_header {
     pub const OUTPUT_SESSION_ACCEPTED: u64 = 0x010A000000000000;
     pub const OUTPUT_SESSION_REFUSED: u64 = 0x010B000000000000;
     pub const OUTPUT_SESSION_DATA: u64 = 0x010C000000000000;
+    pub const OUTPUT_ACTOR_REGISTERED: u64 = 0x010D000000000000;
+    pub const OUTPUT_ACTOR_REGISTRATION_REFUSED: u64 = 0x010E000000000000;
 }
 
 #[rustfmt::skip]
@@ -3434,6 +3559,7 @@ pub enum InputRoute {
     SessionClientHello,
     SessionClientProof,
     SessionData,
+    RegisterActor,
 }
 
 #[rustfmt::skip]
@@ -3465,6 +3591,8 @@ pub enum OutputRoute {
     SessionAccepted,
     SessionRefused,
     SessionData,
+    ActorRegistered,
+    ActorRegistrationRefused,
 }
 
 #[rustfmt::skip]
@@ -3479,6 +3607,7 @@ impl Input {
             Self::SessionClientHello(_) => InputRoute::SessionClientHello,
             Self::SessionClientProof(_) => InputRoute::SessionClientProof,
             Self::SessionData(_) => InputRoute::SessionData,
+            Self::RegisterActor(_) => InputRoute::RegisterActor,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -3491,6 +3620,7 @@ impl Input {
             Self::SessionClientHello(_) => short_header::INPUT_SESSION_CLIENT_HELLO,
             Self::SessionClientProof(_) => short_header::INPUT_SESSION_CLIENT_PROOF,
             Self::SessionData(_) => short_header::INPUT_SESSION_DATA,
+            Self::RegisterActor(_) => short_header::INPUT_REGISTER_ACTOR,
         }
     }
     pub fn route_from_short_header(header: u64) -> Result<InputRoute, SignalFrameError> {
@@ -3509,6 +3639,7 @@ impl Input {
                 Ok(InputRoute::SessionClientProof)
             }
             short_header::INPUT_SESSION_DATA => Ok(InputRoute::SessionData),
+            short_header::INPUT_REGISTER_ACTOR => Ok(InputRoute::RegisterActor),
             _ => {
                 Err(SignalFrameError::UnknownHeader {
                     root_enum: "Input",
@@ -3572,6 +3703,8 @@ impl Output {
             Self::SessionAccepted(_) => OutputRoute::SessionAccepted,
             Self::SessionRefused(_) => OutputRoute::SessionRefused,
             Self::SessionData(_) => OutputRoute::SessionData,
+            Self::ActorRegistered(_) => OutputRoute::ActorRegistered,
+            Self::ActorRegistrationRefused(_) => OutputRoute::ActorRegistrationRefused,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -3591,6 +3724,10 @@ impl Output {
             Self::SessionAccepted(_) => short_header::OUTPUT_SESSION_ACCEPTED,
             Self::SessionRefused(_) => short_header::OUTPUT_SESSION_REFUSED,
             Self::SessionData(_) => short_header::OUTPUT_SESSION_DATA,
+            Self::ActorRegistered(_) => short_header::OUTPUT_ACTOR_REGISTERED,
+            Self::ActorRegistrationRefused(_) => {
+                short_header::OUTPUT_ACTOR_REGISTRATION_REFUSED
+            }
         }
     }
     pub fn route_from_short_header(
@@ -3618,6 +3755,10 @@ impl Output {
             short_header::OUTPUT_SESSION_ACCEPTED => Ok(OutputRoute::SessionAccepted),
             short_header::OUTPUT_SESSION_REFUSED => Ok(OutputRoute::SessionRefused),
             short_header::OUTPUT_SESSION_DATA => Ok(OutputRoute::SessionData),
+            short_header::OUTPUT_ACTOR_REGISTERED => Ok(OutputRoute::ActorRegistered),
+            short_header::OUTPUT_ACTOR_REGISTRATION_REFUSED => {
+                Ok(OutputRoute::ActorRegistrationRefused)
+            }
             _ => {
                 Err(SignalFrameError::UnknownHeader {
                     root_enum: "Output",
@@ -3677,6 +3818,7 @@ impl signal_frame::SignalOperationHeads for Input {
         "SessionClientHello",
         "SessionClientProof",
         "SessionData",
+        "RegisterActor",
     ];
 }
 #[rustfmt::skip]
