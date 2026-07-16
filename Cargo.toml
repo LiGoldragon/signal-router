@@ -19,16 +19,16 @@ default = []
 nota-text = ["dep:nota", "signal-frame/nota-text"]
 
 [dependencies]
-nota = { package = "nota", git = "https://github.com/LiGoldragon/nota.git", branch = "main", optional = true }
+nota = { package = "nota", git = "https://github.com/LiGoldragon/nota.git", branch = "train/synchronizer-live-proof", optional = true }
 rkyv        = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
-signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", branch = "main", default-features = false }
+signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", branch = "train/synchronizer-live-proof", default-features = false }
 thiserror   = "2"
 
 [build-dependencies]
 schema-rust = { package = "schema-rust", git = "https://github.com/LiGoldragon/schema-rust.git", rev = "255823ab3d0d6c5cab26e26a8b1d60c63c52c7b4" }
 
 [dev-dependencies]
-nota = { package = "nota", git = "https://github.com/LiGoldragon/nota.git", branch = "main" }
+nota = { package = "nota", git = "https://github.com/LiGoldragon/nota.git", branch = "train/synchronizer-live-proof" }
 
 [lints.rust]
 unsafe_code = "forbid"
