@@ -23,14 +23,14 @@
           "rust-src"
         ];
         craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
-        ethosFilter = path: _type: builtins.match ".*/ethos(/.*)?$" path != null;
-        # Include `examples/` so canonical Dotos examples are present
+        interfaceFilter = path: _type: builtins.match ".*/schema(/.*)?$" path != null;
+        # Include the authored Interface and canonical Dotos witnesses.
         # at build time for `include_str!` in `tests/canonical_examples.rs`.
         examplesFilter = path: _type: builtins.match ".*/examples(/.*)?$" path != null;
         sourceFilter = path: type:
           type == "directory"
           || (craneLib.filterCargoSources path type)
-          || (ethosFilter path type)
+          || (interfaceFilter path type)
           || (examplesFilter path type);
         src = pkgs.lib.cleanSourceWith {
           src = ./.;
@@ -49,12 +49,10 @@
             inherit cargoArtifacts;
             cargoTestExtraArgs = "--test round_trip";
           });
-          test-interface-contract = craneLib.cargoTest (commonArgs // {
-            inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test interface_contract";
-          });
-          # The canonical text-edge witnesses are gated behind dotos-text;
-          # this check keeps the human-facing projection in the Nix proof.
+          # The Dotos text-edge witnesses (canonical_examples.rs and the
+          # dotos-text round trips) are gated behind the dotos-text feature;
+          # without this check `nix flake check` would compile them to zero
+          # tests and miss fixture breakage (audit 228).
           test-dotos-text = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
             cargoTestExtraArgs = "--features dotos-text --all-targets";

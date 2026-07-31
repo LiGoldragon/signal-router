@@ -7,38 +7,28 @@ license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/LiGoldragon/signal-router"
 description  = "Signal contract for Persona router observations and relations."
 publish      = false
-links        = "signal-router"
-build        = "build.rs"
 
 [lib]
 name = "signal_router"
 path = "src/lib.rs"
-
-[[test]]
-name = "canonical_examples"
-path = "tests/canonical_examples.rs"
-required-features = ["dotos-text"]
 
 [features]
 default = []
 dotos-text = ["dep:dotos", "signal-frame/dotos-text"]
 
 [dependencies]
-dotos = { package = "dotos", git = "https://github.com/LiGoldragon/dotos.git", rev = "80c7b17f7ad3cf547d2624c6a243e5de5f85c9f3", optional = true }
-rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
-signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", rev = "01676293a623d97b65e320d4138c4b480c6d5dad", default-features = false }
-thiserror = "2"
+dotos = { git = "https://github.com/LiGoldragon/dotos.git", rev = "80c7b17f7ad3cf547d2624c6a243e5de5f85c9f3", optional = true }
+rkyv        = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
+signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", rev = "8aa0bcaeb29fe9e461a11706a469638d2fd109ac", default-features = false }
+thiserror   = "2"
 
-[build-dependencies]
-core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "427fd74a8217f557cfabdfe0ff23b784c855bf85" }
+[dev-dependencies]
+dotos = { git = "https://github.com/LiGoldragon/dotos.git", rev = "80c7b17f7ad3cf547d2624c6a243e5de5f85c9f3" }
+core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "43b48c779c54ee9f05cbcc111d5d88074b162461" }
 name-table = { git = "https://github.com/LiGoldragon/name-table.git", rev = "a22f48d8040ab9235f3552ad8654ff8e27b8157d" }
-rust-logos = { git = "https://github.com/LiGoldragon/rust-logos.git", rev = "55501fddc2d7e154d71fff1659386cbbba712267" }
-schema-rust = { package = "schema-rust", git = "https://github.com/LiGoldragon/schema-rust.git", rev = "9e36587c85bd69357e9042729ba2df0052799756", default-features = false }
-sema-translator = { git = "https://github.com/LiGoldragon/sema-translator.git", rev = "6b5499c0d25c801b56582fdcd8e021c3293a6d4d", default-features = false, features = ["bootstrap"] }
-signal-sema-translator = { git = "https://github.com/LiGoldragon/signal-sema-translator.git", rev = "3a26cb43f8ce7f9fe85da64d19aa55aa662943ce" }
-structural-codec = { git = "https://github.com/LiGoldragon/structural-codec.git", rev = "879d76f91facedd6d5cbca79e282260e1beb9478" }
+signal-sema-translator = { git = "https://github.com/LiGoldragon/signal-sema-translator.git", rev = "3f41813dd63904c7e2b3da4382eff64ed1bf12fe" }
 
 [lints.rust]
 unsafe_code = "forbid"
-unused = { level = "warn", priority = -1 }
-dead_code = "warn"
+unused      = { level = "warn", priority = -1 }
+dead_code   = "warn"

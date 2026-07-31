@@ -1,27 +1,32 @@
-;; One canonical Dotos witness for every ordinary Router request and reply.
+;; Canonical Dotos witnesses for Router's current Interface.
+Summary.prototype
+MessageTrace.{prototype 7}
+ChannelState.{prototype internal-message-router}
+ForwardMessage.{{ouranos-mind prometheus-responder (hello over the tailnet) [digest-001] []} {prometheus-router Bls12_381MinPk bls-pk-abc bls-sig-def blake3-0011 1726000000000000000 nonce-7f3a 1726000000000000500} Origin nonce-7f3a 1726000000000000000}
+SubmitRoutedObjects.{spirit spirit-peer mirror-append [] [{signal-mirror NotifyObject 3 [1 2 3]}]}
+RegisterActor.{orchestrate 4242 Some.{ComponentSocket /run/persona/X/orchestrate.sock None}}
 
-ChannelState.(fixture fixture)
-SubmitRoutedObjects.(fixture fixture fixture [] [])
-ForwardMessage.((fixture fixture fixture [] []) (fixture Bls12_381MinSig fixture fixture fixture 7 fixture 7) Origin fixture 7)
-Summary.(fixture)
-SessionClientProof.((fixture Bls12_381MinSig fixture fixture fixture fixture 7))
-SessionClientHello.(fixture fixture)
-SessionData.([])
-RegisterActor.(fixture 7 None)
-MessageTrace.(fixture 7)
-
-ChannelState.(fixture fixture Installed)
-MessageTrace.(fixture 7 ForwardedRemote)
-SessionData.([])
-RoutedObjectsRefused.AlreadyForwarded
-Summary.(fixture 7 7 7 7)
-ActorRegistrationRefused.(fixture RemoteRouterEndpointNotLocal)
+Summary.{prototype 1 1 0 0}
+MessageTrace.{prototype 7 Routed}
+MessageTraceMissing.{prototype 99}
+ChannelState.{prototype internal-message-router Installed}
+ForwardAccepted.7
+ForwardRefused.UnknownPeer
+ForwardRefused.AttestationInvalid
+ForwardRefused.ReplayDetected
+ForwardRefused.ClockSkew
+ForwardRefused.RecipientUnknown
+ForwardRefused.ChannelUnauthorized
 ForwardRefused.AlreadyForwarded
-MessageTraceMissing.(fixture 7)
-RoutedObjectsAccepted.(7)
-SessionRefused.(SessionCipherFailure)
-ActorRegistered.(fixture Registered)
-Unimplemented.(MessageTrace MessageTraceUnavailable)
-SessionAccepted.([])
-SessionServerHello.(fixture fixture (fixture Bls12_381MinSig fixture fixture fixture fixture 7))
-ForwardAccepted.(7)
+ForwardRefused.MirrorDisabled
+ForwardRefused.SessionRequired
+Unimplemented.{Summary NotInPrototypeScope}
+RoutedObjectsAccepted.11
+RoutedObjectsRefused.MirrorDisabled
+ActorRegistered.{orchestrate Registered}
+ActorRegistered.{orchestrate EndpointUpdated}
+ActorRegistrationRefused.{orchestrate ProcessIdentifierOutOfRange}
+ActorRegistrationRefused.{orchestrate RemoteRouterEndpointNotLocal}
+
+RegisterRemoteRouter.{prometheus-router (|[201:abcd::2]:9930|)}
+{/run/persona/X/router.sock 384 /run/persona/X/router-meta.sock 384 /run/persona/X/router-supervision.sock 384 /var/lib/persona/X/router.sema Some./var/lib/persona/X/router-bootstrap.dotos UnixUser.1000 Some.(|[200:1234::1]:9930|) ouranos-router Some./run/persona/X/criome.sock}

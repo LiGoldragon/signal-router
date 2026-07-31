@@ -1,1 +1,1 @@
-@skills.md
+@AGENTS.md

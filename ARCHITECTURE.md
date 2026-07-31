@@ -1,107 +1,321 @@
 # signal-router — architecture
 
-## Center
+*Signal contract for Persona router-owned observations and relations.*
 
-This Interface is the vocabulary of Router’s ordinary relation. It says what a
-Router can be asked, what it can answer, how actors and peer routes are named,
-and how opaque contract-owned objects cross a Router boundary. It owns no
-daemon mechanics.
+## 0 · TL;DR
 
-Ethos is the readable authority. Humans, agents, harnesses, and GUIs see the
-meaningful names there and in Dotos; Rust sees encoded identities only.
+`signal-router` is the typed contract for the router's
+component-owned wire vocabulary. It carries the observation channel
+`introspect` uses to ask the router what happened to a message,
+a channel, or an engine. It also carries the manager-written router
+bootstrap vocabulary consumed by `router` at daemon startup, and the
+standardized router-to-router forwarding protocol. That protocol is a
+router-owned envelope around payload-blind contract objects: Router reads
+routing/authentication metadata and forwards opaque rkyv octets without
+decoding the inner contract.
 
-## Relations
+Meta channel-policy orders are not part of this ordinary
+observation contract. Grants, extensions, revocations, and
+adjudication denials live in `meta-signal-router`, the
+router's policy signal, called by Orchestrate.
+Mind decides at the cognitive level and orders Orchestrate first; it
+does not call Router's meta signal directly.
 
-The request root contains nine closed operations:
+## Wire operation heads
 
-- observation: `Summary`, `MessageTrace`, and `ChannelState`;
-- forwarding: `ForwardMessage` and `SubmitRoutedObjects`;
-- peer session: `SessionClientHello`, `SessionClientProof`, and `SessionData`;
-- local runtime registration: `RegisterActor`.
+The public wire carries only bare contract-local operation heads. The three
+router observation reads are:
+`Summary`, `MessageTrace`, and `ChannelState`. The router-to-router
+forwarding relation adds a fourth request head, `ForwardMessage`, with the
+reply pair `ForwardAccepted` / `ForwardRefused`. Durable read/write
+classification is daemon-side only.
 
-The reply root contains fifteen closed outcomes: the observation answers and
-typed absence, forward and routed-object acceptance/refusal, peer-session
-handshake/data outcomes, actor registration outcomes, and an explicitly typed
-unimplemented observation answer.
+This contract crate depends on `signal-frame` for length-prefixed
+rkyv framing. It still owns only wire vocabulary, Dotos codecs, and
+bootstrap records; it does not own daemon actors, store tables, sockets,
+or routing policy.
 
-The Rust coordinates of both roots and every payload are encoded. Route enums
-retain readable operation names because routing behavior is producer-owned,
-not a copied structural naming surface.
+`schema/router.ethos` declares the contract roots and payload records.
+`src/binding.rs` is the current Rust binding for that interface; `src/lib.rs`
+re-exports the binding and keeps only small contract-owned
+helpers for bootstrap line projection and rkyv configuration archives.
+Bootstrap is not a live request/reply channel; it is a typed startup
+document projected as line-oriented Dotos records for the current
+manager-to-router handoff.
 
-## Owned vocabulary
+Closed enums on the wire; positive names for "entity not in store"
+cases; one reply variant per concrete observation shape. Slot-lookup
+miss is a distinct `MessageTraceMissing` reply variant, not a sentinel
+status inside `RouterMessageTrace`. Channel absence is the positive
+`RouterChannelStatus::Missing`, not a polling-shape `Unknown`.
 
-Observation vocabulary keeps absence closed and positive. A missing message
-trace is a distinct reply; channel absence is `Missing`, not `Unknown`.
+## 1 · Channel
 
-Bootstrap vocabulary names actors, endpoints, direct-message grants,
-structural-channel installation, peer routers, and the ordered bootstrap
-document. Runtime actor registration accepts only local actors; remote homes
-belong to bootstrap route discovery.
+| Side | Component |
+|---|---|
+| Request side | `introspect` (today); other observation clients later. |
+| Reply side | `router` |
 
-Forwarding is payload-blind. `RoutedContractObject` carries contract name,
-operation, declared size, and opaque octets. Router authenticates and routes
-the envelope without decoding the owned object. `ForwardMarker` prevents a
-received forward from being re-resolved onto another remote route.
+The router answers observation queries. The crate carries no
+streaming subscription today: all current variants are one-shot
+observation reads.
 
-Peer forwarding carries a self-contained Criome-rooted attestation and a
-three-message ephemeral-key handshake followed by encrypted session data.
-Router never owns signing keys or signature verification; it projects the
-attestation to its local Criome relation at the daemon boundary.
+## 2 · Owned surface
 
-Configuration names working, owner-meta, supervision, store, bootstrap, peer,
-and Criome reachability. `WirePath` remains contract-local because it types
-both socket and ordinary file paths; it is not a duplicate of the narrower
-shared `StandardSocket`. The unused local `HostName` spelling was removed.
+- `Input` / `Output` (closed wire enums).
+- `RouterBootstrapDocument` / `RouterBootstrapOperation`.
+- Bootstrap operation records:
+  - `RegisterActor` — now carries `home (Optional RemoteRouterIdentity)`:
+    `None` ⇒ a local actor (harness-registry delivery); `Some(peer)` ⇒ the
+    actor lives behind that remote router, so the local router records it in
+    the remote-route table. This is how a router learns a recipient's host —
+    the production source for remote-route resolution.
+  - `GrantDirectMessage`
+  - `InstallStructuralChannels`
+  - `RegisterRemoteRouter` — deploy-time peer manifest line
+    (`RemoteRouterIdentity` → `TailnetAddress`).
+- Bootstrap actor endpoint records:
+  - `ActorIdentifier`
+  - `Actor`
+  - `EndpointTransport`
+  - `EndpointKind` (now including `RemoteRouter`: for that kind the
+    transport `target` is a `TailnetAddress` literal and `auxiliary` a
+    `RemoteRouterIdentity` — one address model, not a parallel one).
+- Router-to-router forwarding surface:
+  - Addressing nouns `TailnetAddress`, `RemoteRouterIdentity`,
+    `HostName`, plus the self-contained `TimestampNanos` and
+    `ReplayNonce`.
+  - `ForwardMessage(RouterForwardRequest)` request, carrying a
+    self-contained `ForwardedMessagePayload`, a `RouterPeerAttestation`,
+    the first-class `ForwardMarker` loop guard, a `ReplayNonce`, and a
+    `TimestampNanos`.
+  - `RoutedContractObject` — contract name, operation name, declared byte
+    size, and opaque contract payload octets. This is how a mirror
+    `NotifyObject` or later component-owned object rides inside the router
+    protocol while remaining owned by its own contract.
+  - Reply pair `ForwardAccepted(RouterForwardAccepted)` (the minted
+    delivery slot) / `ForwardRefused(RouterForwardRefused)` with closed
+    `RouterForwardRefusalReason`.
+  - Closed `SignatureScheme` mirroring criome's scheme set.
+- `RouterDaemonConfiguration` extended with `tailnet_listen_address`
+  (Optional), `router_identity`, and `criome_socket_path` (Optional).
+- `RouterSummaryQuery` / `RouterSummary`.
+- `RouterMessageTraceQuery` and the **two-variant reply split**:
+  - `Output::MessageTrace(RouterMessageTrace)` — slot present;
+    `status` is a closed `RouterDeliveryStatus`.
+  - `Output::MessageTraceMissing(RouterMessageTraceMissing)` —
+    slot not in store. The split keeps the inner status enum closed.
+- `RouterChannelStateQuery` / `RouterChannelState` /
+  `RouterChannelStatus`. The "slot not in store" case is the positive
+  `Missing` variant.
+- `RouterObservationUnimplemented` + closed
+  `RouterObservationUnimplementedReason`.
+- Contract-local verbs declared as roots in `schema/router.ethos`;
+  durable read/write classification is daemon-side only.
 
-## Authority and projection
+## 3 · Closed-enum integrity
 
-`ethos/interface.ethos` is the only schema source. It is a strict
-`Interface.{1 0 0}` with empty bootstrap role sections; the encoded
-`RouterRequest` and `RouterReply` declarations are seated into ordinary Signal
-behavior by the producer-owned Rust layer.
+Wire enums in this crate are closed; no `Unknown` placeholder
+smuggles polling-shape uncertainty across the boundary. The closed
+shapes:
 
-`src/bootstrap_manifest.rs` carries explicit authority identity, revision,
-grammar identities, fixed vocabulary, declarations, variants, and canonical
-ordering. `build.rs` verifies the authorized transaction, checks the generated
-Rust projection, and publishes the owned Ethos directory through Cargo
-metadata.
+```text
+RouterDeliveryStatus
+  | Accepted
+  | Routed
+  | Delivered
+  | Deferred
+  | Failed
+  | ForwardedRemote    -- the message was handed to a peer router
 
-`src/schema/lib/generated.rs` is structural projection only.
-`src/schema/lib/behavior.rs` owns structural wire conversion, Dotos, rkyv,
-route seating, and contract binding 7 revision 2. It creates no readable type
-aliases.
+RouterChannelStatus
+  | Installed
+  | Missing            -- positive name for "no slot in store"
+  | Disabled
 
-## Dependency topology
+RouterObservationUnimplementedReason
+  | NotInPrototypeScope
+  | RouterStoreUnavailable
+  | MessageTraceUnavailable
 
-The ordinary Router Interface depends at runtime only on `signal-frame` and
-optional Dotos. It deliberately does not import component contracts. No
-`signal-standard` identity is semantically present: the one overlapping
-spelling on the retired source was unused and was deleted. `meta-signal-router`
-depends on this producer and imports only the ordinary types it actually uses.
+ForwardMarker
+  | Origin             -- an originating submission, may resolve remotely
+  | Forwarded          -- already arrived via a forward; never re-resolved
 
-## Constraints
+RouterForwardRefusalReason
+  | UnknownPeer
+  | AttestationInvalid
+  | ReplayDetected
+  | ClockSkew
+  | RecipientUnknown
+  | ChannelUnauthorized
+  | AlreadyForwarded
 
-- Wire enums are closed; no catch-all or `Unknown` state.
-- Every request and reply variant has a Dotos, rkyv, and bound-frame witness.
-- Routed objects remain opaque to Router.
-- A forwarded message is never forwarded remotely again.
-- Runtime policy, actors, storage, sockets, and cryptography remain in
-  `router`.
-- Meta channel-policy orders remain in `meta-signal-router`.
-- All dependency revisions are exact and producer-owned sources match Cargo
-  metadata.
-- No second schema language, copied readable aliases, or retired emitter
-  machinery may reappear.
+SignatureScheme
+  | Bls12_381MinPk
+  | Bls12_381MinSig
+```
 
-## Consumers
+`Missing` is a domain answer, not a polling sentinel. It says "we
+looked; nothing is bound to this channel id." A consumer that sees
+`Missing` does not retry the same query expecting a different answer;
+it acts on the closed observation. The same shape applies to
+`MessageTraceMissing` reply variant at the reply level — slot
+presence/absence pivots at the reply variant, not by sentinel inside a
+present reply.
 
-`router` lowers the encoded ordinary roots into its actor and storage planes.
-`introspect` consumes observation replies. Orchestrate uses actor-registration
-and bootstrap vocabulary. The meta producer imports Router configuration and
-policy payloads from this exact producer head.
+## 4 · Daemon Lowering Boundary
 
-## Evolution
+Each contract-local operation lowers inside `router` into a daemon-owned Nexus
+command and any SEMA reads or writes needed to answer it. All current live
+request variants are observation reads. The public wire carries only the
+contract-local operation head; it never carries `Assert`, `Mutate`, `Retract`,
+`Match`, `Subscribe`, or `Validate`, and this crate has no `signal-sema`
+dependency.
 
-New relations extend the Ethos Interface with explicitly minted seats and
-exhaustive witnesses. Schema decisions must not assume Rust, LLVM, or the
-current operating system as a permanent substrate.
+Write-shaped router state changes belong on the authority surface that
+matches who may call them. Meta channel-policy changes live in
+`meta-signal-router` and are issued by Orchestrate;
+peer-callable router writes, once they earn a contract surface, belong
+in this ordinary contract. Their database effects still remain daemon-owned
+lowering, not public operation roots.
+
+## 4a · Router-to-router forwarding
+
+This contract carries the router↔router forwarding relation — the wire
+half of "networking through the router" (Spirit `wckt`, comms
+architecture; Spirit `ermr`, cross-system trust root). Milestone 1 is the
+contract only; the daemon's tailnet ingress, outbound peer client, remote
+registry, attestation verification, and replay window are separate
+milestones in `router`.
+
+**Self-contained attestation (the decision).** A networked router cannot
+rely on the kernel's `SO_PEERCRED` local vouching, which dies at the TCP
+hop. Instead `RouterForwardRequest` carries a `RouterPeerAttestation` —
+signer, scheme, public key, signature, content digest, the router's own
+forward issue time, replay nonce, and the criome attestation issue time
+(the timestamp criome server-stamped into the BLS-signed attestation, so
+the receiver can reconstruct criome's exact signed preimage) — that
+**mirrors what criome produces without depending on `signal-criome`.** The crate holds a self-contained-vocabulary policy and
+carries no contract→contract dependency; the daemon projects this record
+to/from criome's `Attestation` at the boundary and delegates all signing
+and verification to its local criome daemon. The router never holds keys
+or verifies signatures itself (`wckt`: tailnet encrypts the bytes, BLS
+authenticates the identity — two separate concerns). The closed
+`SignatureScheme` mirrors criome's scheme set for the same reason.
+
+**Self-contained payload (the dependency decision).** `signal-router`
+today depends only on `signal-frame` for framing — no contract→contract
+dependency, and `router_contract_has_no_sema_classification_dependency_or_roots`
+enforces the self-contained posture. Rather than import `signal-message`'s
+stamped submission (which would break self-containment and the
+"buildable in isolation" milestone-1 constraint), the forwarded message
+travels as a self-contained `ForwardedMessagePayload` (from/to actor,
+body, attachments). The daemon projects it into its stamped-submission
+ledger entry on receipt.
+
+**First-class loop guard.** `ForwardMarker` is a first-class field, not a
+risk footnote. The inbound handler sets it deterministically: an `Origin`
+submission may resolve to a remote route, but a `Forwarded` message is
+delivered-local-or-parked only and must never be re-resolved remotely
+(refused `AlreadyForwarded` if it would be). The guard keys on the marker,
+independent of the criome-derived origin identity.
+
+**Addressing.** `TailnetAddress` is the dialed IPv6 literal + port;
+`RemoteRouterIdentity` is the peer's stable criome `PrincipalName`.
+Addresses re-home, identity does not: peers are routed by identity and
+dialed by current address. `RegisterRemoteRouter` is the deploy-time peer
+manifest of *which peers exist* (bootstrap-as-config, not runtime
+discovery); `RegisterActor.home` is the deploy-time source of *which
+recipient lives behind which peer* — the input to remote-route resolution.
+
+**Config.** `tailnet_listen_address` is `Optional` — `Some` ⇒ the daemon
+binds a TCP forwarding tier; `None` ⇒ a single-host router stays
+local-only. `router_identity` is this router's own stable identity;
+`criome_socket_path` (`Optional`) is the local criome daemon for
+attestation.
+
+## 5 · Constraints
+
+| Constraint | Witness |
+|---|---|
+| Router observations have a router-owned contract home. | This crate exists; central introspection contract does not define router rows. |
+| Every request/reply travels as a Signal frame. | `tests/round_trip.rs` length-prefixed frame tests per variant. |
+| Router forwarding can carry a contract-owned object without knowing the inner contract. | `router_forward_request_carries_contract_object_octets_without_decoding_them` wraps `signal-mirror` / `NotifyObject` metadata plus opaque octets, round-trips the router frame, and asserts the octets are unchanged. |
+| Manager-written router bootstrap uses router-owned typed vocabulary, not duplicated private records in `persona`. | `RouterBootstrapDocument` and `RouterBootstrapOperation` live in this crate; `bootstrap_document_owns_line_vocabulary_for_manager_and_router` round-trips the line projection. |
+| Router observation queries are contract-local operation heads, never universal database-action class roots. | `router_request_heads_are_contract_local_operations` and `router_contract_has_no_sema_classification_dependency_or_roots`. |
+| Message ingress remains outside this contract. | This crate carries only the router-facing `MessageSlot` scalar needed to observe a routed message; message submission records remain outside `signal-router`. |
+| Meta router channel policy orders remain out of this ordinary observation contract. | `meta-signal-router` owns `Grant`, `Extend`, `Revoke`, and `Deny`; Orchestrate calls that meta contract; this crate does not define those operations. |
+| Runtime code stays out of the contract. | Source scan: no Kameo, Tokio, socket, or storage code. |
+| Wire enums contain no `Unknown` variant. | `tests/round_trip.rs::router_status_enums_are_closed_no_unknown_variants` exhaustively matches every `RouterDeliveryStatus` and `RouterChannelStatus` variant. Adding an `Unknown` variant breaks the match. |
+| Any record name containing the word `Unknown` represents a positive "entity not in our state" rejection, not a polling-shape escape hatch. | This crate has no such records today; reply absence pivots at the reply variant (`MessageTraceMissing`) and channel absence at the positive `RouterChannelStatus::Missing`. |
+| Slot lookup miss travels as the typed `MessageTraceMissing` reply variant, not a sentinel inside `RouterMessageTrace.status`. | `router_message_trace_missing_reply_round_trips_through_length_prefixed_frame`. |
+| Each variant's Dotos head matches the contract-local verb declared in `schema/router.ethos`. | The current Rust binding and round-trip tests assert each variant's head. |
+| Round-trip witnesses cover every variant in rkyv. | `tests/round_trip.rs` exercises every request and reply variant through `Frame::encode_length_prefixed` / `decode_length_prefixed`. |
+| Round-trip witnesses cover every variant in Dotos. | `examples/canonical.dotos` holds one canonical text example per request/reply variant; round-trip tests parse and re-emit each. |
+| Bootstrap line records round-trip through Dotos using the contract crate. | `bootstrap_register_actor_operation_round_trips_through_dotos_line`, `bootstrap_direct_message_grant_operation_round_trips_through_dotos_line`, and `bootstrap_document_owns_line_vocabulary_for_manager_and_router`. |
+| No stringly-typed dispatch (`match s.as_str()`) for closed-set states. | All status/scope/reason fields are typed closed enums. |
+| Request payloads do not mint router-owned identity, timestamps, or sequence numbers; `router` mints those at the daemon. | `ForwardAccepted(RouterForwardAccepted)` carries the daemon-minted delivery slot; the request side carries only the self-contained `ReplayNonce` and forward `TimestampNanos` it is responsible for, never a router-assigned slot or sequence. |
+| Contract crate dependencies name exact published producer identities. | `Cargo.toml` pins `dotos` and `signal-frame` to their exact published revisions. |
+| The router-to-router forwarding relation has a router-owned contract home. | `ForwardMessage` / `ForwardAccepted` / `ForwardRefused` live on this wire; `router_forward_request_round_trips_through_length_prefixed_frame`, `..._reply_round_trips_..._for_every_reason`. |
+| The forwarding contract carries no contract→contract dependency and stays buildable in isolation. | `ForwardedMessagePayload` is self-contained; `Cargo.toml` has no `signal-message` / `signal-criome` dependency; `nix flake check` passes with no daemon and no network. |
+| Peer attestation is mirrored self-contained, not imported from `signal-criome`. | `RouterPeerAttestation` and `SignatureScheme` are local nouns; the daemon maps to/from criome at the boundary. |
+| `RouterForwardRefusalReason` and `ForwardMarker` are closed, no `Unknown`. | `router_forward_refusal_reason_is_closed_and_exhaustive`, `forward_marker_is_closed_origin_or_forwarded` exhaustively match every variant. |
+| A forwarded message is never re-resolved to a remote route. | First-class `ForwardMarker` (`Origin` / `Forwarded`); `AlreadyForwarded` refusal reason. Daemon enforcement lands in `router` (milestone 2). |
+| An absent `tailnet_listen_address` keeps a router single-host / local-only. | `single_host_router_configuration_has_no_tailnet_listen_address`. |
+| Round-trip witnesses cover every new variant in rkyv and Dotos. | `tests/round_trip.rs` per-variant frame + Dotos tests; `examples/canonical.dotos` + `tests/canonical_examples.rs` for `ForwardMessage`, `ForwardAccepted`, every `ForwardRefused` reason, `RegisterRemoteRouter`, and the extended `RouterDaemonConfiguration`. |
+
+## 6 · Dotos codec shape on interface operation heads
+
+The binding emits a root variant's Dotos head as the operation
+head. For example, `Input::Summary(RouterSummaryQuery)` encodes as
+`(Summary prototype)`, while struct payload roots keep their record body,
+such as `(MessageTrace (prototype 7))`. Tests and canonical examples carry
+the operation heads. The same shape applies to reply variants:
+`Output::MessageTraceMissing(RouterMessageTraceMissing { .. })` encodes as
+`(MessageTraceMissing (prototype 99))`.
+
+## 7 · Versioning
+
+`signal_frame::Frame` carries the protocol version. Interface-level
+changes are breaking; coordinate `router` and observation
+consumers (`introspect`) on the upgrade.
+
+This crate depends on the exact published `signal-frame` revision required by
+its current wire binding.
+
+## 8 · Non-ownership
+
+- No router daemon — that is `router`.
+- No introspection daemon — that is `introspect`.
+- No router sema-engine table layout — `router` owns it.
+- No subscription accounting — there is no subscription today.
+- No transport (UDS path, reconnect, timeouts).
+- No meta channel-policy orders; those live in `meta-signal-router`.
+
+## 9 · Code map
+
+```text
+src/
+├── lib.rs                — interface re-export + small contract helpers
+└── binding.rs            — current Rust wire binding
+schema/
+└── router.ethos          — authored interface roots and payload records
+examples/
+└── canonical.dotos         — one canonical example per request/reply variant
+tests/
+└── round_trip.rs          — per-variant frame round trips + Dotos witnesses
+                             + closed-enum + operation-head witnesses
+                             + bootstrap line-projection witness
+                             + canonical examples parser
+```
+
+## See also
+
+- `meta-signal-router/ARCHITECTURE.md` — meta router
+  channel policy orders.
+- `~/primary/skills/component-triad.md`.
+- `signal-message/ARCHITECTURE.md` — companion crate that carries message
+  ingress records outside this observation contract.
+- `signal-introspect/ARCHITECTURE.md` — the central
+  introspection envelope that wraps router observations.
