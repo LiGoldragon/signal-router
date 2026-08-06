@@ -23,14 +23,14 @@
           "rust-src"
         ];
         craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
-        schemaFilter = path: _type: builtins.match ".*/schema(/.*)?$" path != null;
-        # Include `examples/` so canonical NOTA examples files are present
+        ethosFilter = path: _type: builtins.match ".*/ethos(/.*)?$" path != null;
+        # Include `examples/` so canonical Dotos examples are present
         # at build time for `include_str!` in `tests/canonical_examples.rs`.
         examplesFilter = path: _type: builtins.match ".*/examples(/.*)?$" path != null;
         sourceFilter = path: type:
           type == "directory"
           || (craneLib.filterCargoSources path type)
-          || (schemaFilter path type)
+          || (ethosFilter path type)
           || (examplesFilter path type);
         src = pkgs.lib.cleanSourceWith {
           src = ./.;
@@ -49,22 +49,24 @@
             inherit cargoArtifacts;
             cargoTestExtraArgs = "--test round_trip";
           });
-          # The NOTA text-edge witnesses (canonical_examples.rs and the
-          # nota-text round trips) are gated behind the nota-text feature;
-          # without this check `nix flake check` would compile them to zero
-          # tests and miss fixture breakage (audit 228).
-          test-nota-text = craneLib.cargoTest (commonArgs // {
+          test-interface-contract = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
-            cargoTestExtraArgs = "--features nota-text --all-targets";
+            cargoTestExtraArgs = "--test interface_contract";
+          });
+          # The canonical text-edge witnesses are gated behind dotos-text;
+          # this check keeps the human-facing projection in the Nix proof.
+          test-dotos-text = craneLib.cargoTest (commonArgs // {
+            inherit cargoArtifacts;
+            cargoTestExtraArgs = "--features dotos-text --all-targets";
           });
           fmt = craneLib.cargoFmt { inherit src; };
           clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
             cargoClippyExtraArgs = "--all-targets -- -D warnings";
           });
-          clippy-nota-text = craneLib.cargoClippy (commonArgs // {
+          clippy-dotos-text = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--features nota-text --all-targets -- -D warnings";
+            cargoClippyExtraArgs = "--features dotos-text --all-targets -- -D warnings";
           });
         };
         devShells.default = pkgs.mkShell {

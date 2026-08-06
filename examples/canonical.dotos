@@ -1,0 +1,27 @@
+;; One canonical Dotos witness for every ordinary Router request and reply.
+
+ChannelState.(fixture fixture)
+SubmitRoutedObjects.(fixture fixture fixture [] [])
+ForwardMessage.((fixture fixture fixture [] []) (fixture Bls12_381MinSig fixture fixture fixture 7 fixture 7) Origin fixture 7)
+Summary.(fixture)
+SessionClientProof.((fixture Bls12_381MinSig fixture fixture fixture fixture 7))
+SessionClientHello.(fixture fixture)
+SessionData.([])
+RegisterActor.(fixture 7 None)
+MessageTrace.(fixture 7)
+
+ChannelState.(fixture fixture Installed)
+MessageTrace.(fixture 7 ForwardedRemote)
+SessionData.([])
+RoutedObjectsRefused.AlreadyForwarded
+Summary.(fixture 7 7 7 7)
+ActorRegistrationRefused.(fixture RemoteRouterEndpointNotLocal)
+ForwardRefused.AlreadyForwarded
+MessageTraceMissing.(fixture 7)
+RoutedObjectsAccepted.(7)
+SessionRefused.(SessionCipherFailure)
+ActorRegistered.(fixture Registered)
+Unimplemented.(MessageTrace MessageTraceUnavailable)
+SessionAccepted.([])
+SessionServerHello.(fixture fixture (fixture Bls12_381MinSig fixture fixture fixture fixture 7))
+ForwardAccepted.(7)

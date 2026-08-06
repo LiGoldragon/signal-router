@@ -1,12 +1,20 @@
 # signal-router
 
-Signal contract for Persona router-owned observations and relations.
+The ordinary Router Interface: observation, actor registration, bootstrap,
+payload-blind routed-object forwarding, and authenticated peer-session
+vocabulary.
 
-The first use is introspection: `introspect` can ask the router for a
-typed summary or message trace without opening `router.sema`.
+`ethos/interface.ethos` is the sole schema authority. The strict role-free
+`Interface.{1 0 0}` is verified against explicit producer-owned identity
+seats, then projected to encoded-only Rust. The producer-owned behavior layer
+supplies Dotos, rkyv, and the bound Signal frame while those slices remain
+outside the bootstrap language.
 
-`schema/lib.schema` is the authored source; `src/schema/lib.rs` is the
-checked-in schema-rust generated contract surface. All current
-request variants are observation queries carried as contract-local
-`signal-frame` operation heads; durable read/write classification is
-daemon-internal.
+The crate is self-contained apart from `signal-frame`; the Router daemon owns
+routing, authentication policy, storage, sockets, and actors.
+
+Regenerate the checked projection with:
+
+```sh
+SIGNAL_ROUTER_UPDATE_INTERFACE_ARTIFACTS=1 cargo build
+```
