@@ -48,7 +48,6 @@ Signal
 
   TailnetAddress.String
   CriomeHostId.String
-  HostName.String
   TimestampNanos.Integer
   ReplayNonce.String
   ContractName.String

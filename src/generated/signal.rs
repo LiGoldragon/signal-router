@@ -29,8 +29,6 @@ pub type TailnetAddress = String;
 #[rustfmt::skip]
 pub type CriomeHostId = String;
 #[rustfmt::skip]
-pub type HostName = String;
-#[rustfmt::skip]
 pub type TimestampNanos = i64;
 #[rustfmt::skip]
 pub type ReplayNonce = String;

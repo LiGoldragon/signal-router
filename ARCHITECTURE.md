@@ -38,12 +38,15 @@ classification is daemon-side only.
 through `ethos-zero` and asserts the checked-in Rust projection in
 `src/generated/signal.rs` equals a fresh generation, so the committed code is
 the authored schema and nothing else. `src/lib.rs` re-exports that projection
-and adds the frame surface: `Signal<T>`, `Signalizable`, `ByteViewable`,
-`Restorable`.
+and re-exports the portable frame — `Signal<T>`, `Signalizable`, `ByteViewable`,
+`Restorable` — from `signal`, so a router frame is the same Rust type as every
+other contract's frame. A vendored copy of those four would be a fork of the
+wire type, not a convenience.
 
-The crate depends on `rkyv` for the archive and, under the `datom` feature, on
-`protos` and `datom-codec` for the text edge. It carries no envelope crate, no
-build-time bootstrap codegen, and no contract-to-contract dependency.
+The crate depends on `signal` for the frame, `rkyv` for the archive, and, under
+the `datom` feature, on `protos` and `datom-codec` for the text edge. It
+carries no envelope crate, no build-time bootstrap codegen, and no dependency
+on a sibling component contract.
 
 **One request is one frame.** A `Query` is the rkyv archive of one request; a
 `Response` is the rkyv archive of one reply. The contract carries no exchange
@@ -217,9 +220,9 @@ or verifies signatures itself (`wckt`: tailnet encrypts the bytes, BLS
 authenticates the identity — two separate concerns). The closed
 `SignatureScheme` mirrors criome's scheme set for the same reason.
 
-**Self-contained payload (the dependency decision).** `signal-router` carries
-no contract→contract dependency at all: it declares its own `Signal<T>` frame
-surface and imports no sibling contract. Rather than import `signal-message`'s
+**Self-contained payload (the dependency decision).** `signal-router` depends
+on no sibling component contract: it takes only the shared frame from `signal`.
+Rather than import `signal-message`'s
 stamped submission (which would break self-containment and the
 "buildable in isolation" milestone-1 constraint), the forwarded message
 travels as a self-contained `ForwardedMessagePayload` (from/to actor,

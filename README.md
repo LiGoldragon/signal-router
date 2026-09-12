@@ -14,6 +14,8 @@ equals a fresh generation. `examples/canonical.datom` carries one Datom line per
 contract head, every one of them written by the codec that reads it back.
 
 One request is one Signal frame carrying the rkyv archive of `Query`; one reply
-is one frame of `Response`. There is no envelope.
+is one frame of `Response`. There is no envelope. The portable frame comes from
+`signal` and is re-exported here, so a router frame is the same Rust type as
+every other contract's frame.
 
 See `ARCHITECTURE.md`.
