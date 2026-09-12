@@ -1,5 +1,5 @@
 {
-  description = "signal-router - Signal contract for Persona router observations";
+  description = "signal-router - ordinary Router Signal contract";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -23,15 +23,16 @@
           "rust-src"
         ];
         craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
-        interfaceFilter = path: _type: builtins.match ".*/schema(/.*)?$" path != null;
-        # Include the authored Interface and canonical Dotos witnesses.
-        # at build time for `include_str!` in `tests/canonical_examples.rs`.
-        examplesFilter = path: _type: builtins.match ".*/examples(/.*)?$" path != null;
+        # The authored Ethos source and the canonical Datom witnesses are read
+        # at build time: `build.rs` actualizes the first, `tests/contract.rs`
+        # includes the second.
+        contractFilter = path: _type:
+          builtins.match ".*/ethos(/.*)?$" path != null
+          || builtins.match ".*/examples(/.*)?$" path != null;
         sourceFilter = path: type:
           type == "directory"
           || (craneLib.filterCargoSources path type)
-          || (interfaceFilter path type)
-          || (examplesFilter path type);
+          || (contractFilter path type);
         src = pkgs.lib.cleanSourceWith {
           src = ./.;
           filter = sourceFilter;
@@ -45,26 +46,19 @@
         checks = {
           build = craneLib.cargoBuild (commonArgs // { inherit cargoArtifacts; });
           test = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; });
-          test-round-trip = craneLib.cargoTest (commonArgs // {
+          test-datom = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test round_trip";
+            cargoTestExtraArgs = "--all-features --all-targets";
           });
-          # The Dotos text-edge witnesses (canonical_examples.rs and the
-          # dotos-text round trips) are gated behind the dotos-text feature;
-          # without this check `nix flake check` would compile them to zero
-          # tests and miss fixture breakage (audit 228).
-          test-dotos-text = craneLib.cargoTest (commonArgs // {
+          doc = craneLib.cargoDoc (commonArgs // {
             inherit cargoArtifacts;
-            cargoTestExtraArgs = "--features dotos-text --all-targets";
+            RUSTDOCFLAGS = "-D warnings";
+            cargoDocExtraArgs = "--no-deps --all-features";
           });
           fmt = craneLib.cargoFmt { inherit src; };
           clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--all-targets -- -D warnings";
-          });
-          clippy-dotos-text = craneLib.cargoClippy (commonArgs // {
-            inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--features dotos-text --all-targets -- -D warnings";
+            cargoClippyExtraArgs = "--all-targets --all-features -- -D warnings";
           });
         };
         devShells.default = pkgs.mkShell {

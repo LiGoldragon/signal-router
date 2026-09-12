@@ -1,0 +1,33 @@
+; Canonical Datom examples for signal-router.
+; Every line is one contract head: a Query, a Response, the
+; RouterDaemonConfiguration, or a RouterBootstrapDocument.
+
+Summary.{ engine-1 }
+MessageTrace.{ engine-1 7 }
+ChannelState.{ engine-1 channel-aab }
+ForwardMessage.{ { li claude «rebase onto main, please» [ attachment-1 ] [ { signal-router ForwardMessage 3 [ 1 2 3 ] } ] } { goldragon Bls12_381MinPk public-key signature content-digest 1757600000000000000 nonce-1 1757600000000000001 } Forwarded nonce-3 1757600000000000003 }
+SubmitRoutedObjects.{ li claude «rebase onto main, please» [ attachment-1 ] [ { signal-router ForwardMessage 3 [ 1 2 3 ] } ] }
+SessionClientHello.{ challenge-1 ephemeral-1 }
+SessionClientProof.{ { goldragon Bls12_381MinSig public-key signature digest nonce-2 1757600000000000002 } }
+SessionData.{ [ 9 8 7 ] }
+RegisterActor.{ claude 4242 Some.{ HarnessSocket /run/persona/harness.sock None } }
+
+Summary.{ engine-1 10 9 1 0 }
+MessageTrace.{ engine-1 7 Delivered }
+MessageTraceMissing.{ engine-1 8 }
+ChannelState.{ engine-1 channel-aab Installed }
+ForwardAccepted.{ 7 }
+ForwardRefused.{ ReplayDetected }
+Unimplemented.{ MessageTrace MessageTraceUnavailable }
+RoutedObjectsAccepted.{ 11 }
+RoutedObjectsRefused.{ ChannelUnauthorized }
+SessionServerHello.{ challenge-2 ephemeral-2 { goldragon Bls12_381MinSig public-key signature digest nonce-2 1757600000000000002 } }
+SessionAccepted.{ [ 4 5 6 ] }
+SessionRefused.{ ChallengeMismatch }
+SessionData.{ [ 9 8 7 ] }
+ActorRegistered.{ claude EndpointUpdated }
+ActorRegistrationRefused.{ claude RemoteRouterEndpointNotLocal }
+
+{ /run/router/router.sock 384 /run/router/meta-router.sock 384 /run/router/supervision.sock 384 /var/lib/router/store Some./var/lib/router/bootstrap.datom UnixUser.1000 Some.100.64.0.1 goldragon None }
+
+[ RegisterActor.{ { claude 4242 Some.{ HarnessSocket /run/persona/harness.sock None } } Some.goldragon } GrantDirectMessage.{ li claude } InstallStructuralChannels.{ li } RegisterRemoteRouter.{ hexis 100.64.0.2 } ]

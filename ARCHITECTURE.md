@@ -24,29 +24,42 @@ does not call Router's meta signal directly.
 ## Wire operation heads
 
 The public wire carries only bare contract-local operation heads. The three
-router observation reads are:
-`Summary`, `MessageTrace`, and `ChannelState`. The router-to-router
-forwarding relation adds a fourth request head, `ForwardMessage`, with the
-reply pair `ForwardAccepted` / `ForwardRefused`. Durable read/write
+router observation reads are `Summary`, `MessageTrace`, and `ChannelState`. The
+router-to-router forwarding relation adds `ForwardMessage` and
+`SubmitRoutedObjects`, with the reply pairs `ForwardAccepted` /
+`ForwardRefused` and `RoutedObjectsAccepted` / `RoutedObjectsRefused`. The peer
+session handshake adds `SessionClientHello`, `SessionClientProof`, and
+`SessionData`; actor registration adds `RegisterActor`. Durable read/write
 classification is daemon-side only.
 
-This contract crate depends on `signal-frame` for length-prefixed
-rkyv framing. It still owns only wire vocabulary, Dotos codecs, and
-bootstrap records; it does not own daemon actors, store tables, sockets,
-or routing policy.
+## The stack
 
-`schema/router.ethos` declares the contract roots and payload records.
-`src/binding.rs` is the current Rust binding for that interface; `src/lib.rs`
-re-exports the binding and keeps only small contract-owned
-helpers for bootstrap line projection and rkyv configuration archives.
-Bootstrap is not a live request/reply channel; it is a typed startup
-document projected as line-oriented Dotos records for the current
-manager-to-router handoff.
+`ethos/signal.ethos` is the one schema authority. `build.rs` actualizes it
+through `ethos-zero` and asserts the checked-in Rust projection in
+`src/generated/signal.rs` equals a fresh generation, so the committed code is
+the authored schema and nothing else. `src/lib.rs` re-exports that projection
+and adds the frame surface: `Signal<T>`, `Signalizable`, `ByteViewable`,
+`Restorable`.
 
-Closed enums on the wire; positive names for "entity not in store"
-cases; one reply variant per concrete observation shape. Slot-lookup
-miss is a distinct `MessageTraceMissing` reply variant, not a sentinel
-status inside `RouterMessageTrace`. Channel absence is the positive
+The crate depends on `rkyv` for the archive and, under the `datom` feature, on
+`protos` and `datom-codec` for the text edge. It carries no envelope crate, no
+build-time bootstrap codegen, and no contract-to-contract dependency.
+
+**One request is one frame.** A `Query` is the rkyv archive of one request; a
+`Response` is the rkyv archive of one reply. The contract carries no exchange
+identifier, no lane, no epoch, no route code and no short header: the `Query`
+and `Response` heads are the discrimination, and the connection is the
+correlation. The byte layer — a four-byte big-endian length prefix — belongs to
+the transport, not to this contract.
+
+**Bootstrap is a document, not a channel.** `RouterBootstrapDocument` is a
+vector of `RouterBootstrapOperation`; the manager writes it as Datom text and
+`router` actualizes it at startup. It is not a request/reply surface.
+
+Closed enums on the wire; positive names for "entity not in store" cases; one
+reply variant per concrete observation shape. Slot-lookup miss is a distinct
+`MessageTraceMissing` reply variant, not a sentinel status inside
+`RouterMessageTrace`. Channel absence is the positive
 `RouterChannelStatus::Missing`, not a polling-shape `Unknown`.
 
 ## 1 · Channel
@@ -62,7 +75,7 @@ observation reads.
 
 ## 2 · Owned surface
 
-- `Input` / `Output` (closed wire enums).
+- `Query` / `Response` (closed wire enums).
 - `RouterBootstrapDocument` / `RouterBootstrapOperation`.
 - Bootstrap operation records:
   - `RegisterActor` — now carries `home (Optional RemoteRouterIdentity)`:
@@ -101,16 +114,16 @@ observation reads.
   (Optional), `router_identity`, and `criome_socket_path` (Optional).
 - `RouterSummaryQuery` / `RouterSummary`.
 - `RouterMessageTraceQuery` and the **two-variant reply split**:
-  - `Output::MessageTrace(RouterMessageTrace)` — slot present;
+  - `Response::MessageTrace(RouterMessageTrace)` — slot present;
     `status` is a closed `RouterDeliveryStatus`.
-  - `Output::MessageTraceMissing(RouterMessageTraceMissing)` —
+  - `Response::MessageTraceMissing(RouterMessageTraceMissing)` —
     slot not in store. The split keeps the inner status enum closed.
 - `RouterChannelStateQuery` / `RouterChannelState` /
   `RouterChannelStatus`. The "slot not in store" case is the positive
   `Missing` variant.
 - `RouterObservationUnimplemented` + closed
   `RouterObservationUnimplementedReason`.
-- Contract-local verbs declared as roots in `schema/router.ethos`;
+- Contract-local verbs declared as query and reply heads in `ethos/signal.ethos`;
   durable read/write classification is daemon-side only.
 
 ## 3 · Closed-enum integrity
@@ -204,10 +217,9 @@ or verifies signatures itself (`wckt`: tailnet encrypts the bytes, BLS
 authenticates the identity — two separate concerns). The closed
 `SignatureScheme` mirrors criome's scheme set for the same reason.
 
-**Self-contained payload (the dependency decision).** `signal-router`
-today depends only on `signal-frame` for framing — no contract→contract
-dependency, and `router_contract_has_no_sema_classification_dependency_or_roots`
-enforces the self-contained posture. Rather than import `signal-message`'s
+**Self-contained payload (the dependency decision).** `signal-router` carries
+no contract→contract dependency at all: it declares its own `Signal<T>` frame
+surface and imports no sibling contract. Rather than import `signal-message`'s
 stamped submission (which would break self-containment and the
 "buildable in isolation" milestone-1 constraint), the forwarded message
 travels as a self-contained `ForwardedMessagePayload` (from/to actor,
@@ -239,83 +251,27 @@ attestation.
 
 | Constraint | Witness |
 |---|---|
-| Router observations have a router-owned contract home. | This crate exists; central introspection contract does not define router rows. |
-| Every request/reply travels as a Signal frame. | `tests/round_trip.rs` length-prefixed frame tests per variant. |
-| Router forwarding can carry a contract-owned object without knowing the inner contract. | `router_forward_request_carries_contract_object_octets_without_decoding_them` wraps `signal-mirror` / `NotifyObject` metadata plus opaque octets, round-trips the router frame, and asserts the octets are unchanged. |
-| Manager-written router bootstrap uses router-owned typed vocabulary, not duplicated private records in `persona`. | `RouterBootstrapDocument` and `RouterBootstrapOperation` live in this crate; `bootstrap_document_owns_line_vocabulary_for_manager_and_router` round-trips the line projection. |
-| Router observation queries are contract-local operation heads, never universal database-action class roots. | `router_request_heads_are_contract_local_operations` and `router_contract_has_no_sema_classification_dependency_or_roots`. |
-| Message ingress remains outside this contract. | This crate carries only the router-facing `MessageSlot` scalar needed to observe a routed message; message submission records remain outside `signal-router`. |
-| Meta router channel policy orders remain out of this ordinary observation contract. | `meta-signal-router` owns `Grant`, `Extend`, `Revoke`, and `Deny`; Orchestrate calls that meta contract; this crate does not define those operations. |
-| Runtime code stays out of the contract. | Source scan: no Kameo, Tokio, socket, or storage code. |
-| Wire enums contain no `Unknown` variant. | `tests/round_trip.rs::router_status_enums_are_closed_no_unknown_variants` exhaustively matches every `RouterDeliveryStatus` and `RouterChannelStatus` variant. Adding an `Unknown` variant breaks the match. |
-| Any record name containing the word `Unknown` represents a positive "entity not in our state" rejection, not a polling-shape escape hatch. | This crate has no such records today; reply absence pivots at the reply variant (`MessageTraceMissing`) and channel absence at the positive `RouterChannelStatus::Missing`. |
-| Slot lookup miss travels as the typed `MessageTraceMissing` reply variant, not a sentinel inside `RouterMessageTrace.status`. | `router_message_trace_missing_reply_round_trips_through_length_prefixed_frame`. |
-| Each variant's Dotos head matches the contract-local verb declared in `schema/router.ethos`. | The current Rust binding and round-trip tests assert each variant's head. |
-| Round-trip witnesses cover every variant in rkyv. | `tests/round_trip.rs` exercises every request and reply variant through `Frame::encode_length_prefixed` / `decode_length_prefixed`. |
-| Round-trip witnesses cover every variant in Dotos. | `examples/canonical.dotos` holds one canonical text example per request/reply variant; round-trip tests parse and re-emit each. |
-| Bootstrap line records round-trip through Dotos using the contract crate. | `bootstrap_register_actor_operation_round_trips_through_dotos_line`, `bootstrap_direct_message_grant_operation_round_trips_through_dotos_line`, and `bootstrap_document_owns_line_vocabulary_for_manager_and_router`. |
-| No stringly-typed dispatch (`match s.as_str()`) for closed-set states. | All status/scope/reason fields are typed closed enums. |
-| Request payloads do not mint router-owned identity, timestamps, or sequence numbers; `router` mints those at the daemon. | `ForwardAccepted(RouterForwardAccepted)` carries the daemon-minted delivery slot; the request side carries only the self-contained `ReplayNonce` and forward `TimestampNanos` it is responsible for, never a router-assigned slot or sequence. |
-| Contract crate dependencies name exact published producer identities. | `Cargo.toml` pins `dotos` and `signal-frame` to their exact published revisions. |
-| The router-to-router forwarding relation has a router-owned contract home. | `ForwardMessage` / `ForwardAccepted` / `ForwardRefused` live on this wire; `router_forward_request_round_trips_through_length_prefixed_frame`, `..._reply_round_trips_..._for_every_reason`. |
-| The forwarding contract carries no contract→contract dependency and stays buildable in isolation. | `ForwardedMessagePayload` is self-contained; `Cargo.toml` has no `signal-message` / `signal-criome` dependency; `nix flake check` passes with no daemon and no network. |
-| Peer attestation is mirrored self-contained, not imported from `signal-criome`. | `RouterPeerAttestation` and `SignatureScheme` are local nouns; the daemon maps to/from criome at the boundary. |
-| `RouterForwardRefusalReason` and `ForwardMarker` are closed, no `Unknown`. | `router_forward_refusal_reason_is_closed_and_exhaustive`, `forward_marker_is_closed_origin_or_forwarded` exhaustively match every variant. |
-| A forwarded message is never re-resolved to a remote route. | First-class `ForwardMarker` (`Origin` / `Forwarded`); `AlreadyForwarded` refusal reason. Daemon enforcement lands in `router` (milestone 2). |
-| An absent `tailnet_listen_address` keeps a router single-host / local-only. | `single_host_router_configuration_has_no_tailnet_listen_address`. |
-| Round-trip witnesses cover every new variant in rkyv and Dotos. | `tests/round_trip.rs` per-variant frame + Dotos tests; `examples/canonical.dotos` + `tests/canonical_examples.rs` for `ForwardMessage`, `ForwardAccepted`, every `ForwardRefused` reason, `RegisterRemoteRouter`, and the extended `RouterDaemonConfiguration`. |
+| Router observations have a router-owned contract home. | This crate exists; the central introspection contract does not define router rows. |
+| The committed Rust projection is the authored schema and nothing else. | `build.rs` asserts `src/generated/signal.rs` equals a fresh `ethos-zero` generation of `ethos/signal.ethos`. |
+| Every request and reply travels as one rkyv Signal frame. | `tests/contract.rs::queries_round_trip_through_received_bytes` and `responses_round_trip_through_received_bytes` restore each head from fresh peer bytes. |
+| Every contract head has a canonical Datom text. | `tests/contract.rs::every_canonical_datom_line_actualizes_into_a_contract_head` actualizes every line of `examples/canonical.datom`. |
+| A bare head stays a bare head. | `tests/contract.rs::bare_heads_cross_the_wire_as_bare_heads` carries `RouterObservationScope` and `RouterObservationUnimplementedReason` tags over the wire. |
+| Peer-supplied Datom text is bounded before it is read. | `tests/contract.rs::peer_text_beyond_the_extent_is_refused`; the reader budget is one mebibyte of extent and 256 levels of descent. |
+| Router forwarding carries a contract-owned object without knowing the inner contract. | `RoutedContractObject` carries a contract name, an operation name, a declared size, and opaque octets; the forwarding round trips leave the octets unchanged. |
+| Manager-written router bootstrap uses router-owned typed vocabulary. | `RouterBootstrapDocument` and `RouterBootstrapOperation` live in this crate and round-trip as Datom text. |
+| Meta router channel policy orders stay out of this ordinary contract. | `meta-signal-router` owns `Grant`, `Extend`, `Revoke`, and `Deny`. |
+| Runtime code stays out of the contract. | No Kameo, Tokio, socket, or storage code; no build-time codegen beyond the ethos assertion. |
 
-## 6 · Dotos codec shape on interface operation heads
-
-The binding emits a root variant's Dotos head as the operation
-head. For example, `Input::Summary(RouterSummaryQuery)` encodes as
-`(Summary prototype)`, while struct payload roots keep their record body,
-such as `(MessageTrace (prototype 7))`. Tests and canonical examples carry
-the operation heads. The same shape applies to reply variants:
-`Output::MessageTraceMissing(RouterMessageTraceMissing { .. })` encodes as
-`(MessageTraceMissing (prototype 99))`.
-
-## 7 · Versioning
-
-`signal_frame::Frame` carries the protocol version. Interface-level
-changes are breaking; coordinate `router` and observation
-consumers (`introspect`) on the upgrade.
-
-This crate depends on the exact published `signal-frame` revision required by
-its current wire binding.
-
-## 8 · Non-ownership
-
-- No router daemon — that is `router`.
-- No introspection daemon — that is `introspect`.
-- No router sema-engine table layout — `router` owns it.
-- No subscription accounting — there is no subscription today.
-- No transport (UDS path, reconnect, timeouts).
-- No meta channel-policy orders; those live in `meta-signal-router`.
-
-## 9 · Code map
+## 6 · Layout
 
 ```text
+ethos/
+└── signal.ethos          — the schema authority
 src/
-├── lib.rs                — interface re-export + small contract helpers
-└── binding.rs            — current Rust wire binding
-schema/
-└── router.ethos          — authored interface roots and payload records
+├── lib.rs                — re-export plus the Signal frame surface
+└── generated/signal.rs   — the checked-in Ethos Zero projection
 examples/
-└── canonical.dotos         — one canonical example per request/reply variant
+└── canonical.datom       — one Datom line per contract head
 tests/
-└── round_trip.rs          — per-variant frame round trips + Dotos witnesses
-                             + closed-enum + operation-head witnesses
-                             + bootstrap line-projection witness
-                             + canonical examples parser
+└── contract.rs           — frame round trips, Datom round trips, canonical lines
 ```
-
-## See also
-
-- `meta-signal-router/ARCHITECTURE.md` — meta router
-  channel policy orders.
-- `~/primary/skills/component-triad.md`.
-- `signal-message/ARCHITECTURE.md` — companion crate that carries message
-  ingress records outside this observation contract.
-- `signal-introspect/ARCHITECTURE.md` — the central
-  introspection envelope that wraps router observations.

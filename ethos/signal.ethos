@@ -1,0 +1,186 @@
+; The ordinary Router Signal contract.
+;
+; Peer-callable router observations, encrypted peer sessions, cross-host
+; message forwarding, actor registration, and the router-owned bootstrap and
+; daemon configuration records. Routing itself, storage, sockets, and policy
+; live in the `router` runtime; meta policy orders live in
+; `meta-signal-router`.
+;
+; One request is one frame carrying the rkyv archive of Query; one reply is
+; one frame of Response. The contract carries no envelope, no exchange
+; identifier, no lane and no route code: the Query and Response heads are the
+; discrimination, and the connection is the correlation.
+Signal
+[]
+[ Summary.RouterSummaryQuery
+  MessageTrace.RouterMessageTraceQuery
+  ChannelState.RouterChannelStateQuery
+  ForwardMessage.RouterForwardRequest
+  SubmitRoutedObjects.ForwardedMessagePayload
+  SessionClientHello.RouterSessionClientHello
+  SessionClientProof.RouterSessionClientProof
+  SessionData.RouterSessionData
+  RegisterActor.Actor ]
+[ Summary.RouterSummary
+  MessageTrace.RouterMessageTrace
+  MessageTraceMissing.RouterMessageTraceMissing
+  ChannelState.RouterChannelState
+  ForwardAccepted.RouterForwardAccepted
+  ForwardRefused.RouterForwardRefused
+  Unimplemented.RouterObservationUnimplemented
+  RoutedObjectsAccepted.RouterRoutedObjectsAccepted
+  RoutedObjectsRefused.RouterRoutedObjectsRefused
+  SessionServerHello.RouterSessionServerHello
+  SessionAccepted.RouterSessionAccepted
+  SessionRefused.RouterSessionRefused
+  SessionData.RouterSessionData
+  ActorRegistered.ActorRegistered
+  ActorRegistrationRefused.ActorRegistrationRefused ]
+[ ObservationIdentifier.String
+  ActorIdentifier.String
+  EngineIdentifier.String
+  ChannelIdentifier.String
+  MessageSlot.Integer
+  WirePath.String
+  SocketMode.Integer
+  UnixUserIdentifier.Integer
+  OwnerIdentity.[ UnixUser.UnixUserIdentifier ]
+
+  TailnetAddress.String
+  CriomeHostId.String
+  HostName.String
+  TimestampNanos.Integer
+  ReplayNonce.String
+  ContractName.String
+  ContractOperation.String
+  ContractPayloadSize.Integer
+
+  Engine.EngineIdentifier
+  Channel.ChannelIdentifier
+
+  EndpointKind.[ Human HarnessSocket PtySocket RemoteRouter ComponentSocket ]
+  Target.String
+  Auxiliary.Option<String>
+  EndpointTransport.{ EndpointKind Target Auxiliary }
+
+  Name.ActorIdentifier
+  Process.Integer
+  Endpoint.Option<EndpointTransport>
+  Actor.{ Name Process Endpoint }
+  Home.Option<CriomeHostId>
+  RegisterActor.{ Actor Home }
+  RegisteredActor.ActorIdentifier
+  ActorRegistrationDisposition.[ Registered EndpointUpdated ]
+  ActorRegistered.{ RegisteredActor ActorRegistrationDisposition }
+  ActorRegistrationRefusalReason.[ ProcessIdentifierOutOfRange RemoteRouterEndpointNotLocal ]
+  ActorRegistrationRefused.{ RegisteredActor ActorRegistrationRefusalReason }
+
+  SourceActor.ActorIdentifier
+  DestinationActor.ActorIdentifier
+  Requester.ActorIdentifier
+  Identity.CriomeHostId
+  Address.TailnetAddress
+  GrantDirectMessage.{ SourceActor DestinationActor }
+  InstallStructuralChannels.{ Requester }
+  RegisterRemoteRouter.{ Identity Address }
+  RouterBootstrapOperation.[ RegisterActor.RegisterActor
+                             GrantDirectMessage.GrantDirectMessage
+                             InstallStructuralChannels.InstallStructuralChannels
+                             RegisterRemoteRouter.RegisterRemoteRouter ]
+  RouterBootstrapDocument.Vector<RouterBootstrapOperation>
+
+  RouterObservationScope.[ Summary MessageTrace ChannelState ]
+  RouterSummaryQuery.{ Engine }
+  RouterMessageTraceQuery.{ Engine MessageSlot }
+  RouterChannelStateQuery.{ Engine Channel }
+  AcceptedMessages.Integer
+  RoutedMessages.Integer
+  DeferredMessages.Integer
+  FailedMessages.Integer
+  RouterSummary.{ Engine AcceptedMessages RoutedMessages DeferredMessages FailedMessages }
+  RouterDeliveryStatus.[ Accepted Routed Delivered Deferred Failed ForwardedRemote ]
+  DeliveryStatus.RouterDeliveryStatus
+  RouterMessageTrace.{ Engine MessageSlot DeliveryStatus }
+  RouterMessageTraceMissing.{ Engine MessageSlot }
+  RouterChannelStatus.[ Installed Missing Disabled ]
+  ChannelStatus.RouterChannelStatus
+  RouterChannelState.{ Engine Channel ChannelStatus }
+  RouterObservationUnimplementedReason.[ NotInPrototypeScope RouterStoreUnavailable MessageTraceUnavailable ]
+  ObservationScope.RouterObservationScope
+  ObservationReason.RouterObservationUnimplementedReason
+  RouterObservationUnimplemented.{ ObservationScope ObservationReason }
+
+  SignatureScheme.[ Bls12_381MinPk Bls12_381MinSig ]
+  Signer.CriomeHostId
+  Scheme.SignatureScheme
+  PublicKey.String
+  Signature.String
+  ContentDigest.String
+  IssuedAt.TimestampNanos
+  Nonce.ReplayNonce
+  AttestationIssuedAt.TimestampNanos
+  RouterPeerAttestation.{ Signer Scheme PublicKey Signature ContentDigest IssuedAt Nonce AttestationIssuedAt }
+  Octet.Integer
+  PayloadOctets.Vector<Octet>
+  RoutedContractObject.{ ContractName ContractOperation ContractPayloadSize PayloadOctets }
+  Body.String
+  Attachment.String
+  Attachments.Vector<Attachment>
+  RoutedObjects.Vector<RoutedContractObject>
+  ForwardedMessagePayload.{ SourceActor DestinationActor Body Attachments RoutedObjects }
+  ForwardMarker.[ Origin Forwarded ]
+  Submission.ForwardedMessagePayload
+  Attestation.RouterPeerAttestation
+  RouterForwardRequest.{ Submission Attestation ForwardMarker Nonce IssuedAt }
+  RouterForwardAccepted.{ MessageSlot }
+  RouterForwardRefusalReason.[ UnknownPeer AttestationInvalid ReplayDetected ClockSkew
+                               RecipientUnknown ChannelUnauthorized AlreadyForwarded
+                               MirrorDisabled SessionRequired ]
+  ForwardRefusalReason.RouterForwardRefusalReason
+  RouterForwardRefused.{ ForwardRefusalReason }
+  RouterRoutedObjectsAccepted.{ MessageSlot }
+  RouterRoutedObjectsRefused.{ ForwardRefusalReason }
+
+  SessionChallenge.String
+  EphemeralPublicKey.String
+  ProofSigner.CriomeHostId
+  ProofScheme.SignatureScheme
+  ProofPublicKey.String
+  ProofSignature.String
+  ProofDigest.String
+  ProofChallengeNonce.ReplayNonce
+  ProofAttestationIssuedAt.TimestampNanos
+  RouterIdentityProof.{ ProofSigner ProofScheme ProofPublicKey ProofSignature ProofDigest
+                        ProofChallengeNonce ProofAttestationIssuedAt }
+  InitiatorChallenge.SessionChallenge
+  InitiatorEphemeralKey.EphemeralPublicKey
+  RouterSessionClientHello.{ InitiatorChallenge InitiatorEphemeralKey }
+  ResponderChallenge.SessionChallenge
+  ResponderEphemeralKey.EphemeralPublicKey
+  ResponderProof.RouterIdentityProof
+  RouterSessionServerHello.{ ResponderChallenge ResponderEphemeralKey ResponderProof }
+  InitiatorProof.RouterIdentityProof
+  RouterSessionClientProof.{ InitiatorProof }
+  KeyConfirmation.Vector<Octet>
+  RouterSessionAccepted.{ KeyConfirmation }
+  SessionRefusalReason.[ IdentityProofInvalid ChallengeMismatch HandshakeMalformed SessionCipherFailure ]
+  RefusalReason.SessionRefusalReason
+  RouterSessionRefused.{ RefusalReason }
+  SealedOctets.Vector<Octet>
+  RouterSessionData.{ SealedOctets }
+
+  RouterSocketPath.WirePath
+  RouterSocketMode.SocketMode
+  MetaRouterSocketPath.WirePath
+  MetaRouterSocketMode.SocketMode
+  SupervisionSocketPath.WirePath
+  SupervisionSocketMode.SocketMode
+  StorePath.WirePath
+  BootstrapPath.Option<WirePath>
+  TailnetListenAddress.Option<TailnetAddress>
+  RouterIdentity.CriomeHostId
+  CriomeSocketPath.Option<WirePath>
+  RouterDaemonConfiguration.{ RouterSocketPath RouterSocketMode MetaRouterSocketPath
+                              MetaRouterSocketMode SupervisionSocketPath SupervisionSocketMode
+                              StorePath BootstrapPath OwnerIdentity TailnetListenAddress
+                              RouterIdentity CriomeSocketPath } ]
