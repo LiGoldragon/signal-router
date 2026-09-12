@@ -10,8 +10,12 @@
 ; one frame of Response. The contract carries no envelope, no exchange
 ; identifier, no lane and no route code: the Query and Response heads are the
 ; discrimination, and the connection is the correlation.
+;
+; `SocketPath` is the shared taxonomy's, imported from `signal`: a Unix socket
+; path means the same thing estate-wide. Everything else here is the router's
+; own.
 Signal
-[]
+[ signal:[ SocketPath ] ]
 [ Summary.RouterSummaryQuery
   MessageTrace.RouterMessageTraceQuery
   ChannelState.RouterChannelStateQuery
@@ -41,7 +45,7 @@ Signal
   EngineIdentifier.String
   ChannelIdentifier.String
   MessageSlot.Integer
-  WirePath.String
+  FilesystemPath.String
   SocketMode.Integer
   UnixUserIdentifier.Integer
   OwnerIdentity.[ UnixUser.UnixUserIdentifier ]
@@ -168,17 +172,17 @@ Signal
   SealedOctets.Vector<Octet>
   RouterSessionData.{ SealedOctets }
 
-  RouterSocketPath.WirePath
+  RouterSocketPath.SocketPath
   RouterSocketMode.SocketMode
-  MetaRouterSocketPath.WirePath
+  MetaRouterSocketPath.SocketPath
   MetaRouterSocketMode.SocketMode
-  SupervisionSocketPath.WirePath
+  SupervisionSocketPath.SocketPath
   SupervisionSocketMode.SocketMode
-  StorePath.WirePath
-  BootstrapPath.Option<WirePath>
+  StorePath.FilesystemPath
+  BootstrapPath.Option<FilesystemPath>
   TailnetListenAddress.Option<TailnetAddress>
   RouterIdentity.CriomeHostId
-  CriomeSocketPath.Option<WirePath>
+  CriomeSocketPath.Option<SocketPath>
   RouterDaemonConfiguration.{ RouterSocketPath RouterSocketMode MetaRouterSocketPath
                               MetaRouterSocketMode SupervisionSocketPath SupervisionSocketMode
                               StorePath BootstrapPath OwnerIdentity TailnetListenAddress

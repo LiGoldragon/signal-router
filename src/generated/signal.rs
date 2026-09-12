@@ -10,7 +10,7 @@ pub type ChannelIdentifier = String;
 #[rustfmt::skip]
 pub type MessageSlot = i64;
 #[rustfmt::skip]
-pub type WirePath = String;
+pub type FilesystemPath = String;
 #[rustfmt::skip]
 pub type SocketMode = i64;
 #[rustfmt::skip]
@@ -623,27 +623,27 @@ pub struct RouterSessionData {
     pub sealed_octets: SealedOctets,
 }
 #[rustfmt::skip]
-pub type RouterSocketPath = WirePath;
+pub type RouterSocketPath = signal::SocketPath;
 #[rustfmt::skip]
 pub type RouterSocketMode = SocketMode;
 #[rustfmt::skip]
-pub type MetaRouterSocketPath = WirePath;
+pub type MetaRouterSocketPath = signal::SocketPath;
 #[rustfmt::skip]
 pub type MetaRouterSocketMode = SocketMode;
 #[rustfmt::skip]
-pub type SupervisionSocketPath = WirePath;
+pub type SupervisionSocketPath = signal::SocketPath;
 #[rustfmt::skip]
 pub type SupervisionSocketMode = SocketMode;
 #[rustfmt::skip]
-pub type StorePath = WirePath;
+pub type StorePath = FilesystemPath;
 #[rustfmt::skip]
-pub type BootstrapPath = std::option::Option<WirePath>;
+pub type BootstrapPath = std::option::Option<FilesystemPath>;
 #[rustfmt::skip]
 pub type TailnetListenAddress = std::option::Option<TailnetAddress>;
 #[rustfmt::skip]
 pub type RouterIdentity = CriomeHostId;
 #[rustfmt::skip]
-pub type CriomeSocketPath = std::option::Option<WirePath>;
+pub type CriomeSocketPath = std::option::Option<signal::SocketPath>;
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(

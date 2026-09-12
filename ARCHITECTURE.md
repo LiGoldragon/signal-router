@@ -43,8 +43,10 @@ and re-exports the portable frame — `Signal<T>`, `Signalizable`, `ByteViewable
 other contract's frame. A vendored copy of those four would be a fork of the
 wire type, not a convenience.
 
-The crate depends on `signal` for the frame, `rkyv` for the archive, and, under
-the `datom` feature, on `protos` and `datom-codec` for the text edge. It
+The crate depends on `signal` for the frame and for `SocketPath` — a Unix
+socket path means the same thing estate-wide, so the shared taxonomy owns it —
+`rkyv` for the archive, and, under the `datom` feature, `protos` and
+`datom-codec` for the text edge. It
 carries no envelope crate, no build-time bootstrap codegen, and no dependency
 on a sibling component contract.
 
