@@ -23,7 +23,7 @@ Before changing code in this repo, read:
 `signal-router` is the typed contract `introspect`
 (and any future observation consumer) uses to ask the router what
 happened to a message, a channel, or an engine — without opening the
-router's sema-engine store directly.
+router's memory-engine store directly.
 
 The crate carries the router's observation request/reply vocabulary
 and nothing else. It is the contract for **router-owned facts that

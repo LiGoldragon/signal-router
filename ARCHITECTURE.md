@@ -185,10 +185,10 @@ present reply.
 ## 4 · Daemon Lowering Boundary
 
 Each contract-local operation lowers inside `router` into a daemon-owned Nexus
-command and any SEMA reads or writes needed to answer it. All current live
+command and any MEMORY reads or writes needed to answer it. All current live
 request variants are observation reads. The public wire carries only the
 contract-local operation head; it never carries `Assert`, `Mutate`, `Retract`,
-`Match`, `Subscribe`, or `Validate`, and this crate has no `signal-sema`
+`Match`, `Subscribe`, or `Validate`, and this crate has no `signal-memory`
 dependency.
 
 Write-shaped router state changes belong on the authority surface that

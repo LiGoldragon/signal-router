@@ -3,7 +3,7 @@
 Ordinary Signal contract for Persona router-owned observations and relations.
 
 The first use is introspection: `introspect` can ask the router for a typed
-summary, message trace, or channel state without opening `router.sema`. The
+summary, message trace, or channel state without opening `router.memory`. The
 contract also carries the encrypted authenticated peer session handshake, the
 router-to-router forwarding relation, actor registration, and the router-owned
 bootstrap and daemon configuration records.
